@@ -7,9 +7,10 @@ public class Fireball : MonoBehaviour
     public float lifetime = 3f;
 
     [Header("On Hit Player")]
-    public float stunDuration = 0.25f;   // сколько времени игрок не двигается
-    public int blinkCount = 6;       // сколько раз мигать
-    public float blinkInterval = 0.06f;  // период мигания
+    public int damage = 10;           // урон по ТЗ
+    public float stunDuration = 0.25f;  // сколько времени игрок не двигается
+    public int blinkCount = 6;      // сколько раз мигать
+    public float blinkInterval = 0.06f; // период мигания
 
     private Vector2 direction;
 
@@ -29,30 +30,31 @@ public class Fireball : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // 1) Попали в игрока -> оглушаем и уничтожаемся
+        // 1) Попали в игрока -> оглушаем, наносим урон, уничтожаемся
         if (other.CompareTag("Player"))
         {
+            // оглушение/мигание
             var pm = other.GetComponent<PlayerMovement>();
             if (pm != null)
                 pm.OnHit(stunDuration, blinkCount, blinkInterval);
+
+            // урон и обновление полосы
+            var hp = other.GetComponent<PlayerHealth>();
+            if (hp != null)
+                hp.TakeDamage(damage); // -10 от 50
 
             Destroy(gameObject);
             return;
         }
 
-        // 2) Пересекли НИЖНИЙ край синей полосы -> дальше не летим
-        //    (это тонкий триггер LaneBottom с тегом PlayerLaneLimit)
+        // 2) Пересекли нижний край синей полосы -> дальше не летим
+        //    Это тонкий триггер LaneBottom с тегом PlayerLaneLimit
         if (other.CompareTag("PlayerLaneLimit"))
         {
             Destroy(gameObject);
             return;
         }
 
-        // Дополнительно, если есть бордюры с тегом Border — тоже гасим
-        if (other.CompareTag("Border"))
-        {
-            Destroy(gameObject);
-            return;
-        }
+        if (other.CompareTag("Border")) { Destroy(gameObject); return; }
     }
 }

@@ -434,7 +434,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 3
-  m_Sprite: {fileID: 7677165299835509501, guid: 2e387778eb823ca4cbdf96f84f1db10a, type: 3}
+  m_Sprite: {fileID: 6145091430104463722, guid: 3133843897eadd3478f47f104c9ce85d, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -454,8 +454,8 @@ Transform:
   m_GameObject: {fileID: 201944535}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.72, y: -5.8154, z: 0}
-  m_LocalScale: {x: 0.05, y: 0.05, z: 1}
+  m_LocalPosition: {x: -1.3033, y: -5.0804, z: 0}
+  m_LocalScale: {x: 0.16874078, y: 0.16119234, z: 1.9650939}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -521,9 +521,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b77ba9352f0bd4408f178281fd6679a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  speed: 20
+  speed: 10
   leftLimit: -9.5
-  rightLimit: 9.5
+  rightLimit: 9
 --- !u!61 &201944541
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -558,17 +558,17 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 18.95}
+  m_Offset: {x: 0, y: -0.88}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.5, y: 0.2}
-    oldSize: {x: 30.946527, y: 79.40625}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 8.114097, y: 15.6}
     newSize: {x: 30.946527, y: 79.40625}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 7.18, y: 25.1}
+  m_Size: {x: 3.52, y: 3.78}
   m_EdgeRadius: 0
 --- !u!114 &201944542
 MonoBehaviour:
@@ -585,6 +585,10 @@ MonoBehaviour:
   maxHealth: 50
   currentHealth: 0
   barFill: {fileID: 725129547}
+  aliveSprite: {fileID: 6145091430104463722, guid: 3133843897eadd3478f47f104c9ce85d, type: 3}
+  deadSprite: {fileID: 4893574615064217924, guid: a898a11e3215c994da3c514d8d83a1bf, type: 3}
+  disableMovementOnDeath: 1
+  isDead: 0
 --- !u!1 &347501308
 GameObject:
   m_ObjectHideFlags: 0
@@ -642,7 +646,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 7482667652216324306, guid: 24f25088f2f5b3f4280478bf211e0f80, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1070,7 +1074,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 7482667652216324306, guid: 24f25088f2f5b3f4280478bf211e0f80, type: 3}
   m_Type: 3
   m_PreserveAspect: 0
   m_FillCenter: 1

@@ -1,0 +1,1105 @@
+fileFormatVersion: 2
+guid: a898a11e3215c994da3c514d8d83a1bf
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 4893574615064217924
+    second: dead_witch_0
+  - first:
+      213: -1312826346069884639
+    second: dead_witch_1
+  - first:
+      213: 4345389091232272522
+    second: dead_witch_2
+  - first:
+      213: -8682058145906514734
+    second: dead_witch_3
+  - first:
+      213: 2595760672567540067
+    second: dead_witch_4
+  - first:
+      213: -2034451111397304217
+    second: dead_witch_5
+  - first:
+      213: -174870878523831603
+    second: dead_witch_6
+  - first:
+      213: -4729716019690478676
+    second: dead_witch_7
+  - first:
+      213: -4890606574031775625
+    second: dead_witch_8
+  - first:
+      213: -4182387723425922682
+    second: dead_witch_9
+  - first:
+      213: -3855435236241404013
+    second: dead_witch_10
+  - first:
+      213: -8124054166721047960
+    second: dead_witch_11
+  - first:
+      213: -3825751367252557734
+    second: dead_witch_12
+  - first:
+      213: -3553516427245965638
+    second: dead_witch_13
+  - first:
+      213: -4871473231951936536
+    second: dead_witch_14
+  - first:
+      213: 1026758560637622508
+    second: dead_witch_15
+  - first:
+      213: -1641780997120613134
+    second: dead_witch_16
+  - first:
+      213: -4487013611360685765
+    second: dead_witch_17
+  - first:
+      213: 598678441803775698
+    second: dead_witch_18
+  - first:
+      213: 5485063960915082201
+    second: dead_witch_19
+  - first:
+      213: -9209169587099917606
+    second: dead_witch_20
+  - first:
+      213: -3978392285276369610
+    second: dead_witch_21
+  - first:
+      213: 6798918349547705025
+    second: dead_witch_22
+  - first:
+      213: 6293009874044720591
+    second: dead_witch_23
+  - first:
+      213: 907072694653520125
+    second: dead_witch_24
+  - first:
+      213: -320815294605537425
+    second: dead_witch_25
+  - first:
+      213: 3412047083203487354
+    second: dead_witch_26
+  - first:
+      213: -1682324053061289620
+    second: dead_witch_27
+  - first:
+      213: -8155812442084421416
+    second: dead_witch_28
+  - first:
+      213: -7885407769719301283
+    second: dead_witch_29
+  - first:
+      213: -1372780640887146718
+    second: dead_witch_30
+  - first:
+      213: 8387733299440821075
+    second: dead_witch_31
+  - first:
+      213: -4163069453556861708
+    second: dead_witch_32
+  - first:
+      213: 6171342872591099016
+    second: dead_witch_33
+  - first:
+      213: 7333521498729092952
+    second: dead_witch_34
+  - first:
+      213: 593118290753272042
+    second: dead_witch_35
+  - first:
+      213: 794259271962720085
+    second: dead_witch_36
+  - first:
+      213: 2511021166590447469
+    second: dead_witch_37
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 3
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 60
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: dead_witch_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 209
+        width: 1024
+        height: 815
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 44985c46f2879e340800000000000000
+      internalID: 4893574615064217924
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_1
+      rect:
+        serializedVersion: 2
+        x: 244
+        y: 995
+        width: 8
+        height: 13
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1210bb6d467e7cde0800000000000000
+      internalID: -1312826346069884639
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_2
+      rect:
+        serializedVersion: 2
+        x: 250
+        y: 1007
+        width: 11
+        height: 17
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a80d1c90b5ced4c30800000000000000
+      internalID: 4345389091232272522
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_3
+      rect:
+        serializedVersion: 2
+        x: 477
+        y: 1000
+        width: 16
+        height: 24
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2d4a4f5ad12238780800000000000000
+      internalID: -8682058145906514734
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_4
+      rect:
+        serializedVersion: 2
+        x: 812
+        y: 1007
+        width: 18
+        height: 17
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 369315a249ef50420800000000000000
+      internalID: 2595760672567540067
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_5
+      rect:
+        serializedVersion: 2
+        x: 814
+        y: 817
+        width: 77
+        height: 191
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 768d3404e7d24c3e0800000000000000
+      internalID: -2034451111397304217
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_6
+      rect:
+        serializedVersion: 2
+        x: 107
+        y: 1000
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dcac60cccdbb29df0800000000000000
+      internalID: -174870878523831603
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_7
+      rect:
+        serializedVersion: 2
+        x: 471
+        y: 984
+        width: 10
+        height: 17
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ca3efd5d65cac5eb0800000000000000
+      internalID: -4729716019690478676
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_8
+      rect:
+        serializedVersion: 2
+        x: 130
+        y: 988
+        width: 10
+        height: 7
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 77855a28b33112cb0800000000000000
+      internalID: -4890606574031775625
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_9
+      rect:
+        serializedVersion: 2
+        x: 139
+        y: 982
+        width: 9
+        height: 8
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6814e38568c25f5c0800000000000000
+      internalID: -4182387723425922682
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_10
+      rect:
+        serializedVersion: 2
+        x: 150
+        y: 964
+        width: 21
+        height: 18
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 39f8e41641ebe7ac0800000000000000
+      internalID: -3855435236241404013
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_11
+      rect:
+        serializedVersion: 2
+        x: 237
+        y: 971
+        width: 6
+        height: 14
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8625f8847cf814f80800000000000000
+      internalID: -8124054166721047960
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_12
+      rect:
+        serializedVersion: 2
+        x: 459
+        y: 906
+        width: 12
+        height: 70
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a5042f3b66338eac0800000000000000
+      internalID: -3825751367252557734
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_13
+      rect:
+        serializedVersion: 2
+        x: 468
+        y: 975
+        width: 6
+        height: 10
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: abe2d7203af5faec0800000000000000
+      internalID: -3553516427245965638
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_14
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 1024
+        height: 817
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8e34eacd7ec056cb0800000000000000
+      internalID: -4871473231951936536
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_15
+      rect:
+        serializedVersion: 2
+        x: 446
+        y: 833
+        width: 8
+        height: 8
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ce895ec8877cf3e00800000000000000
+      internalID: 1026758560637622508
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_16
+      rect:
+        serializedVersion: 2
+        x: 455
+        y: 852
+        width: 8
+        height: 9
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2f4a3a3b1e83739e0800000000000000
+      internalID: -1641780997120613134
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_17
+      rect:
+        serializedVersion: 2
+        x: 459
+        y: 803
+        width: 22
+        height: 34
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b31f088c4eceab1c0800000000000000
+      internalID: -4487013611360685765
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_18
+      rect:
+        serializedVersion: 2
+        x: 460
+        y: 886
+        width: 6
+        height: 20
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2def562fedeee4800800000000000000
+      internalID: 598678441803775698
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_19
+      rect:
+        serializedVersion: 2
+        x: 460
+        y: 861
+        width: 12
+        height: 26
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9dbf3a08c9cde1c40800000000000000
+      internalID: 5485063960915082201
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_20
+      rect:
+        serializedVersion: 2
+        x: 472
+        y: 869
+        width: 14
+        height: 11
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ad224948d05723080800000000000000
+      internalID: -9209169587099917606
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_21
+      rect:
+        serializedVersion: 2
+        x: 485
+        y: 869
+        width: 90
+        height: 21
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 63d82f28b49e9c8c0800000000000000
+      internalID: -3978392285276369610
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_22
+      rect:
+        serializedVersion: 2
+        x: 555
+        y: 886
+        width: 8
+        height: 7
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1c21da9773c9a5e50800000000000000
+      internalID: 6798918349547705025
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_23
+      rect:
+        serializedVersion: 2
+        x: 563
+        y: 889
+        width: 83
+        height: 15
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fc5167e7323455750800000000000000
+      internalID: 6293009874044720591
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_24
+      rect:
+        serializedVersion: 2
+        x: 574
+        y: 817
+        width: 30
+        height: 54
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: df887465fc1969c00800000000000000
+      internalID: 907072694653520125
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_25
+      rect:
+        serializedVersion: 2
+        x: 646
+        y: 879
+        width: 13
+        height: 12
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f6f4686703c3c8bf0800000000000000
+      internalID: -320815294605537425
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_26
+      rect:
+        serializedVersion: 2
+        x: 659
+        y: 816
+        width: 25
+        height: 63
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a76604f8eb60a5f20800000000000000
+      internalID: 3412047083203487354
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_27
+      rect:
+        serializedVersion: 2
+        x: 806
+        y: 805
+        width: 10
+        height: 13
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c69bf24ef2f27a8e0800000000000000
+      internalID: -1682324053061289620
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_28
+      rect:
+        serializedVersion: 2
+        x: 893
+        y: 816
+        width: 70
+        height: 104
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8d0d8d69bcbb0de80800000000000000
+      internalID: -8155812442084421416
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_29
+      rect:
+        serializedVersion: 2
+        x: 219
+        y: 0
+        width: 138
+        height: 52
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d5b96c08967619290800000000000000
+      internalID: -7885407769719301283
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_30
+      rect:
+        serializedVersion: 2
+        x: 358
+        y: 9
+        width: 8
+        height: 10
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2277369c747e2fce0800000000000000
+      internalID: -1372780640887146718
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_31
+      rect:
+        serializedVersion: 2
+        x: 364
+        y: 16
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 353a2e7eef6376470800000000000000
+      internalID: 8387733299440821075
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_32
+      rect:
+        serializedVersion: 2
+        x: 377
+        y: 0
+        width: 18
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4f4b67d836ec936c0800000000000000
+      internalID: -4163069453556861708
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_33
+      rect:
+        serializedVersion: 2
+        x: 430
+        y: 11
+        width: 7
+        height: 6
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8846eeb35a305a550800000000000000
+      internalID: 6171342872591099016
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_34
+      rect:
+        serializedVersion: 2
+        x: 952
+        y: 0
+        width: 15
+        height: 23
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 857107cc2f6e5c560800000000000000
+      internalID: 7333521498729092952
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_35
+      rect:
+        serializedVersion: 2
+        x: 967
+        y: 10
+        width: 20
+        height: 14
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ae8b22661fd2b3800800000000000000
+      internalID: 593118290753272042
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_36
+      rect:
+        serializedVersion: 2
+        x: 344
+        y: 1
+        width: 9
+        height: 8
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 557f5e48996c50b00800000000000000
+      internalID: 794259271962720085
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dead_witch_37
+      rect:
+        serializedVersion: 2
+        x: 392
+        y: 0
+        width: 15
+        height: 13
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d6f4c127270f8d220800000000000000
+      internalID: 2511021166590447469
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 4226e148f6151014fa33a10f9dd7c051
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      dead_witch_0: 4893574615064217924
+      dead_witch_1: -1312826346069884639
+      dead_witch_10: -3855435236241404013
+      dead_witch_11: -8124054166721047960
+      dead_witch_12: -3825751367252557734
+      dead_witch_13: -3553516427245965638
+      dead_witch_14: -4871473231951936536
+      dead_witch_15: 1026758560637622508
+      dead_witch_16: -1641780997120613134
+      dead_witch_17: -4487013611360685765
+      dead_witch_18: 598678441803775698
+      dead_witch_19: 5485063960915082201
+      dead_witch_2: 4345389091232272522
+      dead_witch_20: -9209169587099917606
+      dead_witch_21: -3978392285276369610
+      dead_witch_22: 6798918349547705025
+      dead_witch_23: 6293009874044720591
+      dead_witch_24: 907072694653520125
+      dead_witch_25: -320815294605537425
+      dead_witch_26: 3412047083203487354
+      dead_witch_27: -1682324053061289620
+      dead_witch_28: -8155812442084421416
+      dead_witch_29: -7885407769719301283
+      dead_witch_3: -8682058145906514734
+      dead_witch_30: -1372780640887146718
+      dead_witch_31: 8387733299440821075
+      dead_witch_32: -4163069453556861708
+      dead_witch_33: 6171342872591099016
+      dead_witch_34: 7333521498729092952
+      dead_witch_35: 593118290753272042
+      dead_witch_36: 794259271962720085
+      dead_witch_37: 2511021166590447469
+      dead_witch_4: 2595760672567540067
+      dead_witch_5: -2034451111397304217
+      dead_witch_6: -174870878523831603
+      dead_witch_7: -4729716019690478676
+      dead_witch_8: -4890606574031775625
+      dead_witch_9: -4182387723425922682
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

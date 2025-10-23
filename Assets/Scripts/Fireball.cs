@@ -1,4 +1,4 @@
-using UnityEngine;
+п»їusing UnityEngine;
 
 public class Fireball : MonoBehaviour
 {
@@ -7,15 +7,15 @@ public class Fireball : MonoBehaviour
     public float lifetime = 3f;
 
     [Header("On Hit Player")]
-    public int damage = 10;           // урон по ТЗ
-    public float stunDuration = 0.25f;  // сколько времени игрок не двигается
-    public int blinkCount = 6;      // сколько раз мигать
-    public float blinkInterval = 0.06f; // период мигания
+    public int damage = 10;             // СѓСЂРѕРЅ РїРѕ РўР—
+    public float stunDuration = 0.25f;  // СЃРєРѕР»СЊРєРѕ РІСЂРµРјРµРЅРё РёРіСЂРѕРє РЅРµ РґРІРёРіР°РµС‚СЃСЏ
+    public int blinkCount = 6;          // СЃРєРѕР»СЊРєРѕ СЂР°Р· РјРёРіР°С‚СЊ
+    public float blinkInterval = 0.06f; // РїРµСЂРёРѕРґ РјРёРіР°РЅРёСЏ
 
     private Vector2 direction;
 
     /// <summary>
-    /// Вызывается врагом при создании снаряда.
+    /// Р’С‹Р·С‹РІР°РµС‚СЃСЏ РІСЂР°РіРѕРј РїСЂРё СЃРѕР·РґР°РЅРёРё СЃРЅР°СЂСЏРґР°.
     /// </summary>
     public void Init(Vector2 dir)
     {
@@ -30,31 +30,40 @@ public class Fireball : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // 1) Попали в игрока -> оглушаем, наносим урон, уничтожаемся
+        // 1) РџРѕРїР°Р»Рё РІ РёРіСЂРѕРєР° -> РѕРіР»СѓС€Р°РµРј, РЅР°РЅРѕСЃРёРј СѓСЂРѕРЅ, СѓРЅРёС‡С‚РѕР¶Р°РµРјСЃСЏ
         if (other.CompareTag("Player"))
         {
-            // оглушение/мигание
-            var pm = other.GetComponent<PlayerMovement>();
-            if (pm != null)
-                pm.OnHit(stunDuration, blinkCount, blinkInterval);
-
-            // урон и обновление полосы
             var hp = other.GetComponent<PlayerHealth>();
+            var pm = other.GetComponent<PlayerMovement>();
+
             if (hp != null)
-                hp.TakeDamage(damage); // -10 от 50
+            {
+                hp.TakeDamage(damage); // -10 РѕС‚ 50
+
+                //  РґРѕР±Р°РІР»РµРЅРѕ: РѕРіР»СѓС€Р°РµРј С‚РѕР»СЊРєРѕ РµСЃР»Рё РёРіСЂРѕРє Р¶РёРІ
+                if (!hp.IsDead && pm != null)
+                {
+                    pm.OnHit(stunDuration, blinkCount, blinkInterval);
+                }
+            }
 
             Destroy(gameObject);
             return;
         }
 
-        // 2) Пересекли нижний край синей полосы -> дальше не летим
-        //    Это тонкий триггер LaneBottom с тегом PlayerLaneLimit
+        // 2) РџРµСЂРµСЃРµРєР»Рё РЅРёР¶РЅРёР№ РєСЂР°Р№ СЃРёРЅРµР№ РїРѕР»РѕСЃС‹ -> РґР°Р»СЊС€Рµ РЅРµ Р»РµС‚РёРј
+        //    Р­С‚Рѕ С‚РѕРЅРєРёР№ С‚СЂРёРіРіРµСЂ LaneBottom СЃ С‚РµРіРѕРј PlayerLaneLimit
         if (other.CompareTag("PlayerLaneLimit"))
         {
             Destroy(gameObject);
             return;
         }
 
-        if (other.CompareTag("Border")) { Destroy(gameObject); return; }
+        // 3) РЎС‚РѕР»РєРЅРѕРІРµРЅРёРµ СЃ РєСЂР°СЏРјРё Р·РѕРЅС‹ (РµСЃР»Рё РґРѕР±Р°РІР»РµРЅ С‚РµРі Border)
+        if (other.CompareTag("Border"))
+        {
+            Destroy(gameObject);
+            return;
+        }
     }
 }

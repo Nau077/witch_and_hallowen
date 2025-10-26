@@ -38,6 +38,8 @@ public class EnemyWalker : MonoBehaviour
     private float attackTimer;
     private Sprite idleSpriteBase;           // исходный idle-спрайт
 
+    private PlayerHealth playerHP;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -50,11 +52,25 @@ public class EnemyWalker : MonoBehaviour
         // сохраним настоящий idle-спрайт один раз — сюда всегда вернёмся после атаки
         var sr = GetComponent<SpriteRenderer>();
         if (sr) idleSpriteBase = sr.sprite;
+
+        if (player) playerHP = player.GetComponent<PlayerHealth>();
     }
 
     private void Update()
     {
         if (zoneRenderer) zoneBounds = zoneRenderer.bounds;
+
+        // NEW: если игрок мёртв — стоим, не атакуем, возвращаем idle
+        if (playerHP != null && playerHP.IsDead)
+        {
+            isAttacking = false;
+            isHoldingForAttack = false;
+            rb.linearVelocity = Vector2.zero;
+
+            var sr = GetComponent<SpriteRenderer>();
+            if (sr && idleSpriteBase) sr.sprite = idleSpriteBase;
+            return;
+        }
 
         // если сейчас атакуем или держим паузу — стоим
         if (isAttacking || isHoldingForAttack)
@@ -138,6 +154,8 @@ public class EnemyWalker : MonoBehaviour
     {
         if (fireballPrefab == null || firePoint == null || player == null) return;
 
+        if (playerHP != null && playerHP.IsDead) return;
+
         // не копим таймер, если заняты атакой/холдом
         if (isAttacking || isHoldingForAttack) return;
 
@@ -178,8 +196,22 @@ public class EnemyWalker : MonoBehaviour
         attackTimer = 0f; // сбросим таймер, чтобы в момент атаки не стартовала ещё одна
         rb.linearVelocity = Vector2.zero;
 
+        // если игрок умер между тиками — сразу выходим
+        if (playerHP != null && playerHP.IsDead)
+        {
+            isAttacking = false;
+            yield break;
+        }
+
         // замах
         yield return new WaitForSeconds(preAttackHold);
+
+        // ещё раз на всякий:
+        if (playerHP != null && playerHP.IsDead)
+        {
+            isAttacking = false;
+            yield break;
+        }
 
         var sr = GetComponent<SpriteRenderer>();
 

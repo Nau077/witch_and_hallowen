@@ -131,7 +131,7 @@ GameObject:
   - component: {fileID: 20873478}
   m_Layer: 0
   m_Name: LeftBorder
-  m_TagString: Untagged
+  m_TagString: Border
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -180,7 +180,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.25, y: 14.76}
+  m_Size: {x: 0.25, y: 0.0001}
   m_EdgeRadius: 0
 --- !u!4 &20873479
 Transform:
@@ -191,7 +191,7 @@ Transform:
   m_GameObject: {fileID: 20873477}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -12.184661, y: -1.7271001, z: 0}
+  m_LocalPosition: {x: -0.125, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 9, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -209,7 +209,7 @@ GameObject:
   - component: {fileID: 80310747}
   m_Layer: 0
   m_Name: RightBorder
-  m_TagString: Untagged
+  m_TagString: Border
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -258,7 +258,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.25, y: 14.76}
+  m_Size: {x: 0.25, y: 0.0001}
   m_EdgeRadius: 0
 --- !u!4 &80310748
 Transform:
@@ -269,7 +269,7 @@ Transform:
   m_GameObject: {fileID: 80310746}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 11.66466, y: -1.7271001, z: 0}
+  m_LocalPosition: {x: 0.125, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 9, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -380,6 +380,7 @@ GameObject:
   - component: {fileID: 201944540}
   - component: {fileID: 201944541}
   - component: {fileID: 201944542}
+  - component: {fileID: 201944543}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -434,7 +435,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 3
-  m_Sprite: {fileID: 6145091430104463722, guid: 3133843897eadd3478f47f104c9ce85d, type: 3}
+  m_Sprite: {fileID: -1904148482140473954, guid: 3133843897eadd3478f47f104c9ce85d, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -457,7 +458,8 @@ Transform:
   m_LocalPosition: {x: -1.3033, y: -5.0804, z: 0}
   m_LocalScale: {x: 0.16874078, y: 0.16119234, z: 1.9650939}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 837333365}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &201944538
@@ -521,7 +523,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b77ba9352f0bd4408f178281fd6679a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  speed: 10
+  speed: 15
   leftLimit: -9.5
   rightLimit: 9
 --- !u!61 &201944541
@@ -562,7 +564,7 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 8.114097, y: 15.6}
+    oldSize: {x: 8.114097, y: 15.672727}
     newSize: {x: 30.946527, y: 79.40625}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
@@ -585,10 +587,34 @@ MonoBehaviour:
   maxHealth: 50
   currentHealth: 0
   barFill: {fileID: 725129547}
-  aliveSprite: {fileID: 6145091430104463722, guid: 3133843897eadd3478f47f104c9ce85d, type: 3}
+  aliveSprite: {fileID: -1904148482140473954, guid: 3133843897eadd3478f47f104c9ce85d, type: 3}
   deadSprite: {fileID: 4893574615064217924, guid: a898a11e3215c994da3c514d8d83a1bf, type: 3}
   disableMovementOnDeath: 1
   isDead: 0
+--- !u!114 &201944543
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 201944535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea949c2a1ddbbb84b9814d8fd5526f69, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerFireballShooter
+  firePoint: {fileID: 837333365}
+  playerFireballPrefab: {fileID: 1307152648960653708, guid: 9208ec402c3e7074cb98db0980c096a5, type: 3}
+  chargeUI: {fileID: 0}
+  maxDots: 3
+  secondsPerDot: 1
+  minDistance: 2.5
+  maxDistance: 9
+  autoReleaseAtMax: 1
+  idleSprite: {fileID: -1904148482140473954, guid: 3133843897eadd3478f47f104c9ce85d, type: 3}
+  windupSprite: {fileID: 6145091430104463722, guid: 3133843897eadd3478f47f104c9ce85d, type: 3}
+  shootAlwaysUp: 1
+  useFacingForHorizontal: 0
 --- !u!1 &347501308
 GameObject:
   m_ObjectHideFlags: 0
@@ -970,7 +996,7 @@ MonoBehaviour:
   m_Intensity: 0.56
   m_LightVolumeIntensity: 1
   m_LightVolumeEnabled: 0
-  m_ApplyToSortingLayers: 0000000013af29e837dbd36e9798ba6c0bd8b0dccd5e5b55cdb6860a
+  m_ApplyToSortingLayers: 0000000013af29e837dbd36e9798ba6c0bd8b0dccd5e5b55cdb6860aeb3363e9a58069de71590a99
   m_LightCookieSprite: {fileID: 0}
   m_DeprecatedPointLightCookieSprite: {fileID: 0}
   m_LightOrder: 0
@@ -1092,6 +1118,37 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 725129545}
   m_CullTransparentMesh: 1
+--- !u!1 &837333364
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 837333365}
+  m_Layer: 0
+  m_Name: firePoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &837333365
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 837333364}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 201944537}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &965562845
 GameObject:
   m_ObjectHideFlags: 0
@@ -1194,7 +1251,7 @@ GameObject:
   - component: {fileID: 1050242657}
   m_Layer: 0
   m_Name: BottomBorder
-  m_TagString: Untagged
+  m_TagString: PlayerLaneLimit
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1243,7 +1300,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 23.599321, y: 0.25}
+  m_Size: {x: 0.0001, y: 0.25}
   m_EdgeRadius: 0
 --- !u!4 &1050242658
 Transform:
@@ -1254,7 +1311,7 @@ Transform:
   m_GameObject: {fileID: 1050242656}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.26000023, y: -9.2321005, z: 0}
+  m_LocalPosition: {x: 0, y: -0.125, z: 0}
   m_LocalScale: {x: 19.704905, y: 1.0071625, z: 1.0071625}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1830,7 +1887,7 @@ GameObject:
   - component: {fileID: 1787679652}
   m_Layer: 0
   m_Name: TopBorder
-  m_TagString: Untagged
+  m_TagString: EnemyLaneLimit
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1879,7 +1936,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 23.599321, y: 0.25}
+  m_Size: {x: 0.0001, y: 0.25}
   m_EdgeRadius: 0
 --- !u!4 &1787679653
 Transform:
@@ -1890,7 +1947,7 @@ Transform:
   m_GameObject: {fileID: 1787679651}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.26000023, y: 5.7779, z: 0}
+  m_LocalPosition: {x: 0, y: 0.125, z: 0}
   m_LocalScale: {x: 18, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1911,7 +1968,7 @@ GameObject:
   - component: {fileID: 2027131808}
   m_Layer: 0
   m_Name: Enemy1
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

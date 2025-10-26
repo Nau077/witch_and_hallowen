@@ -1,43 +1,53 @@
-using UnityEngine;
+п»їusing UnityEngine;
 
-[ExecuteAlways]
 public class FitBordersToCamera2D : MonoBehaviour
 {
     public Camera cam;
     public BoxCollider2D topBorder, bottomBorder, leftBorder, rightBorder;
-    [Min(0.01f)] public float thickness = 0.25f;   // Толщина рамки
+    [Min(0.01f)] public float thickness = 0.25f;
 
-    void OnEnable() { if (!cam) cam = Camera.main; UpdateBorders(); }
-    void Update()
+    void Awake()
     {
-        // В редакторе обновляемся сразу при изменении окна/камеры
-        if (!Application.isPlaying) UpdateBorders();
+        if (!cam) cam = Camera.main;
+    }
+
+    void LateUpdate()
+    {
+        if (!cam || !cam.orthographic) return;
+
+        // Р•СЃР»Рё Game-РІСЊСЋ РІСЂРµРјРµРЅРЅРѕ СЃС…Р»РѕРїРЅСѓР»РѕСЃСЊ вЂ” РїСЂРѕРїСѓСЃРєР°РµРј РєР°РґСЂ
+        if (cam.pixelRect.width < 1f || cam.pixelRect.height < 1f) return;
+
+        UpdateBorders();
     }
 
     void UpdateBorders()
     {
-        if (!cam || !topBorder || !bottomBorder || !leftBorder || !rightBorder) return;
+        if (!topBorder || !bottomBorder || !leftBorder || !rightBorder) return;
 
-        // Берём видимые края камеры в мировых координатах
-        float z = -cam.transform.position.z; // глубина до плоскости XY=0
-        Vector3 bl = cam.ViewportToWorldPoint(new Vector3(0f, 0f, z)); // bottom-left
-        Vector3 tr = cam.ViewportToWorldPoint(new Vector3(1f, 1f, z)); // top-right
+        // РќР°РґС‘Р¶РЅРµРµ Р±СЂР°С‚СЊ aspect РёР· pixelWidth/Height
+        float pixelW = Mathf.Max(1f, cam.pixelWidth);
+        float pixelH = Mathf.Max(1f, cam.pixelHeight);
+        float halfH = cam.orthographicSize;
+        float halfW = halfH * (pixelW / pixelH);
 
-        float width = tr.x - bl.x;
-        float height = tr.y - bl.y;
-        float cx = (bl.x + tr.x) * 0.5f;
-        float cy = (bl.y + tr.y) * 0.5f;
+        Vector3 c = cam.transform.position;
 
-        // Верх/низ
-        topBorder.transform.position = new Vector3(cx, tr.y + thickness * 0.5f, 0f);
-        bottomBorder.transform.position = new Vector3(cx, bl.y - thickness * 0.5f, 0f);
-        topBorder.size = new Vector2(width, thickness);
-        bottomBorder.size = new Vector2(width, thickness);
+        float left = c.x - halfW;
+        float right = c.x + halfW;
+        float top = c.y + halfH;
+        float bottom = c.y - halfH;
 
-        // Лево/право
-        leftBorder.transform.position = new Vector3(bl.x - thickness * 0.5f, cy, 0f);
-        rightBorder.transform.position = new Vector3(tr.x + thickness * 0.5f, cy, 0f);
-        leftBorder.size = new Vector2(thickness, height);
-        rightBorder.size = new Vector2(thickness, height);
+        // Р’РµСЂС…/РЅРёР·
+        topBorder.transform.position = new Vector3(c.x, top + thickness * 0.5f, 0f);
+        bottomBorder.transform.position = new Vector3(c.x, bottom - thickness * 0.5f, 0f);
+        topBorder.size = new Vector2(halfW * 2f + thickness, thickness);
+        bottomBorder.size = new Vector2(halfW * 2f + thickness, thickness);
+
+        // Р›РµРІРѕ/РїСЂР°РІРѕ
+        leftBorder.transform.position = new Vector3(left - thickness * 0.5f, c.y, 0f);
+        rightBorder.transform.position = new Vector3(right + thickness * 0.5f, c.y, 0f);
+        leftBorder.size = new Vector2(thickness, halfH * 2f + thickness);
+        rightBorder.size = new Vector2(thickness, halfH * 2f + thickness);
     }
 }

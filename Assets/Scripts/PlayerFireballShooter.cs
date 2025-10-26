@@ -11,11 +11,11 @@ public class PlayerFireballShooter : MonoBehaviour
     public ChargeDotsUI chargeUI;               // скрипт из п.2
 
     [Header("Charge")]
-    public int maxDots = 3;                     // макс. точек (3 = по 1 секунде на точку)
+    public int maxDots = 5;                     // макс. точек (по 1 секунде на точку)
     public float secondsPerDot = 1f;            // каждые N секунд добавляется точка
-    public float minDistance = 2.5f;            // дистанция при 1 точке
-    public float maxDistance = 9f;              // дистанция при maxDots
-    public bool autoReleaseAtMax = true;        // автоматически бросать на полном заряде
+    public float minDistance = 2.5f;            // дистанция при 1 точке (если не используем зоны)
+    public float maxDistance = 9f;              // дистанция при maxDots (если не используем зоны)
+    public bool autoReleaseAtMax = false;       // бросок ТОЛЬКО при отпускании ЛКМ (оставь false)
 
     [Header("Sprites")]
     public Sprite idleSprite;                   // обычный idle (твой базовый)
@@ -33,14 +33,18 @@ public class PlayerFireballShooter : MonoBehaviour
     public SpriteRenderer enemyZone;            // перетащи EnemyZone SpriteRenderer
     public float zoneTopPadding = 0.05f;        // небольшой зазор до верхней границы зоны
 
-    [Tooltip("Делит расстояние до верха EnemyZone на равные доли по числу точек")]
-    public bool equalStepsToZone = true;
+    [Tooltip("Дробит высоту EnemyZone на равные ступени, и каждая точка = одна ступень")]
+    public bool useZoneSteps = true;
+    [Min(1)] public int zoneSteps = 5;          // сколько «клеток» по высоте зоны
+    [Tooltip("Если включено — целимся в центр ступени (k-0.5)/steps, иначе точно на границу k/steps")]
+    public bool snapToCenters = false;          // выключи, чтобы 5-я точка попадала в самый верх
 
     // внутренние поля
     private SpriteRenderer _sr;
     private Coroutine _chargeRoutine;
     private int _currentDots;
     private bool _isCharging;
+    private bool _isMouseHeld;                  // удерживаем ли ЛКМ прямо сейчас
 
     private PlayerHealth hp;
     private Rigidbody2D rb;
@@ -57,32 +61,29 @@ public class PlayerFireballShooter : MonoBehaviour
     {
         if (chargeUI != null) chargeUI.Clear();
         if (idleSprite == null && _sr != null) idleSprite = _sr.sprite; // авто-берём стартовый
+        // ВАЖНО: больше НЕ подрезаем maxDots по количеству иконок в UI.
     }
 
     private void Update()
     {
-        // нельзя атаковать, если персонаж мёртв
         if (hp != null && hp.IsDead) return;
 
         HandleInput();
     }
 
-    // Публичный быстрый сброс (без смены спрайта — важно для смерти)
     public void CancelAllImmediate()
     {
-        CancelCharge(false); // ⬅️ не возвращаем idle, чтобы не перетирать deadSprite
+        CancelCharge(false); // без смены спрайта (чтобы не перетирать спрайт смерти)
     }
 
     private void LateUpdate()
     {
-        // если умерли — не держим кадр замаха и мягко сбрасываем заряд без смены спрайта
         if (hp != null && hp.IsDead)
         {
             if (_isCharging) CancelCharge(false);
             return;
         }
 
-        // во время зарядки, даже если ведьма двигается — насильно держим кадр замаха
         if (_isCharging && _lockWindupSpriteWhileCharging && _sr != null && windupSprite != null)
         {
             if (_sr.sprite != windupSprite)
@@ -92,38 +93,39 @@ public class PlayerFireballShooter : MonoBehaviour
 
     private void HandleInput()
     {
-        // нажали ЛКМ — начинаем заряд (движение не мешает), кулдаун проверяем
+        // нажали ЛКМ — начинаем заряд
         if (Input.GetMouseButtonDown(0))
         {
+            _isMouseHeld = true;
             StartCharging();
         }
 
-        // отпустили ЛКМ — бросаем (движение разрешено)
+        // отпустили ЛКМ — бросаем
         if (Input.GetMouseButtonUp(0))
         {
+            _isMouseHeld = false;
             ReleaseIfCharging();
         }
     }
 
-    // (оставлено на будущее) проверка: ведьма сейчас не нажимает стрелки / A-D
+    // на будущее
     private bool IsStandingNow()
     {
         float axis = Input.GetAxisRaw("Horizontal");
         return Mathf.Abs(axis) < 0.01f;
     }
 
-    // проверка кулдауна
     private bool IsCooldownReady() => Time.time >= _cooldownUntil;
 
     private void StartCharging()
     {
         if (hp != null && hp.IsDead) return;
-        if (!IsCooldownReady()) return; // кулдаун всё ещё в силе
+        if (!IsCooldownReady()) return;
         if (_isCharging) return;
 
         _isCharging = true;
 
-        // СРАЗУ зажигаем 1-ю точку
+        // сразу зажигаем 1-ю точку
         _currentDots = 1;
         if (chargeUI != null)
         {
@@ -131,7 +133,6 @@ public class PlayerFireballShooter : MonoBehaviour
             chargeUI.SetCount(_currentDots);
         }
 
-        // переключаем спрайт на witch_3_3 (замах)
         if (_sr != null && windupSprite != null) _sr.sprite = windupSprite;
 
         _chargeRoutine = StartCoroutine(ChargeTick());
@@ -139,21 +140,29 @@ public class PlayerFireballShooter : MonoBehaviour
 
     private IEnumerator ChargeTick()
     {
-        // каждые secondsPerDot добавляем точку, максимум maxDots
-        while (_isCharging && _currentDots < maxDots)
+        // Копим точки до maxDots; дальше просто ждём отпускания ЛКМ.
+        while (_isCharging)
         {
             yield return new WaitForSeconds(secondsPerDot);
+            if (!_isCharging) yield break;
 
-            _currentDots++;
-            if (chargeUI != null) chargeUI.SetCount(_currentDots);
-
-            if (autoReleaseAtMax && _currentDots >= maxDots)
+            if (_currentDots < maxDots)
             {
-                // Дадим UI один кадр отрисоваться, чтобы 3-й огонёк точно «засветился»
-                yield return null;
-                ReleaseThrow();
-                yield break;
+                _currentDots++;
+                if (chargeUI != null) chargeUI.SetCount(_currentDots);
+
+                // Автосброс только если ТЫ сам включишь флаг в инспекторе
+                if (autoReleaseAtMax && _currentDots >= maxDots)
+                {
+                    // дать UI кадр отрисоваться
+                    yield return null;
+                    // но всё равно стрелять только если кнопка отпущена
+                    if (!_isMouseHeld)
+                        ReleaseThrow();
+                    // если ЛКМ всё ещё зажата — ждём отпускания; НИКАКОГО авто-выстрела
+                }
             }
+            // если уже на максимуме — ничего не делаем (ждём отпускания)
         }
     }
 
@@ -161,7 +170,6 @@ public class PlayerFireballShooter : MonoBehaviour
     {
         if (!_isCharging) return;
 
-        // если умерли во время зарядки — просто сбросить без смены спрайта на idle
         if (hp != null && hp.IsDead)
         {
             CancelCharge(false);
@@ -173,10 +181,9 @@ public class PlayerFireballShooter : MonoBehaviour
 
     private void ReleaseThrow()
     {
-        // кулдаун: если не готов — сбрасываем заряд
         if (!IsCooldownReady())
         {
-            CancelCharge(); // здесь можно вернуть idle
+            CancelCharge();
             return;
         }
 
@@ -186,20 +193,25 @@ public class PlayerFireballShooter : MonoBehaviour
         int dots = Mathf.Clamp(_currentDots, 1, Mathf.Max(1, maxDots));
 
         float distance;
-        if (shootAlwaysUp && enemyZone != null && equalStepsToZone)
+
+        if (shootAlwaysUp && enemyZone != null && useZoneSteps)
         {
-            // Равные доли до верхней границы зоны
+            // Равные ступени от firePoint до верха EnemyZone
             float top = enemyZone.bounds.max.y - zoneTopPadding;
             float allowed = Mathf.Max(0.05f, top - firePoint.position.y);
-            distance = allowed * (dots / (float)maxDots);   // 1/3, 2/3, 3/3
+
+            int steps = Mathf.Max(1, zoneSteps);
+            float step = allowed / steps;
+
+            int k = Mathf.Clamp(dots, 1, steps);
+            distance = snapToCenters ? (k - 0.5f) * step : k * step; // граница или центр
         }
         else
         {
             // старая линейка min..max
-            float t = (maxDots == 1) ? 1f : (dots - 1) / (float)(maxDots - 1); // 1 точка = min, maxDots = max
+            float t = (maxDots == 1) ? 1f : (dots - 1) / (float)(maxDots - 1);
             distance = Mathf.Lerp(minDistance, maxDistance, t);
 
-            // и всё ещё режем по зоне, если нужно
             if (shootAlwaysUp && enemyZone != null)
             {
                 float top = enemyZone.bounds.max.y - zoneTopPadding;
@@ -223,11 +235,10 @@ public class PlayerFireballShooter : MonoBehaviour
                     if (cam != null)
                     {
                         Vector3 mp = Input.mousePosition;
-                        // расстояние от камеры до плоскости выстрела (firePoint)
                         float depth = Mathf.Abs(cam.transform.position.z - firePoint.position.z);
                         if (depth < cam.nearClipPlane + 0.01f) depth = cam.nearClipPlane + 0.01f;
 
-                        mp.z = depth; // ВАЖНО: z должен быть > nearClipPlane
+                        mp.z = depth;
                         Vector3 mouseWorld = cam.ScreenToWorldPoint(mp);
                         mouseWorld.z = firePoint.position.z;
 
@@ -239,21 +250,18 @@ public class PlayerFireballShooter : MonoBehaviour
                     dir = _sr.flipX ? Vector2.left : Vector2.right;
                 }
 
-                pf.Init(dir, distance, pf.speed); // lifetime подстроится под distance
+                pf.Init(dir, distance, pf.speed);
             }
         }
 
-        // запускаем кулдаун
         _cooldownUntil = Time.time + fireCooldown;
 
-        // сброс UI + возврат idle
         if (chargeUI != null) chargeUI.Clear();
         _currentDots = 0;
 
         if (_sr != null && idleSprite != null) _sr.sprite = idleSprite;
     }
 
-    // общий метод для сброса зарядки (без выстрела)
     private void CancelCharge(bool changeSprite = true)
     {
         _isCharging = false;

@@ -1,4 +1,4 @@
-// PlayerFireballShooter.cs
+п»ї// PlayerFireballShooter.cs
 using UnityEngine;
 using System.Collections;
 
@@ -6,34 +6,37 @@ using System.Collections;
 public class PlayerFireballShooter : MonoBehaviour
 {
     [Header("Refs")]
-    public Transform firePoint;                 // точка выстрела (чуть выше головы)
-    public GameObject playerFireballPrefab;     // префаб с PlayerFireball + Collider2D (isTrigger)
-    public ChargeDotsUI chargeUI;               // скрипт из п.2
+    public Transform firePoint;                 // С‚РѕС‡РєР° РІС‹СЃС‚СЂРµР»Р° (С‡СѓС‚СЊ РІС‹С€Рµ РіРѕР»РѕРІС‹)
+    public GameObject playerFireballPrefab;     // РїСЂРµС„Р°Р± СЃ PlayerFireball + Collider2D (isTrigger)
+    public ChargeDotsUI chargeUI;               // СЃРєСЂРёРїС‚ РёР· Рї.2
 
     [Header("Charge")]
-    public int maxDots = 3;                     // макс. точек (3 = по 1 секунде на точку)
-    public float secondsPerDot = 1f;            // каждые N секунд добавляется точка
-    public float minDistance = 2.5f;            // дистанция при 1 точке
-    public float maxDistance = 9f;              // дистанция при maxDots
-    public bool autoReleaseAtMax = true;        // автоматически бросать на полном заряде
+    public int maxDots = 3;                     // РјР°РєСЃ. С‚РѕС‡РµРє (3 = РїРѕ 1 СЃРµРєСѓРЅРґРµ РЅР° С‚РѕС‡РєСѓ)
+    public float secondsPerDot = 1f;            // РєР°Р¶РґС‹Рµ N СЃРµРєСѓРЅРґ РґРѕР±Р°РІР»СЏРµС‚СЃСЏ С‚РѕС‡РєР°
+    public float minDistance = 2.5f;            // РґРёСЃС‚Р°РЅС†РёСЏ РїСЂРё 1 С‚РѕС‡РєРµ
+    public float maxDistance = 9f;              // РґРёСЃС‚Р°РЅС†РёСЏ РїСЂРё maxDots
+    public bool autoReleaseAtMax = true;        // Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё Р±СЂРѕСЃР°С‚СЊ РЅР° РїРѕР»РЅРѕРј Р·Р°СЂСЏРґРµ
 
     [Header("Sprites")]
-    public Sprite idleSprite;                   // обычный idle (твой базовый)
-    public Sprite windupSprite;                 // witch_3_3 (замах/бросок)
+    public Sprite idleSprite;                   // РѕР±С‹С‡РЅС‹Р№ idle (С‚РІРѕР№ Р±Р°Р·РѕРІС‹Р№)
+    public Sprite windupSprite;                 // witch_3_3 (Р·Р°РјР°С…/Р±СЂРѕСЃРѕРє)
 
     [Header("Direction")]
-    public bool shootAlwaysUp = true;           // летит строго вверх (как по лейну)
-    public bool useFacingForHorizontal = false; // если false — тоже вверх; если true — вправо/влево по flipX
+    public bool shootAlwaysUp = true;           // Р»РµС‚РёС‚ СЃС‚СЂРѕРіРѕ РІРІРµСЂС… (РєР°Рє РїРѕ Р»РµР№РЅСѓ)
+    public bool useFacingForHorizontal = false; // РµСЃР»Рё false вЂ” С‚РѕР¶Рµ РІРІРµСЂС…; РµСЃР»Рё true вЂ” РІРїСЂР°РІРѕ/РІР»РµРІРѕ РїРѕ flipX
 
     [Header("Cooldown")]
-    public float fireCooldown = 0.6f;           // задержка между бросками (сек)
-    private float _cooldownUntil = 0f;          // время, когда можно снова стрелять
+    public float fireCooldown = 0.6f;           // Р·Р°РґРµСЂР¶РєР° РјРµР¶РґСѓ Р±СЂРѕСЃРєР°РјРё (СЃРµРє)
+    private float _cooldownUntil = 0f;          // РІСЂРµРјСЏ, РєРѕРіРґР° РјРѕР¶РЅРѕ СЃРЅРѕРІР° СЃС‚СЂРµР»СЏС‚СЊ
 
     [Header("Clamp to Enemy Zone")]
-    public SpriteRenderer enemyZone;            // перетащи EnemyZone SpriteRenderer
-    public float zoneTopPadding = 0.05f;        // небольшой зазор до верхней границы зоны
+    public SpriteRenderer enemyZone;            // РїРµСЂРµС‚Р°С‰Рё EnemyZone SpriteRenderer
+    public float zoneTopPadding = 0.05f;        // РЅРµР±РѕР»СЊС€РѕР№ Р·Р°Р·РѕСЂ РґРѕ РІРµСЂС…РЅРµР№ РіСЂР°РЅРёС†С‹ Р·РѕРЅС‹
 
-    // внутренние поля
+    [Tooltip("Р”РµР»РёС‚ СЂР°СЃСЃС‚РѕСЏРЅРёРµ РґРѕ РІРµСЂС…Р° EnemyZone РЅР° СЂР°РІРЅС‹Рµ РґРѕР»Рё РїРѕ С‡РёСЃР»Сѓ С‚РѕС‡РµРє")]
+    public bool equalStepsToZone = true;
+
+    // РІРЅСѓС‚СЂРµРЅРЅРёРµ РїРѕР»СЏ
     private SpriteRenderer _sr;
     private Coroutine _chargeRoutine;
     private int _currentDots;
@@ -41,7 +44,7 @@ public class PlayerFireballShooter : MonoBehaviour
 
     private PlayerHealth hp;
     private Rigidbody2D rb;
-    private bool _lockWindupSpriteWhileCharging = true; // удерживаем кадр замаха во время зарядки
+    private bool _lockWindupSpriteWhileCharging = true; // СѓРґРµСЂР¶РёРІР°РµРј РєР°РґСЂ Р·Р°РјР°С…Р° РІРѕ РІСЂРµРјСЏ Р·Р°СЂСЏРґРєРё
 
     private void Awake()
     {
@@ -53,21 +56,33 @@ public class PlayerFireballShooter : MonoBehaviour
     private void Start()
     {
         if (chargeUI != null) chargeUI.Clear();
-        if (idleSprite == null && _sr != null) idleSprite = _sr.sprite; // авто-берём стартовый
+        if (idleSprite == null && _sr != null) idleSprite = _sr.sprite; // Р°РІС‚Рѕ-Р±РµСЂС‘Рј СЃС‚Р°СЂС‚РѕРІС‹Р№
     }
 
     private void Update()
     {
-        // нельзя атаковать, если персонаж мёртв
+        // РЅРµР»СЊР·СЏ Р°С‚Р°РєРѕРІР°С‚СЊ, РµСЃР»Рё РїРµСЂСЃРѕРЅР°Р¶ РјС‘СЂС‚РІ
         if (hp != null && hp.IsDead) return;
 
         HandleInput();
     }
 
+    // РџСѓР±Р»РёС‡РЅС‹Р№ Р±С‹СЃС‚СЂС‹Р№ СЃР±СЂРѕСЃ (Р±РµР· СЃРјРµРЅС‹ СЃРїСЂР°Р№С‚Р° вЂ” РІР°Р¶РЅРѕ РґР»СЏ СЃРјРµСЂС‚Рё)
+    public void CancelAllImmediate()
+    {
+        CancelCharge(false); // в¬…пёЏ РЅРµ РІРѕР·РІСЂР°С‰Р°РµРј idle, С‡С‚РѕР±С‹ РЅРµ РїРµСЂРµС‚РёСЂР°С‚СЊ deadSprite
+    }
+
     private void LateUpdate()
     {
-        // во время зарядки, даже если ведьма двигается или что-то ещё меняет спрайт —
-        // насильно держим кадр замаха
+        // РµСЃР»Рё СѓРјРµСЂР»Рё вЂ” РЅРµ РґРµСЂР¶РёРј РєР°РґСЂ Р·Р°РјР°С…Р° Рё РјСЏРіРєРѕ СЃР±СЂР°СЃС‹РІР°РµРј Р·Р°СЂСЏРґ Р±РµР· СЃРјРµРЅС‹ СЃРїСЂР°Р№С‚Р°
+        if (hp != null && hp.IsDead)
+        {
+            if (_isCharging) CancelCharge(false);
+            return;
+        }
+
+        // РІРѕ РІСЂРµРјСЏ Р·Р°СЂСЏРґРєРё, РґР°Р¶Рµ РµСЃР»Рё РІРµРґСЊРјР° РґРІРёРіР°РµС‚СЃСЏ вЂ” РЅР°СЃРёР»СЊРЅРѕ РґРµСЂР¶РёРј РєР°РґСЂ Р·Р°РјР°С…Р°
         if (_isCharging && _lockWindupSpriteWhileCharging && _sr != null && windupSprite != null)
         {
             if (_sr.sprite != windupSprite)
@@ -77,40 +92,46 @@ public class PlayerFireballShooter : MonoBehaviour
 
     private void HandleInput()
     {
-        // нажали ЛКМ — начинаем заряд, если кулдаун готов (движение не мешает)
+        // РЅР°Р¶Р°Р»Рё Р›РљРњ вЂ” РЅР°С‡РёРЅР°РµРј Р·Р°СЂСЏРґ (РґРІРёР¶РµРЅРёРµ РЅРµ РјРµС€Р°РµС‚), РєСѓР»РґР°СѓРЅ РїСЂРѕРІРµСЂСЏРµРј
         if (Input.GetMouseButtonDown(0))
         {
             StartCharging();
         }
 
-        // отпустили ЛКМ — бросаем, если стоим и кулдаун готов
+        // РѕС‚РїСѓСЃС‚РёР»Рё Р›РљРњ вЂ” Р±СЂРѕСЃР°РµРј (РґРІРёР¶РµРЅРёРµ СЂР°Р·СЂРµС€РµРЅРѕ)
         if (Input.GetMouseButtonUp(0))
         {
             ReleaseIfCharging();
         }
     }
 
-    // проверка: ведьма сейчас не нажимает стрелки / A-D
+    // (РѕСЃС‚Р°РІР»РµРЅРѕ РЅР° Р±СѓРґСѓС‰РµРµ) РїСЂРѕРІРµСЂРєР°: РІРµРґСЊРјР° СЃРµР№С‡Р°СЃ РЅРµ РЅР°Р¶РёРјР°РµС‚ СЃС‚СЂРµР»РєРё / A-D
     private bool IsStandingNow()
     {
         float axis = Input.GetAxisRaw("Horizontal");
         return Mathf.Abs(axis) < 0.01f;
     }
 
-    // проверка кулдауна
+    // РїСЂРѕРІРµСЂРєР° РєСѓР»РґР°СѓРЅР°
     private bool IsCooldownReady() => Time.time >= _cooldownUntil;
 
     private void StartCharging()
     {
         if (hp != null && hp.IsDead) return;
-        if (!IsCooldownReady()) return; // кулдаун всё ещё в силе
-
+        if (!IsCooldownReady()) return; // РєСѓР»РґР°СѓРЅ РІСЃС‘ РµС‰С‘ РІ СЃРёР»Рµ
         if (_isCharging) return;
-        _isCharging = true;
-        _currentDots = 0;
-        if (chargeUI != null) chargeUI.Clear();
 
-        // переключаем спрайт на witch_3_3 (замах)
+        _isCharging = true;
+
+        // РЎР РђР—РЈ Р·Р°Р¶РёРіР°РµРј 1-СЋ С‚РѕС‡РєСѓ
+        _currentDots = 1;
+        if (chargeUI != null)
+        {
+            chargeUI.Clear();
+            chargeUI.SetCount(_currentDots);
+        }
+
+        // РїРµСЂРµРєР»СЋС‡Р°РµРј СЃРїСЂР°Р№С‚ РЅР° witch_3_3 (Р·Р°РјР°С…)
         if (_sr != null && windupSprite != null) _sr.sprite = windupSprite;
 
         _chargeRoutine = StartCoroutine(ChargeTick());
@@ -118,16 +139,18 @@ public class PlayerFireballShooter : MonoBehaviour
 
     private IEnumerator ChargeTick()
     {
-        // каждые secondsPerDot добавляем точку, максимум maxDots
+        // РєР°Р¶РґС‹Рµ secondsPerDot РґРѕР±Р°РІР»СЏРµРј С‚РѕС‡РєСѓ, РјР°РєСЃРёРјСѓРј maxDots
         while (_isCharging && _currentDots < maxDots)
         {
             yield return new WaitForSeconds(secondsPerDot);
+
             _currentDots++;
             if (chargeUI != null) chargeUI.SetCount(_currentDots);
 
             if (autoReleaseAtMax && _currentDots >= maxDots)
             {
-                // автоматически бросаем на полном заряде
+                // Р”Р°РґРёРј UI РѕРґРёРЅ РєР°РґСЂ РѕС‚СЂРёСЃРѕРІР°С‚СЊСЃСЏ, С‡С‚РѕР±С‹ 3-Р№ РѕРіРѕРЅС‘Рє С‚РѕС‡РЅРѕ В«Р·Р°СЃРІРµС‚РёР»СЃСЏВ»
+                yield return null;
                 ReleaseThrow();
                 yield break;
             }
@@ -138,10 +161,10 @@ public class PlayerFireballShooter : MonoBehaviour
     {
         if (!_isCharging) return;
 
-        // если умерли во время зарядки — просто сбросить без смены спрайта на idle
+        // РµСЃР»Рё СѓРјРµСЂР»Рё РІРѕ РІСЂРµРјСЏ Р·Р°СЂСЏРґРєРё вЂ” РїСЂРѕСЃС‚Рѕ СЃР±СЂРѕСЃРёС‚СЊ Р±РµР· СЃРјРµРЅС‹ СЃРїСЂР°Р№С‚Р° РЅР° idle
         if (hp != null && hp.IsDead)
         {
-            CancelCharge();
+            CancelCharge(false);
             return;
         }
 
@@ -150,11 +173,10 @@ public class PlayerFireballShooter : MonoBehaviour
 
     private void ReleaseThrow()
     {
-        // нельзя стрелять, если кулдаун активен или ведьма двигается
-        if (!IsCooldownReady() || !IsStandingNow())
+        // РєСѓР»РґР°СѓРЅ: РµСЃР»Рё РЅРµ РіРѕС‚РѕРІ вЂ” СЃР±СЂР°СЃС‹РІР°РµРј Р·Р°СЂСЏРґ
+        if (!IsCooldownReady())
         {
-            // не стрелять — просто сбросить заряд
-            CancelCharge();
+            CancelCharge(); // Р·РґРµСЃСЊ РјРѕР¶РЅРѕ РІРµСЂРЅСѓС‚СЊ idle
             return;
         }
 
@@ -162,18 +184,31 @@ public class PlayerFireballShooter : MonoBehaviour
         if (_chargeRoutine != null) StopCoroutine(_chargeRoutine);
 
         int dots = Mathf.Clamp(_currentDots, 1, Mathf.Max(1, maxDots));
-        float t = (maxDots == 1) ? 1f : (dots - 1) / (float)(maxDots - 1); // 1 точка = min, maxDots = max
-        float distance = Mathf.Lerp(minDistance, maxDistance, t);
 
-        // ограничиваем дальность по верхней границе EnemyZone
-        if (shootAlwaysUp && enemyZone != null)
+        float distance;
+        if (shootAlwaysUp && enemyZone != null && equalStepsToZone)
         {
+            // Р Р°РІРЅС‹Рµ РґРѕР»Рё РґРѕ РІРµСЂС…РЅРµР№ РіСЂР°РЅРёС†С‹ Р·РѕРЅС‹
             float top = enemyZone.bounds.max.y - zoneTopPadding;
             float allowed = Mathf.Max(0.05f, top - firePoint.position.y);
-            distance = Mathf.Min(distance, allowed);
+            distance = allowed * (dots / (float)maxDots);   // 1/3, 2/3, 3/3
+        }
+        else
+        {
+            // СЃС‚Р°СЂР°СЏ Р»РёРЅРµР№РєР° min..max
+            float t = (maxDots == 1) ? 1f : (dots - 1) / (float)(maxDots - 1); // 1 С‚РѕС‡РєР° = min, maxDots = max
+            distance = Mathf.Lerp(minDistance, maxDistance, t);
+
+            // Рё РІСЃС‘ РµС‰С‘ СЂРµР¶РµРј РїРѕ Р·РѕРЅРµ, РµСЃР»Рё РЅСѓР¶РЅРѕ
+            if (shootAlwaysUp && enemyZone != null)
+            {
+                float top = enemyZone.bounds.max.y - zoneTopPadding;
+                float allowed = Mathf.Max(0.05f, top - firePoint.position.y);
+                distance = Mathf.Min(distance, allowed);
+            }
         }
 
-        // выстрел
+        // РІС‹СЃС‚СЂРµР»
         if (playerFireballPrefab != null && firePoint != null)
         {
             var go = Instantiate(playerFireballPrefab, firePoint.position, Quaternion.identity);
@@ -181,18 +216,18 @@ public class PlayerFireballShooter : MonoBehaviour
             if (pf != null)
             {
                 var cam = Camera.main;
-                Vector2 dir = Vector2.up; // дефолт
+                Vector2 dir = Vector2.up; // РґРµС„РѕР»С‚
 
                 if (!shootAlwaysUp)
                 {
                     if (cam != null)
                     {
                         Vector3 mp = Input.mousePosition;
-                        // расстояние от камеры до плоскости выстрела (firePoint)
+                        // СЂР°СЃСЃС‚РѕСЏРЅРёРµ РѕС‚ РєР°РјРµСЂС‹ РґРѕ РїР»РѕСЃРєРѕСЃС‚Рё РІС‹СЃС‚СЂРµР»Р° (firePoint)
                         float depth = Mathf.Abs(cam.transform.position.z - firePoint.position.z);
                         if (depth < cam.nearClipPlane + 0.01f) depth = cam.nearClipPlane + 0.01f;
 
-                        mp.z = depth; // ВАЖНО: z должен быть > nearClipPlane
+                        mp.z = depth; // Р’РђР–РќРћ: z РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ > nearClipPlane
                         Vector3 mouseWorld = cam.ScreenToWorldPoint(mp);
                         mouseWorld.z = firePoint.position.z;
 
@@ -203,29 +238,30 @@ public class PlayerFireballShooter : MonoBehaviour
                 {
                     dir = _sr.flipX ? Vector2.left : Vector2.right;
                 }
-                // дальше: pf.Init(dir, distance, pf.speed);
 
-                pf.Init(dir, distance, pf.speed); // lifetime подстроится под distance
+                pf.Init(dir, distance, pf.speed); // lifetime РїРѕРґСЃС‚СЂРѕРёС‚СЃСЏ РїРѕРґ distance
             }
         }
 
-        // запускаем кулдаун
+        // Р·Р°РїСѓСЃРєР°РµРј РєСѓР»РґР°СѓРЅ
         _cooldownUntil = Time.time + fireCooldown;
 
-        // сброс UI + возврат idle
+        // СЃР±СЂРѕСЃ UI + РІРѕР·РІСЂР°С‚ idle
         if (chargeUI != null) chargeUI.Clear();
         _currentDots = 0;
 
         if (_sr != null && idleSprite != null) _sr.sprite = idleSprite;
     }
 
-    // общий метод для сброса зарядки (без выстрела)
-    private void CancelCharge()
+    // РѕР±С‰РёР№ РјРµС‚РѕРґ РґР»СЏ СЃР±СЂРѕСЃР° Р·Р°СЂСЏРґРєРё (Р±РµР· РІС‹СЃС‚СЂРµР»Р°)
+    private void CancelCharge(bool changeSprite = true)
     {
         _isCharging = false;
         if (_chargeRoutine != null) StopCoroutine(_chargeRoutine);
         if (chargeUI != null) chargeUI.Clear();
         _currentDots = 0;
-        if (_sr != null && idleSprite != null) _sr.sprite = idleSprite;
+
+        if (changeSprite && _sr != null && idleSprite != null)
+            _sr.sprite = idleSprite;
     }
 }

@@ -37,7 +37,7 @@ public class PlayerHealth : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         movement = GetComponent<PlayerMovement>();
 
-        // ✅ Всегда стартуем живыми, как ты просил — игнорируем значение isDead из Scene
+        // ✅ Всегда стартуем живыми — игнорируем значение isDead из Scene
         ForceStartAlive();
 
         // инициализируем здоровье/полоску
@@ -133,7 +133,17 @@ public class PlayerHealth : MonoBehaviour
 
         // отключить управление
         if (disableMovementOnDeath && movement != null)
+        {
             movement.enabled = false;
+        }
+
+        // NEW: запретить стрельбу/замахи после смерти
+        var shooter = GetComponent<PlayerFireballShooter>();
+        if (shooter != null)
+        {
+            shooter.CancelAllImmediate(); // сбросить зарядку и UI, БЕЗ смены спрайта
+            shooter.enabled = false;      // полностью выключаем компонент
+        }
     }
 
 #if UNITY_EDITOR

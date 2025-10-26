@@ -1,56 +1,83 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
+[ExecuteAlways] // Ð¾Ð±Ð½Ð¾Ð²Ð»ÑÐµÑ‚ Ð¿Ð¾Ð·Ð¸Ñ†Ð¸ÑŽ Ð¸ Ð² Ñ€ÐµÐ´Ð°ÐºÑ‚Ð¾Ñ€Ðµ
 public class HealthBar2D : MonoBehaviour
 {
     [Header("Refs")]
-    public Transform fill; // äî÷åðíèé ïðÿìîóãîëüíèê «çàëèâêè»
+    public Transform fill;
 
     [Header("Look & Pos")]
-    public Vector3 offset = new Vector3(0f, 1.0f, 0f); // íàä ãîëîâîé
-    public float width = 1.0f; // áàçîâàÿ øèðèíà ïðè 100%
-    public bool faceCamera = false; // åñëè 2.5D/3D — ìîæíî ïîâåðíóòü ê êàìåðå
+    public bool useLocalOffset = true;             // âœ… Ð¿Ð¾ ÑƒÐ¼Ð¾Ð»Ñ‡Ð°Ð½Ð¸ÑŽ Ð»Ð¾ÐºÐ°Ð»ÑŒÐ½Ð¾
+    public Vector3 offset = new Vector3(0f, 1.0f, 0f);
+    public float width = 1.0f;
+    public bool faceCamera = false;
 
-    private int max = 1;
-    private int cur = 1;
-    private Transform target;
+    int max = 1;
+    int cur = 1;
+    Transform target; // Ñ€Ð¾Ð´Ð¸Ñ‚ÐµÐ»ÑŒ
 
-    void Awake()
+    void OnEnable()
     {
-        target = transform.parent; // îáû÷íî áàð — äî÷åðíèé îáúåêò âðàãà
+        target = transform.parent;
+        ApplyTransform();
+        UpdateFill(cur, Mathf.Max(max, 1));
     }
 
-    void LateUpdate()
+    void Update()
     {
-        if (!target) return;
-
-        transform.position = target.position + offset;
-
+        // Ð² Edit Ð¸ Play Ñ€ÐµÐ¶Ð¸Ð¼Ð°Ñ… Ð´ÐµÑ€Ð¶Ð¸Ð¼ ÑÐ¾Ð²Ð¿Ð°Ð´ÐµÐ½Ð¸Ðµ Scene/Game
+        ApplyTransform();
         if (faceCamera && Camera.main)
             transform.rotation = Camera.main.transform.rotation;
         else
             transform.rotation = Quaternion.identity;
     }
 
-    public void SetMax(int value)
+    void ApplyTransform()
     {
-        max = Mathf.Max(1, value);
-        SetValue(value);
+        if (!target) target = transform.parent;
+
+        if (useLocalOffset)
+        {
+            // ðŸš© Ð»Ð¾ÐºÐ°Ð»ÑŒÐ½Ð°Ñ Ð¿Ñ€Ð¸Ð²ÑÐ·ÐºÐ° â€” Ñ‚Ð¾, Ñ‡Ñ‚Ð¾ Ñ‚Ñ‹ Ð²Ð¸Ð´Ð¸ÑˆÑŒ Ð² Scene, Ð±ÑƒÐ´ÐµÑ‚ Ð¸ Ð² Game
+            transform.localPosition = offset;
+        }
+        else if (target)
+        {
+            // Ð¼Ð¸Ñ€Ð¾Ð²Ð¾Ð¹ Ð¾Ñ„ÑÐµÑ‚ Ð¾Ñ‚ Ñ€Ð¾Ð´Ð¸Ñ‚ÐµÐ»Ñ
+            transform.position = target.position + offset;
+        }
+    }
+
+    public void SetMax(int maxHealth)
+    {
+        max = Mathf.Max(1, maxHealth);
+        SetValue(maxHealth);
     }
 
     public void SetValue(int value)
     {
-        cur = Mathf.Clamp(value, 0, max);
-        if (fill)
-        {
-            float k = (float)cur / max;
-            var s = fill.localScale;
-            s.x = Mathf.Max(0f, k) * width;
-            fill.localScale = s;
-        }
+        cur = Mathf.Clamp(value, 0, Mathf.Max(1, max));
+        UpdateFill(cur, max);
     }
 
-    public void Hide()
+    void UpdateFill(int current, int maximum)
     {
-        gameObject.SetActive(false);
+        if (!fill) return;
+
+        float k = Mathf.Clamp01((float)current / maximum);
+        float newW = Mathf.Max(0.0001f, k * Mathf.Max(0.01f, width));
+
+        // Ð¼Ð°ÑÑˆÑ‚Ð°Ð± Ð¿Ð¾ X
+        var s = fill.localScale;
+        s.x = newW;
+        fill.localScale = s;
+
+        // ÑÐºÐ¾Ñ€Ð¸Ð¼ Ð»ÐµÐ²Ñ‹Ð¹ ÐºÑ€Ð°Ð¹: Ð»ÐµÐ²Ñ‹Ð¹ = -width/2, Ð¿Ñ€Ð°Ð²Ñ‹Ð¹ Ð´Ð²Ð¸Ð³Ð°ÐµÑ‚ÑÑ
+        var p = fill.localPosition;
+        p.x = (-width * 0.5f) + (newW * 0.5f);
+        fill.localPosition = p;
     }
+
+    public void Hide() => gameObject.SetActive(false);
 }

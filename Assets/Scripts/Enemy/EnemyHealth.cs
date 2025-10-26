@@ -11,12 +11,12 @@ public class EnemyHealth : MonoBehaviour
 
     [Header("Hit Effect")]
     public Color fireTint = new Color(1f, 0.45f, 0.05f, 1f); // огненно-оранжевый
-    public float flashDuration = 0.15f;                      // длительность вспышки
+    public float flashDuration = 0.3f;                      // длительность вспышки
     public ParticleSystem burnParticles;                     // (опц.) партиклы огня/искорок
 
     [Header("Death")]
     public Sprite deadSprite;         // (опц.) спрайт смерти
-    public float destroyAfter = 1.2f; // задержка перед удалением
+    public float destroyAfter = 2.2f; // задержка перед удалением
 
     [Header("HP Bar (sprite)")]
     public HealthBar2D hpBar;         // см. скрипт HealthBar2D
@@ -79,25 +79,17 @@ public class EnemyHealth : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        // выключаем столкновения и физику
-        var col = GetComponent<Collider2D>();
-        if (col) col.enabled = false;
-        var rb = GetComponent<Rigidbody2D>();
-        if (rb) rb.simulated = false;
+        var col = GetComponent<Collider2D>(); if (col) col.enabled = false;
+        var rb = GetComponent<Rigidbody2D>(); if (rb) rb.simulated = false;
 
-        // выключаем поведение
         var walker = GetComponent<EnemyWalker>();
-        if (walker) walker.enabled = false;
+        if (walker) walker.enabled = false; // вызовет OnDisable() и StopAllCoroutines()
 
-        // анимация/спрайт смерти
         var anim = GetComponent<Animator>();
-        if (anim && anim.runtimeAnimatorController)
-            anim.SetTrigger("Die");
-        else if (deadSprite)
-            sr.sprite = deadSprite;
+        if (anim && anim.runtimeAnimatorController) anim.SetTrigger("Die");
+        else if (deadSprite) GetComponent<SpriteRenderer>().sprite = deadSprite;
 
         if (hpBar) hpBar.Hide();
-
         Destroy(gameObject, destroyAfter);
     }
 }

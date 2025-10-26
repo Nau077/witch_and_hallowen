@@ -29,16 +29,17 @@ public class EnemyWalker : MonoBehaviour
     public Sprite attackSprite;         // перетащи сюда Enemy1_0 (спрайт атаки)
 
     [Header("Attack Timing")]
-    public float preAttackHold = 0.6f;   // пауза перед любой атакой (замах)
+    public float preAttackHold = 0.6f;   // пауза перед атакой (замах)
     public float postAttackHold = 0.25f; // пауза после броска
 
     // внутреннее состояние
-    private bool isAttacking = false;        // атака выполняется прямо сейчас
-    private bool isHoldingForAttack = false; // “режим у стены”
+    private bool isAttacking = false;
+    private bool isHoldingForAttack = false;
     private float attackTimer;
-    private Sprite idleSpriteBase;           // исходный idle-спрайт
+    private Sprite idleSpriteBase;
 
     private PlayerHealth playerHP;
+    private EnemyHealth selfHP; // добавили ссылку на собственное здоровье
 
     private void Awake()
     {
@@ -49,19 +50,28 @@ public class EnemyWalker : MonoBehaviour
     {
         CacheZoneBounds();
         StartCoroutine(DecideLoop());
-        // сохраним настоящий idle-спрайт один раз — сюда всегда вернёмся после атаки
         var sr = GetComponent<SpriteRenderer>();
         if (sr) idleSpriteBase = sr.sprite;
 
         if (player) playerHP = player.GetComponent<PlayerHealth>();
+        selfHP = GetComponent<EnemyHealth>();
+    }
+
+    private void OnDisable()
+    {
+        // при выключении врага (например, после смерти) стопаем всё
+        StopAllCoroutines();
+        isAttacking = false;
+        isHoldingForAttack = false;
+        if (rb) rb.linearVelocity = Vector2.zero;
     }
 
     private void Update()
     {
         if (zoneRenderer) zoneBounds = zoneRenderer.bounds;
 
-        // NEW: если игрок мёртв — стоим, не атакуем, возвращаем idle
-        if (playerHP != null && playerHP.IsDead)
+        // если враг умер — стоим
+        if (selfHP != null && selfHP.IsDead)
         {
             isAttacking = false;
             isHoldingForAttack = false;
@@ -72,6 +82,15 @@ public class EnemyWalker : MonoBehaviour
             return;
         }
 
+        // если игрок мёртв — стоим
+        if (playerHP != null && playerHP.IsDead)
+        {
+            isAttacking = false;
+            isHoldingForAttack = false;
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
+
         // если сейчас атакуем или держим паузу — стоим
         if (isAttacking || isHoldingForAttack)
         {
@@ -79,7 +98,7 @@ public class EnemyWalker : MonoBehaviour
             return;
         }
 
-        // держим горизонтальную дистанцию до игрока
+        // держим дистанцию до игрока
         if (player)
         {
             float minDist = minCellsFromPlayer * cellSize;
@@ -91,7 +110,7 @@ public class EnemyWalker : MonoBehaviour
             }
         }
 
-        // если следующий клеточный шаг в стену — останавливаемся и атакуем с переориентацией
+        // если впереди стена — атакуем и переориентируемся
         if (WillHitWall(desiredDir))
         {
             if (!isHoldingForAttack && !isAttacking)
@@ -103,7 +122,7 @@ public class EnemyWalker : MonoBehaviour
             rb.linearVelocity = desiredDir * moveSpeed;
         }
 
-        // жёсткий кламп внутри зоны (с учётом габаритов спрайта)
+        // ограничение зоны
         Vector3 p = transform.position;
         float halfW = GetComponent<SpriteRenderer>().bounds.extents.x;
         float halfH = GetComponent<SpriteRenderer>().bounds.extents.y;
@@ -133,7 +152,6 @@ public class EnemyWalker : MonoBehaviour
                 if (Vector2.Distance(target, transform.position) < 0.05f)
                     dir = -dir;
 
-                // если сразу ведёт в стену — развернёмся
                 if (WillHitWall(dir)) dir = -dir;
             }
 
@@ -153,24 +171,21 @@ public class EnemyWalker : MonoBehaviour
     private void HandleAttackTimer()
     {
         if (fireballPrefab == null || firePoint == null || player == null) return;
-
         if (playerHP != null && playerHP.IsDead) return;
-
-        // не копим таймер, если заняты атакой/холдом
+        if (selfHP != null && selfHP.IsDead) return;
         if (isAttacking || isHoldingForAttack) return;
 
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackInterval)
         {
             attackTimer = 0f;
-            StartAttack(); // централизованный запуск
+            StartAttack();
         }
     }
 
-    // централизованный запуск атаки с защёлкой
     private void StartAttack()
     {
-        if (isAttacking) return; // уже атакуем — вторую не начинаем
+        if (isAttacking || (selfHP && selfHP.IsDead)) return;
         StartCoroutine(PerformAttack());
     }
 
@@ -178,69 +193,51 @@ public class EnemyWalker : MonoBehaviour
     {
         isHoldingForAttack = true;
 
-        // атака у стены (StartAttack сам проверит флаги)
-        if (!isAttacking) StartAttack();
-        // ждём завершения текущей атаки
+        if (!isAttacking && (selfHP == null || !selfHP.IsDead))
+            StartAttack();
+
         while (isAttacking) yield return null;
 
-        // выбираем новое направление, чтобы не тереться об стену
         desiredDir = ChooseDirectionAwayFromWall();
-
         isHoldingForAttack = false;
     }
 
     private IEnumerator PerformAttack()
     {
-        // защёлка “атака началась”
         isAttacking = true;
-        attackTimer = 0f; // сбросим таймер, чтобы в момент атаки не стартовала ещё одна
+        attackTimer = 0f;
         rb.linearVelocity = Vector2.zero;
 
-        // если игрок умер между тиками — сразу выходим
-        if (playerHP != null && playerHP.IsDead)
-        {
-            isAttacking = false;
-            yield break;
-        }
+        if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead))
+        { isAttacking = false; yield break; }
 
-        // замах
         yield return new WaitForSeconds(preAttackHold);
 
-        // ещё раз на всякий:
-        if (playerHP != null && playerHP.IsDead)
-        {
-            isAttacking = false;
-            yield break;
-        }
+        if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead) || !enabled)
+        { isAttacking = false; yield break; }
 
         var sr = GetComponent<SpriteRenderer>();
-
-        // кадр атаки
         if (attackSprite && sr) sr.sprite = attackSprite;
 
-        // короткая задержка “броска”
         yield return new WaitForSeconds(0.25f);
 
-        // направление
+        if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead) || !enabled)
+        { isAttacking = false; yield break; }
+
+        // создаём фаербол
         Vector2 toPlayer = player.position - transform.position;
-        Vector2 dir;
-        float xDiff = Mathf.Abs(toPlayer.x);
-        if (xDiff < 0.5f)
-            dir = Vector2.down;      // строго вниз, если герой почти под магом
-        else
-            dir = toPlayer.normalized; // по касательной
+        Vector2 dir = (Mathf.Abs(toPlayer.x) < 0.5f) ? Vector2.down : toPlayer.normalized;
 
-        // фаербол
-        GameObject fb = Instantiate(fireballPrefab, firePoint.position, Quaternion.identity);
-        var fireball = fb.GetComponent<Fireball>();
-        if (fireball != null) fireball.Init(dir);
+        if (fireballPrefab && firePoint)
+        {
+            GameObject fb = Instantiate(fireballPrefab, firePoint.position, Quaternion.identity);
+            var fireball = fb.GetComponent<Fireball>();
+            if (fireball) fireball.Init(dir);
+        }
 
-        // “передышка” после броска
         yield return new WaitForSeconds(postAttackHold);
 
-        // вернуть idle-кадр ГАРАНТИРОВАННО
         if (sr && idleSpriteBase) sr.sprite = idleSpriteBase;
-
         isAttacking = false;
     }
 

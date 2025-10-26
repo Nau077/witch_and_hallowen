@@ -168,5 +168,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bc1467cbcdb731e44ae72723dacb76c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Fireball
-  speed: 6
+  speed: 8
   lifetime: 3
+  damage: 10
+  stunDuration: 0.25
+  blinkCount: 6
+  blinkInterval: 0.06

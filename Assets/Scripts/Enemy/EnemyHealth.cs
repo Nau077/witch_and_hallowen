@@ -74,7 +74,7 @@ public class EnemyHealth : MonoBehaviour
         if (burnParticles) burnParticles.Stop();
     }
 
-    private void Die()
+    void Die()
     {
         if (isDead) return;
         isDead = true;
@@ -83,13 +83,37 @@ public class EnemyHealth : MonoBehaviour
         var rb = GetComponent<Rigidbody2D>(); if (rb) rb.simulated = false;
 
         var walker = GetComponent<EnemyWalker>();
-        if (walker) walker.enabled = false; // вызовет OnDisable() и StopAllCoroutines()
+        if (walker) walker.enabled = false;
 
         var anim = GetComponent<Animator>();
+        var sr = GetComponent<SpriteRenderer>();
         if (anim && anim.runtimeAnimatorController) anim.SetTrigger("Die");
-        else if (deadSprite) GetComponent<SpriteRenderer>().sprite = deadSprite;
+        else if (deadSprite) sr.sprite = deadSprite;
 
         if (hpBar) hpBar.Hide();
-        Destroy(gameObject, destroyAfter);
+
+        // опция: плавный fade-out за последние 0.4 c
+        StartCoroutine(FadeAndDestroy(sr, destroyAfter, 0.4f));
+    }
+
+    IEnumerator FadeAndDestroy(SpriteRenderer sr, float delay, float fadeTime)
+    {
+        float wait = Mathf.Max(0f, delay - fadeTime);
+        yield return new WaitForSeconds(wait);
+
+        if (sr)
+        {
+            Color c = sr.color;
+            float t = 0f;
+            while (t < fadeTime)
+            {
+                float a = Mathf.Lerp(1f, 0f, t / fadeTime);
+                sr.color = new Color(c.r, c.g, c.b, a);
+                t += Time.deltaTime;
+                yield return null;
+            }
+            sr.color = new Color(c.r, c.g, c.b, 0f);
+        }
+        Destroy(gameObject);
     }
 }

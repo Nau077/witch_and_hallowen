@@ -5,130 +5,127 @@ using System.Collections;
 public class EnemyWalker : MonoBehaviour
 {
     [Header("Refs")]
-    public SpriteRenderer zoneRenderer; // перетащи сюда EnemyZone
-    public Transform player;            // перетащи сюда Player
+    public Transform player; // цель (игрок)
+    public GameObject fireballPrefab;
+    public Transform firePoint;
+    public Sprite attackSprite;
+    public Sprite idleSprite;
 
-    [Header("Grid / Movement")]
-    public float cellSize = 1f;
-    public float moveSpeed = 1.6f;
-    public float decideEvery = 1.8f;
-    public bool snapToGrid = true;
+    [Header("Movement Settings")]
+    public float moveSpeed = 6.6f;
+    public float decideEvery = 0.8f;
+    public bool snapToGrid = false;
+    [SerializeField] private float flipDeadzone = 0.02f; // чтобы не дёргалось при почти нулевой скорости
 
-    [Header("Keep Distance")]
+    [Header("Movement Bounds (World Coordinates)")]
+    public float leftLimit = -9.0f;
+    public float rightLimit = 9f;
+    public float topLimit = 2.5f;
+    public float bottomLimit = -2.76f;
+
+    [Header("Keep Distance from Player (X axis)")]
     public int minCellsFromPlayer = 4;
+    public float cellSize = 1f;
     public float softStopDistanceFudge = 0.15f;
 
+    [Header("Attack")]
+    public float attackInterval = 1.2f;
+    public float preAttackHold = 0.6f;
+    public float postAttackHold = 0.25f;
+
+    [Header("Safety")]
+    [SerializeField] private bool enforceGlobalBounds = true; // чтобы не менялись границы самопроизвольно
+
+    private const float GLOBAL_LEFT = -9.0f;
+    private const float GLOBAL_RIGHT = 8.5f;
+    private const float GLOBAL_TOP = 3.4f;
+    private const float GLOBAL_BOTTOM = -2.76f;
+
+    // внутренние переменные
     private Rigidbody2D rb;
+    private SpriteRenderer sr;
     private Vector2 desiredDir = Vector2.zero;
-    private Bounds zoneBounds;
-
-    [Header("Attack Settings")]
-    public GameObject fireballPrefab;   // перетащи сюда prefab фаербола
-    public Transform firePoint;         // перетащи сюда пустой объект FirePoint
-    public float attackInterval = 3f;   // каждые 3 секунды стреляет
-    public Sprite attackSprite;         // перетащи сюда Enemy1_0 (спрайт атаки)
-
-    [Header("Attack Timing")]
-    public float preAttackHold = 0.6f;   // пауза перед атакой (замах)
-    public float postAttackHold = 0.25f; // пауза после броска
-
-    // внутреннее состояние
     private bool isAttacking = false;
     private bool isHoldingForAttack = false;
     private float attackTimer;
-    private Sprite idleSpriteBase;
+    private Sprite baseSprite;
 
     private PlayerHealth playerHP;
-    private EnemyHealth selfHP; // добавили ссылку на собственное здоровье
+    private EnemyHealth selfHP;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        sr = GetComponent<SpriteRenderer>();
+        if (sr) baseSprite = sr.sprite;
+
+        rb.gravityScale = 0f;
+        rb.freezeRotation = true;
+
+        // жёстко фиксируем границы (если включено)
+        if (enforceGlobalBounds)
+        {
+            leftLimit = GLOBAL_LEFT;
+            rightLimit = GLOBAL_RIGHT;
+            topLimit = GLOBAL_TOP;
+            bottomLimit = GLOBAL_BOTTOM;
+        }
     }
 
     private void Start()
     {
-        CacheZoneBounds();
-        StartCoroutine(DecideLoop());
-        var sr = GetComponent<SpriteRenderer>();
-        if (sr) idleSpriteBase = sr.sprite;
-
         if (player) playerHP = player.GetComponent<PlayerHealth>();
         selfHP = GetComponent<EnemyHealth>();
-    }
-
-    private void OnDisable()
-    {
-        // при выключении врага (например, после смерти) стопаем всё
-        StopAllCoroutines();
-        isAttacking = false;
-        isHoldingForAttack = false;
-        if (rb) rb.linearVelocity = Vector2.zero;
+        StartCoroutine(DecideLoop());
     }
 
     private void Update()
     {
-        if (zoneRenderer) zoneBounds = zoneRenderer.bounds;
-
-        // если враг умер — стоим
-        if (selfHP != null && selfHP.IsDead)
+        if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead))
         {
-            isAttacking = false;
-            isHoldingForAttack = false;
-            rb.linearVelocity = Vector2.zero;
-
-            var sr = GetComponent<SpriteRenderer>();
-            if (sr && idleSpriteBase) sr.sprite = idleSpriteBase;
-            return;
-        }
-
-        // если игрок мёртв — стоим
-        if (playerHP != null && playerHP.IsDead)
-        {
-            isAttacking = false;
-            isHoldingForAttack = false;
             rb.linearVelocity = Vector2.zero;
             return;
         }
 
-        // если сейчас атакуем или держим паузу — стоим
         if (isAttacking || isHoldingForAttack)
         {
             rb.linearVelocity = Vector2.zero;
             return;
         }
 
-        // держим дистанцию до игрока
+        // Не подходить к игроку ближе по оси X
         if (player)
         {
-            float minDist = minCellsFromPlayer * cellSize;
-            Vector2 toPlayer = (player.position - transform.position);
-            float dist = toPlayer.magnitude;
-            if (dist <= minDist + softStopDistanceFudge)
+            float minDistX = minCellsFromPlayer * cellSize;
+            float dx = Mathf.Abs(player.position.x - transform.position.x);
+            if (dx <= minDistX + softStopDistanceFudge)
             {
-                desiredDir = new Vector2(Mathf.Sign(-toPlayer.x), 0f);
+                float signAway = Mathf.Sign(transform.position.x - player.position.x);
+                desiredDir = new Vector2(signAway, 0f);
             }
         }
+    }
 
-        // если впереди стена — атакуем и переориентируемся
-        if (WillHitWall(desiredDir))
-        {
-            if (!isHoldingForAttack && !isAttacking)
-                StartCoroutine(HitWallAndRedirect());
-            rb.linearVelocity = Vector2.zero;
-        }
-        else
-        {
-            rb.linearVelocity = desiredDir * moveSpeed;
-        }
+    private void FixedUpdate()
+    {
+        if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead)) return;
+        if (isAttacking || isHoldingForAttack) return;
 
-        // ограничение зоны
-        Vector3 p = transform.position;
-        float halfW = GetComponent<SpriteRenderer>().bounds.extents.x;
-        float halfH = GetComponent<SpriteRenderer>().bounds.extents.y;
-        p.x = Mathf.Clamp(p.x, zoneBounds.min.x + halfW, zoneBounds.max.x - halfW);
-        p.y = Mathf.Clamp(p.y, zoneBounds.min.y + halfH, zoneBounds.max.y - halfH);
-        transform.position = p;
+        Vector2 cur = rb.position;
+        Vector2 next = cur + desiredDir * moveSpeed * Time.fixedDeltaTime;
+        Vector2 clamped = ClampToBounds(next);
+
+        rb.MovePosition(clamped);
+        rb.linearVelocity = (clamped - cur) / Time.fixedDeltaTime;
+
+        // === ФЛИП ПО ФАКТИЧЕСКОМУ ДВИЖЕНИЮ ===
+        if (sr)
+        {
+            float mx = rb.linearVelocity.x;
+            if (mx > flipDeadzone) sr.flipX = false; // дефолт: лицом вправо
+            else if (mx < -flipDeadzone) sr.flipX = true;  // идём влево — отражаем по X
+            // при |mx| ~ 0 — оставляем предыдущий флип
+        }
     }
 
     private IEnumerator DecideLoop()
@@ -137,29 +134,33 @@ public class EnemyWalker : MonoBehaviour
         {
             yield return new WaitForSeconds(decideEvery);
 
-            int r = Random.Range(0, 6);
-            Vector2 dir;
-            if (r <= 2) dir = Vector2.right;
-            else if (r <= 4) dir = Vector2.left;
-            else dir = Vector2.up;
-
-            if (snapToGrid)
+            int r = Random.Range(0, 4);
+            Vector2 dir = r switch
             {
-                Vector2 target = (Vector2)transform.position + dir * cellSize;
-                target.x = Mathf.Clamp(target.x, zoneBounds.min.x, zoneBounds.max.x);
-                target.y = Mathf.Clamp(target.y, zoneBounds.min.y, zoneBounds.max.y);
+                0 => Vector2.right,
+                1 => Vector2.left,
+                2 => Vector2.up,
+                _ => Vector2.down
+            };
 
-                if (Vector2.Distance(target, transform.position) < 0.05f)
-                    dir = -dir;
-
-                if (WillHitWall(dir)) dir = -dir;
-            }
+            // коррекция, если у краёв по Y
+            float y = transform.position.y;
+            const float edgeBias = 0.2f;
+            if (y > topLimit - edgeBias) dir = Vector2.down;
+            else if (y < bottomLimit + edgeBias) dir = Vector2.up;
 
             desiredDir = dir;
 
-            var sr = GetComponent<SpriteRenderer>();
-            if (sr && Mathf.Abs(desiredDir.x) > 0.01f)
-                sr.flipX = desiredDir.x < 0;
+            if (snapToGrid)
+            {
+                float step = cellSize;
+                Vector2 target = (Vector2)transform.position + dir * step;
+                target = ClampToBounds(target);
+                Vector2 d = target - (Vector2)transform.position;
+                desiredDir = d.sqrMagnitude > 0.000001f ? d.normalized : Vector2.zero;
+            }
+
+            // Флип здесь больше не трогаем — он делается по реальной скорости в FixedUpdate().
         }
     }
 
@@ -170,134 +171,86 @@ public class EnemyWalker : MonoBehaviour
 
     private void HandleAttackTimer()
     {
-        if (fireballPrefab == null || firePoint == null || player == null) return;
-        if (playerHP != null && playerHP.IsDead) return;
-        if (selfHP != null && selfHP.IsDead) return;
+        if (!fireballPrefab || !firePoint || !player) return;
+        if ((playerHP && playerHP.IsDead) || (selfHP && selfHP.IsDead)) return;
         if (isAttacking || isHoldingForAttack) return;
 
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackInterval)
         {
             attackTimer = 0f;
-            StartAttack();
+            StartCoroutine(PerformAttack());
         }
-    }
-
-    private void StartAttack()
-    {
-        if (isAttacking || (selfHP && selfHP.IsDead)) return;
-        StartCoroutine(PerformAttack());
-    }
-
-    private IEnumerator HitWallAndRedirect()
-    {
-        isHoldingForAttack = true;
-
-        if (!isAttacking && (selfHP == null || !selfHP.IsDead))
-            StartAttack();
-
-        while (isAttacking) yield return null;
-
-        desiredDir = ChooseDirectionAwayFromWall();
-        isHoldingForAttack = false;
     }
 
     private IEnumerator PerformAttack()
     {
         isAttacking = true;
-        attackTimer = 0f;
         rb.linearVelocity = Vector2.zero;
+
+        yield return new WaitForSeconds(preAttackHold);
 
         if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead))
         { isAttacking = false; yield break; }
 
-        yield return new WaitForSeconds(preAttackHold);
-
-        if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead) || !enabled)
-        { isAttacking = false; yield break; }
-
-        var sr = GetComponent<SpriteRenderer>();
-        if (attackSprite && sr) sr.sprite = attackSprite;
-
+        if (sr && attackSprite) sr.sprite = attackSprite;
         yield return new WaitForSeconds(0.25f);
 
-        if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead) || !enabled)
-        { isAttacking = false; yield break; }
-
-        // создаём фаербол
         Vector2 toPlayer = player.position - transform.position;
         Vector2 dir = (Mathf.Abs(toPlayer.x) < 0.5f) ? Vector2.down : toPlayer.normalized;
 
-        if (fireballPrefab && firePoint)
-        {
-            GameObject fb = Instantiate(fireballPrefab, firePoint.position, Quaternion.identity);
-            var fireball = fb.GetComponent<Fireball>();
-            if (fireball) fireball.Init(dir);
-        }
+        GameObject fb = Instantiate(fireballPrefab, firePoint.position, Quaternion.identity);
+        var fireball = fb.GetComponent<Fireball>();
+        if (fireball) fireball.Init(dir);
 
         yield return new WaitForSeconds(postAttackHold);
 
-        if (sr && idleSpriteBase) sr.sprite = idleSpriteBase;
+        if (sr && baseSprite) sr.sprite = baseSprite;
         isAttacking = false;
     }
 
-    private bool WillHitWall(Vector2 dir)
+    private Vector2 ClampToBounds(Vector2 pos)
     {
-        if (dir == Vector2.zero) return false;
-        Vector2 next = (Vector2)transform.position + dir * cellSize;
-        float halfW = GetComponent<SpriteRenderer>().bounds.extents.x;
-        float halfH = GetComponent<SpriteRenderer>().bounds.extents.y;
-        return next.x - halfW < zoneBounds.min.x ||
-               next.x + halfW > zoneBounds.max.x ||
-               next.y - halfH < zoneBounds.min.y ||
-               next.y + halfH > zoneBounds.max.y;
+        float x = Mathf.Clamp(pos.x, leftLimit, rightLimit);
+        float y = Mathf.Clamp(pos.y, bottomLimit, topLimit);
+        return new Vector2(x, y);
     }
 
-    private Vector2 ChooseDirectionAwayFromWall()
+    /// <summary>
+    /// Десинхронизирует движения и атаки (рандомные сдвиги).
+    /// </summary>
+    public void ApplyDesync(float decideJitter, float attackJitter, float firstDecisionDelay, float firstAttackDelay)
     {
-        bool left = transform.position.x <= zoneBounds.min.x + 0.1f;
-        bool right = transform.position.x >= zoneBounds.max.x - 0.1f;
-        bool top = transform.position.y >= zoneBounds.max.y - 0.1f;
-        bool bottom = transform.position.y <= zoneBounds.min.y + 0.1f;
+        decideJitter = Mathf.Clamp01(decideJitter);
+        attackJitter = Mathf.Clamp01(attackJitter);
 
-        if (left || right) return Random.value < 0.5f ? Vector2.up : Vector2.down;
-        if (top || bottom) return Random.value < 0.5f ? Vector2.left : Vector2.right;
+        decideEvery = decideEvery * Random.Range(1f - decideJitter, 1f + decideJitter);
+        attackInterval = attackInterval * Random.Range(1f - attackJitter, 1f + attackJitter);
 
-        int r = Random.Range(0, 4);
-        return r switch
-        {
-            0 => Vector2.left,
-            1 => Vector2.right,
-            2 => Vector2.up,
-            _ => Vector2.down
-        };
+        attackTimer = -Mathf.Max(0f, firstAttackDelay);
+        StartCoroutine(_FirstDecisionDelay(Mathf.Max(0f, firstDecisionDelay)));
     }
 
-    private void CacheZoneBounds()
+    private IEnumerator _FirstDecisionDelay(float t)
     {
-        if (zoneRenderer == null)
-        {
-            Debug.LogError("EnemyWalker: zoneRenderer не задан. Перетащи сюда EnemyZone SpriteRenderer.");
-            return;
-        }
-        zoneBounds = zoneRenderer.bounds;
+        if (t > 0f) yield return new WaitForSeconds(t);
     }
 
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {
+        Gizmos.color = Color.cyan;
+        Vector3 c = new Vector3((leftLimit + rightLimit) / 2f, (bottomLimit + topLimit) / 2f, 0f);
+        Vector3 s = new Vector3(Mathf.Abs(rightLimit - leftLimit), Mathf.Abs(topLimit - bottomLimit), 0f);
+        Gizmos.DrawWireCube(c, s);
+
         if (player)
         {
+            float minDistX = minCellsFromPlayer * cellSize;
+            Vector3 p = player.position;
             Gizmos.color = Color.green;
-            float r = (minCellsFromPlayer * cellSize);
-            Gizmos.DrawWireSphere(player.position, r);
-        }
-
-        if (zoneRenderer)
-        {
-            var b = zoneRenderer.bounds;
-            Gizmos.color = Color.cyan;
-            Gizmos.DrawWireCube(b.center, b.size);
+            Gizmos.DrawLine(new Vector3(p.x - minDistX, bottomLimit, 0), new Vector3(p.x - minDistX, topLimit, 0));
+            Gizmos.DrawLine(new Vector3(p.x + minDistX, bottomLimit, 0), new Vector3(p.x + minDistX, topLimit, 0));
         }
     }
 #endif

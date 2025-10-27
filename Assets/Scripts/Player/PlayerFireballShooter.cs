@@ -194,65 +194,84 @@ public class PlayerFireballShooter : MonoBehaviour
 
         float distance;
 
-        if (shootAlwaysUp && enemyZone != null && useZoneSteps)
+float ignoreFirstMeters = 0f; // новая переменная
+
+if (shootAlwaysUp && enemyZone != null && useZoneSteps)
+{
+    // Равные ступени от firePoint до верха EnemyZone
+    float top = enemyZone.bounds.max.y - zoneTopPadding;
+    float allowed = Mathf.Max(0.05f, top - firePoint.position.y);
+
+    int steps = Mathf.Max(1, zoneSteps);
+    float step = allowed / steps;
+
+    int k = Mathf.Clamp(dots, 1, steps);
+
+    // куда целимся
+    distance = snapToCenters ? (k - 0.5f) * step : k * step;
+
+    // хотим «перелёт» ближайшего врага: игнорируем примерно ОДНУ ступень ниже целевой
+    // - если цель на границе ступени (snapToCenters=false) → игнорируем (k-1)*step
+    // - если цель в центре ступени → игнорируем (k-0.5 - 0.5)*step = (k-1)*step (чуть мягче)
+    float skip = distance - step; // одна ступень меньше целевой
+    // небольшая страховка, чтобы не игнорировать ВСЮ дистанцию
+    float bias = 0.02f;
+    ignoreFirstMeters = Mathf.Clamp(skip, 0f, Mathf.Max(0f, distance - bias));
+}
+else
+{
+    // старая линейка min..max
+    float t = (maxDots == 1) ? 1f : (dots - 1) / (float)(maxDots - 1);
+    distance = Mathf.Lerp(minDistance, maxDistance, t);
+
+    if (shootAlwaysUp && enemyZone != null)
+    {
+        float top = enemyZone.bounds.max.y - zoneTopPadding;
+        float allowed = Mathf.Max(0.05f, top - firePoint.position.y);
+        distance = Mathf.Min(distance, allowed);
+    }
+
+    // оценочный "шаг" на одну точку заряда
+    float estStep = (maxDots > 1) ? (maxDistance - minDistance) / (maxDots - 1) : minDistance;
+    float skip = distance - estStep; // игнорируем одну «ступень» ниже целевой
+    float bias = 0.02f;
+    ignoreFirstMeters = Mathf.Clamp(skip, 0f, Mathf.Max(0f, distance - bias));
+}
+
+// В Ы С Т Р Е Л
+if (playerFireballPrefab != null && firePoint != null)
+{
+    var go = Instantiate(playerFireballPrefab, firePoint.position, Quaternion.identity);
+    var pf = go.GetComponent<PlayerFireball>();
+    if (pf != null)
+    {
+        var cam = Camera.main;
+        Vector2 dir = Vector2.up; // дефолт
+
+        if (!shootAlwaysUp)
         {
-            // Равные ступени от firePoint до верха EnemyZone
-            float top = enemyZone.bounds.max.y - zoneTopPadding;
-            float allowed = Mathf.Max(0.05f, top - firePoint.position.y);
-
-            int steps = Mathf.Max(1, zoneSteps);
-            float step = allowed / steps;
-
-            int k = Mathf.Clamp(dots, 1, steps);
-            distance = snapToCenters ? (k - 0.5f) * step : k * step; // граница или центр
-        }
-        else
-        {
-            // старая линейка min..max
-            float t = (maxDots == 1) ? 1f : (dots - 1) / (float)(maxDots - 1);
-            distance = Mathf.Lerp(minDistance, maxDistance, t);
-
-            if (shootAlwaysUp && enemyZone != null)
+            if (cam != null)
             {
-                float top = enemyZone.bounds.max.y - zoneTopPadding;
-                float allowed = Mathf.Max(0.05f, top - firePoint.position.y);
-                distance = Mathf.Min(distance, allowed);
+                Vector3 mp = Input.mousePosition;
+                float depth = Mathf.Abs(cam.transform.position.z - firePoint.position.z);
+                if (depth < cam.nearClipPlane + 0.01f) depth = cam.nearClipPlane + 0.01f;
+                mp.z = depth;
+
+                Vector3 mouseWorld = cam.ScreenToWorldPoint(mp);
+                mouseWorld.z = firePoint.position.z;
+
+                dir = (mouseWorld - firePoint.position).normalized;
             }
         }
-
-        // выстрел
-        if (playerFireballPrefab != null && firePoint != null)
+        else if (useFacingForHorizontal && _sr != null)
         {
-            var go = Instantiate(playerFireballPrefab, firePoint.position, Quaternion.identity);
-            var pf = go.GetComponent<PlayerFireball>();
-            if (pf != null)
-            {
-                var cam = Camera.main;
-                Vector2 dir = Vector2.up; // дефолт
-
-                if (!shootAlwaysUp)
-                {
-                    if (cam != null)
-                    {
-                        Vector3 mp = Input.mousePosition;
-                        float depth = Mathf.Abs(cam.transform.position.z - firePoint.position.z);
-                        if (depth < cam.nearClipPlane + 0.01f) depth = cam.nearClipPlane + 0.01f;
-
-                        mp.z = depth;
-                        Vector3 mouseWorld = cam.ScreenToWorldPoint(mp);
-                        mouseWorld.z = firePoint.position.z;
-
-                        dir = (mouseWorld - firePoint.position).normalized;
-                    }
-                }
-                else if (useFacingForHorizontal && _sr != null)
-                {
-                    dir = _sr.flipX ? Vector2.left : Vector2.right;
-                }
-
-                pf.Init(dir, distance, pf.speed);
-            }
+            dir = _sr.flipX ? Vector2.left : Vector2.right;
         }
+
+        // ⬇️ передаём новую «зону игнора»
+        pf.Init(dir, distance, pf.speed, ignoreFirstMeters);
+    }
+}
 
         _cooldownUntil = Time.time + fireCooldown;
 

@@ -21,7 +21,7 @@ public class EnemyWalker : MonoBehaviour
     public float leftLimit = -9.0f;
     public float rightLimit = 9f;
     public float topLimit = 2.5f;
-    public float bottomLimit = -2.76f;
+    public float bottomLimit = -3.26f;
 
     [Header("Keep Distance from Player (X axis)")]
     public int minCellsFromPlayer = 4;
@@ -234,6 +234,27 @@ public class EnemyWalker : MonoBehaviour
     private IEnumerator _FirstDecisionDelay(float t)
     {
         if (t > 0f) yield return new WaitForSeconds(t);
+    }
+
+    public void OnDeathExternal()
+    {
+        // Жёстко гасим активность, чтобы никакая корутина (атака/замах)
+        // не успела вернуть базовый спрайт/состояние.
+        // НИЧЕГО не трогаем со спрайтами — это делает EnemyHealth (аниматор/ deadSprite).
+        StopAllCoroutines();
+
+        // Ставим жёсткие флаги, если их используешь
+        // (если у тебя есть hardDead/isAttacking — установи их):
+        // hardDead = true;
+        // isAttacking = false;
+        // isHoldingForAttack = false;
+
+        if (TryGetComponent<Rigidbody2D>(out var rb))
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+        }
     }
 
 #if UNITY_EDITOR

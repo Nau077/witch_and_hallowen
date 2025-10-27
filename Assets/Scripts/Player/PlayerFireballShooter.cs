@@ -8,7 +8,8 @@ public class PlayerFireballShooter : MonoBehaviour
     [Header("Refs")]
     public Transform firePoint;                 // точка выстрела (чуть выше головы)
     public GameObject playerFireballPrefab;     // префаб с PlayerFireball + Collider2D (isTrigger)
-    public ChargeDotsUI chargeUI;               // скрипт из п.2
+    public ChargeDotsUI chargeUI;               // скрипт индикатора точек
+    public FireballChargeFX chargeFX;           // <-- FX заряда (свечение/частицы/аудио)
 
     [Header("Charge")]
     public int maxDots = 5;                     // макс. точек (по 1 секунде на точку)
@@ -19,7 +20,7 @@ public class PlayerFireballShooter : MonoBehaviour
 
     [Header("Sprites")]
     public Sprite idleSprite;                   // обычный idle (твой базовый)
-    public Sprite windupSprite;                 // witch_3_3 (замах/бросок)
+    public Sprite windupSprite;                 // кадр замаха/броска
 
     [Header("Direction")]
     public bool shootAlwaysUp = true;           // летит строго вверх (как по лейну)
@@ -50,6 +51,9 @@ public class PlayerFireballShooter : MonoBehaviour
     private Rigidbody2D rb;
     private bool _lockWindupSpriteWhileCharging = true; // удерживаем кадр замаха во время зарядки
 
+    // плавная часть между «точками»
+    private float _chargeElapsed;               // сколько прошло с последней прибавленной точки
+
     private void Awake()
     {
         _sr = GetComponent<SpriteRenderer>();
@@ -69,6 +73,29 @@ public class PlayerFireballShooter : MonoBehaviour
         if (hp != null && hp.IsDead) return;
 
         HandleInput();
+
+        // Плавное обновление FX во время зарядки (между точками)
+        if (_isCharging && chargeFX != null)
+        {
+            bool canGrow = (_currentDots < maxDots);
+            if (canGrow) _chargeElapsed += Time.deltaTime;
+
+            float dotSpan = Mathf.Max(0.0001f, secondsPerDot);
+            float frac = canGrow ? Mathf.Clamp01(_chargeElapsed / dotSpan) : 1f; // доля до следующей точки
+
+            float t;
+            if (maxDots <= 1)
+            {
+                t = 1f;
+            }
+            else
+            {
+                float baseDots = Mathf.Clamp(_currentDots - 1, 0, maxDots - 1); // 0..(maxDots-1)
+                t = Mathf.Clamp01((baseDots + frac) / (maxDots - 1));           // 0..1
+            }
+
+            chargeFX.UpdateCharge(t);
+        }
     }
 
     public void CancelAllImmediate()
@@ -127,6 +154,8 @@ public class PlayerFireballShooter : MonoBehaviour
 
         // сразу зажигаем 1-ю точку
         _currentDots = 1;
+        _chargeElapsed = 0f;
+
         if (chargeUI != null)
         {
             chargeUI.Clear();
@@ -134,6 +163,9 @@ public class PlayerFireballShooter : MonoBehaviour
         }
 
         if (_sr != null && windupSprite != null) _sr.sprite = windupSprite;
+
+        // FX начало
+        if (chargeFX != null) chargeFX.BeginCharge();
 
         _chargeRoutine = StartCoroutine(ChargeTick());
     }
@@ -149,6 +181,8 @@ public class PlayerFireballShooter : MonoBehaviour
             if (_currentDots < maxDots)
             {
                 _currentDots++;
+                _chargeElapsed = 0f; // сбросить промежуточный таймер между точками
+
                 if (chargeUI != null) chargeUI.SetCount(_currentDots);
 
                 // Автосброс только если ТЫ сам включишь флаг в инспекторе
@@ -194,91 +228,92 @@ public class PlayerFireballShooter : MonoBehaviour
 
         float distance;
 
-float ignoreFirstMeters = 0f; // новая переменная
+        float ignoreFirstMeters = 0f; // новая переменная
 
-if (shootAlwaysUp && enemyZone != null && useZoneSteps)
-{
-    // Равные ступени от firePoint до верха EnemyZone
-    float top = enemyZone.bounds.max.y - zoneTopPadding;
-    float allowed = Mathf.Max(0.05f, top - firePoint.position.y);
-
-    int steps = Mathf.Max(1, zoneSteps);
-    float step = allowed / steps;
-
-    int k = Mathf.Clamp(dots, 1, steps);
-
-    // куда целимся
-    distance = snapToCenters ? (k - 0.5f) * step : k * step;
-
-    // хотим «перелёт» ближайшего врага: игнорируем примерно ОДНУ ступень ниже целевой
-    // - если цель на границе ступени (snapToCenters=false) → игнорируем (k-1)*step
-    // - если цель в центре ступени → игнорируем (k-0.5 - 0.5)*step = (k-1)*step (чуть мягче)
-    float skip = distance - step; // одна ступень меньше целевой
-    // небольшая страховка, чтобы не игнорировать ВСЮ дистанцию
-    float bias = 0.02f;
-    ignoreFirstMeters = Mathf.Clamp(skip, 0f, Mathf.Max(0f, distance - bias));
-}
-else
-{
-    // старая линейка min..max
-    float t = (maxDots == 1) ? 1f : (dots - 1) / (float)(maxDots - 1);
-    distance = Mathf.Lerp(minDistance, maxDistance, t);
-
-    if (shootAlwaysUp && enemyZone != null)
-    {
-        float top = enemyZone.bounds.max.y - zoneTopPadding;
-        float allowed = Mathf.Max(0.05f, top - firePoint.position.y);
-        distance = Mathf.Min(distance, allowed);
-    }
-
-    // оценочный "шаг" на одну точку заряда
-    float estStep = (maxDots > 1) ? (maxDistance - minDistance) / (maxDots - 1) : minDistance;
-    float skip = distance - estStep; // игнорируем одну «ступень» ниже целевой
-    float bias = 0.02f;
-    ignoreFirstMeters = Mathf.Clamp(skip, 0f, Mathf.Max(0f, distance - bias));
-}
-
-// В Ы С Т Р Е Л
-if (playerFireballPrefab != null && firePoint != null)
-{
-    var go = Instantiate(playerFireballPrefab, firePoint.position, Quaternion.identity);
-    var pf = go.GetComponent<PlayerFireball>();
-    if (pf != null)
-    {
-        var cam = Camera.main;
-        Vector2 dir = Vector2.up; // дефолт
-
-        if (!shootAlwaysUp)
+        if (shootAlwaysUp && enemyZone != null && useZoneSteps)
         {
-            if (cam != null)
+            // Равные ступени от firePoint до верха EnemyZone
+            float top = enemyZone.bounds.max.y - zoneTopPadding;
+            float allowed = Mathf.Max(0.05f, top - firePoint.position.y);
+
+            int steps = Mathf.Max(1, zoneSteps);
+            float step = allowed / steps;
+
+            int k = Mathf.Clamp(dots, 1, steps);
+
+            // куда целимся
+            distance = snapToCenters ? (k - 0.5f) * step : k * step;
+
+            // игнорируем примерно одну ступень ниже целевой
+            float skip = distance - step; // одна ступень меньше целевой
+            float bias = 0.02f;
+            ignoreFirstMeters = Mathf.Clamp(skip, 0f, Mathf.Max(0f, distance - bias));
+        }
+        else
+        {
+            // старая линейка min..max
+            float t = (maxDots == 1) ? 1f : (dots - 1) / (float)(maxDots - 1);
+            distance = Mathf.Lerp(minDistance, maxDistance, t);
+
+            if (shootAlwaysUp && enemyZone != null)
             {
-                Vector3 mp = Input.mousePosition;
-                float depth = Mathf.Abs(cam.transform.position.z - firePoint.position.z);
-                if (depth < cam.nearClipPlane + 0.01f) depth = cam.nearClipPlane + 0.01f;
-                mp.z = depth;
+                float top = enemyZone.bounds.max.y - zoneTopPadding;
+                float allowed = Mathf.Max(0.05f, top - firePoint.position.y);
+                distance = Mathf.Min(distance, allowed);
+            }
 
-                Vector3 mouseWorld = cam.ScreenToWorldPoint(mp);
-                mouseWorld.z = firePoint.position.z;
+            // оценочный "шаг" на одну точку заряда
+            float estStep = (maxDots > 1) ? (maxDistance - minDistance) / (maxDots - 1) : minDistance;
+            float skip = distance - estStep; // игнорируем одну «ступень» ниже целевой
+            float bias = 0.02f;
+            ignoreFirstMeters = Mathf.Clamp(skip, 0f, Mathf.Max(0f, distance - bias));
+        }
 
-                dir = (mouseWorld - firePoint.position).normalized;
+        // В Ы С Т Р Е Л
+        if (playerFireballPrefab != null && firePoint != null)
+        {
+            var go = Instantiate(playerFireballPrefab, firePoint.position, Quaternion.identity);
+            var pf = go.GetComponent<PlayerFireball>();
+            if (pf != null)
+            {
+                var cam = Camera.main;
+                Vector2 dir = Vector2.up; // дефолт
+
+                if (!shootAlwaysUp)
+                {
+                    if (cam != null)
+                    {
+                        Vector3 mp = Input.mousePosition;
+                        float depth = Mathf.Abs(cam.transform.position.z - firePoint.position.z);
+                        if (depth < cam.nearClipPlane + 0.01f) depth = cam.nearClipPlane + 0.01f;
+                        mp.z = depth;
+
+                        Vector3 mouseWorld = cam.ScreenToWorldPoint(mp);
+                        mouseWorld.z = firePoint.position.z;
+
+                        dir = (mouseWorld - firePoint.position).normalized;
+                    }
+                }
+                else if (useFacingForHorizontal && _sr != null)
+                {
+                    dir = _sr.flipX ? Vector2.left : Vector2.right;
+                }
+
+                // передаём зону игнора
+                pf.Init(dir, distance, pf.speed, ignoreFirstMeters);
             }
         }
-        else if (useFacingForHorizontal && _sr != null)
-        {
-            dir = _sr.flipX ? Vector2.left : Vector2.right;
-        }
-
-        // ⬇️ передаём новую «зону игнора»
-        pf.Init(dir, distance, pf.speed, ignoreFirstMeters);
-    }
-}
 
         _cooldownUntil = Time.time + fireCooldown;
 
         if (chargeUI != null) chargeUI.Clear();
         _currentDots = 0;
+        _chargeElapsed = 0f;
 
         if (_sr != null && idleSprite != null) _sr.sprite = idleSprite;
+
+        // FX релиз
+        if (chargeFX != null) chargeFX.Release();
     }
 
     private void CancelCharge(bool changeSprite = true)
@@ -287,8 +322,12 @@ if (playerFireballPrefab != null && firePoint != null)
         if (_chargeRoutine != null) StopCoroutine(_chargeRoutine);
         if (chargeUI != null) chargeUI.Clear();
         _currentDots = 0;
+        _chargeElapsed = 0f;
 
         if (changeSprite && _sr != null && idleSprite != null)
             _sr.sprite = idleSprite;
+
+        // FX отмена
+        if (chargeFX != null) chargeFX.Cancel();
     }
 }

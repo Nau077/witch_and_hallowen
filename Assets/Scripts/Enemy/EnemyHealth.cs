@@ -79,17 +79,19 @@ public class EnemyHealth : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        // 1) СНАЧАЛА скажем врагу «ты умер», чтобы он погасил корутины и движение
+        // безопасное начисление душ
+        if (SoulCounter.Instance != null)
+            SoulCounter.Instance.AddSouls(10);
+        else
+            Debug.LogWarning("[EnemyHealth] SoulCounter.Instance is null — душа не начислена. Помести SoulCounter в сцену.");
+
         var walker = GetComponent<EnemyWalker>();
         if (walker) walker.OnDeathExternal();
 
-        // 2) После этого уже выключаем столкновения/физику/сам компонент
         var col = GetComponent<Collider2D>(); if (col) col.enabled = false;
         var rb = GetComponent<Rigidbody2D>(); if (rb) rb.simulated = false;
+        if (walker) walker.enabled = false;
 
-        if (walker) walker.enabled = false; // можно оставить, раз уже всё погашено
-
-        // 3) Включаем анимацию смерти ИЛИ подменяем спрайт
         var anim = GetComponent<Animator>();
         var sr = GetComponent<SpriteRenderer>();
         if (anim && anim.runtimeAnimatorController) anim.SetTrigger("Die");
@@ -97,7 +99,6 @@ public class EnemyHealth : MonoBehaviour
 
         if (hpBar) hpBar.Hide();
 
-        // 4) Плавный fade-out и удаление
         StartCoroutine(FadeAndDestroy(sr, destroyAfter, 0.4f));
     }
 

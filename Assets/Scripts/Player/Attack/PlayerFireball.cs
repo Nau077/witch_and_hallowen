@@ -10,6 +10,9 @@ public class PlayerFireball : MonoBehaviour
     [Header("Damage")]
     public int damage = 10;
 
+    [SerializeField] private FireAuraFader aura;   // перетащи из инспектора
+    [SerializeField] private float fadeDuration = 0.2f;
+
     // Сколько метров от старта игнорировать попадания по врагам
     [HideInInspector] public float ignoreEnemiesFirstMeters = 0f;
 

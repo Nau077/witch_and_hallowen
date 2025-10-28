@@ -8,6 +8,12 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody2D rb;
     private SpriteRenderer sr;
+    private PlayerFireballShooter shooter;
+
+    void Awake()
+    {
+        shooter = FindObjectOfType<PlayerFireballShooter>(); // или GetComponent/ссылка из инспектора
+    }
 
     void Start()
     {
@@ -29,7 +35,7 @@ public class PlayerController : MonoBehaviour
         transform.position = newPos;
 
         // Отражаем спрайт влево/вправо
-        if (move != 0)
+        if (move != 0 && shooter != null && !shooter.IsCharging)
             sr.flipX = move < 0;
     }
 }

@@ -40,6 +40,8 @@ public class PlayerFireballShooter : MonoBehaviour
     [Tooltip("Если включено — целимся в центр ступени (k-0.5)/steps, иначе точно на границу k/steps")]
     public bool snapToCenters = false;          // выключи, чтобы 5-я точка попадала в самый верх
 
+    public bool IsCharging => _isCharging;          // true, пока идёт замах/заряд
+
     // внутренние поля
     private SpriteRenderer _sr;
     private Coroutine _chargeRoutine;

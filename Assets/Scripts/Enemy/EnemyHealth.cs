@@ -1,3 +1,4 @@
+using System;            // <-- добавь
 using System.Collections;
 using UnityEngine;
 
@@ -5,21 +6,24 @@ using UnityEngine;
 [RequireComponent(typeof(Collider2D))]
 public class EnemyHealth : MonoBehaviour
 {
+    // === ƒќЅј¬№: статическое событие, кто угодно может подписатьс€ ===
+    public static event Action<EnemyHealth> OnAnyEnemyDied;
+
     [Header("Health")]
     public int maxHealth = 50;
     public int currentHealth;
 
     [Header("Hit Effect")]
-    public Color fireTint = new Color(1f, 0.45f, 0.05f, 1f); // огненно-оранжевый
-    public float flashDuration = 0.3f;                      // длительность вспышки
-    public ParticleSystem burnParticles;                     // (опц.) партиклы огн€/искорок
+    public Color fireTint = new Color(1f, 0.45f, 0.05f, 1f);
+    public float flashDuration = 0.3f;
+    public ParticleSystem burnParticles;
 
     [Header("Death")]
-    public Sprite deadSprite;         // (опц.) спрайт смерти
-    public float destroyAfter = 2.2f; // задержка перед удалением
+    public Sprite deadSprite;
+    public float destroyAfter = 2.2f;
 
     [Header("HP Bar (sprite)")]
-    public HealthBar2D hpBar;         // см. скрипт HealthBar2D
+    public HealthBar2D hpBar;
 
     private SpriteRenderer sr;
     private Color baseColor;
@@ -34,18 +38,15 @@ public class EnemyHealth : MonoBehaviour
         if (hpBar) hpBar.SetMax(maxHealth);
     }
 
-    // === ¬ј∆Ќќ: совместимо с твоим PlayerFireball Ч он вызывает именно TakeDamage ===
     public void TakeDamage(int amount)
     {
         if (isDead || amount <= 0) return;
 
         currentHealth = Mathf.Max(0, currentHealth - amount);
 
-        // визуальный отклик Ђогненный флэшї
         StopAllCoroutines();
         StartCoroutine(HitFlash());
         if (burnParticles) { burnParticles.Play(); StartCoroutine(StopParticlesSoon(0.25f)); }
-
         if (hpBar) hpBar.SetValue(currentHealth);
 
         if (currentHealth <= 0)
@@ -79,11 +80,10 @@ public class EnemyHealth : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        // безопасное начисление душ
         if (SoulCounter.Instance != null)
             SoulCounter.Instance.AddSouls(10);
         else
-            Debug.LogWarning("[EnemyHealth] SoulCounter.Instance is null Ч душа не начислена. ѕомести SoulCounter в сцену.");
+            Debug.LogWarning("[EnemyHealth] SoulCounter.Instance is null Ч душа не начислена.");
 
         var walker = GetComponent<EnemyWalker>();
         if (walker) walker.OnDeathExternal();
@@ -98,6 +98,9 @@ public class EnemyHealth : MonoBehaviour
         else if (deadSprite) sr.sprite = deadSprite;
 
         if (hpBar) hpBar.Hide();
+
+        // === ƒќЅј¬№: сообщаем всем Ђвраг умерї ===
+        OnAnyEnemyDied?.Invoke(this);
 
         StartCoroutine(FadeAndDestroy(sr, destroyAfter, 0.4f));
     }

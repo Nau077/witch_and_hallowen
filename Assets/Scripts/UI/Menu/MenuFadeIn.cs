@@ -13,7 +13,7 @@ public class MenuFadeIn : MonoBehaviour
     void Awake()
     {
         cg = GetComponent<CanvasGroup>();
-        cg.alpha = 1f;           // стартуем с полной темноты
+        cg.alpha = 4f;           // стартуем с полной темноты
         cg.blocksRaycasts = true; // блокируем клики, пока темно
         cg.interactable = false;
     }

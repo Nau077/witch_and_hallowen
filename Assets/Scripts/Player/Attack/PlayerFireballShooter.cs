@@ -67,6 +67,10 @@ public class PlayerFireballShooter : MonoBehaviour
 
     public bool IsOnCooldown => Time.time < _cooldownUntil;
 
+    [Header("Mana")]
+    public int manaCostPerShot = 5;    // сколько маны тратит выстрел
+    private PlayerMana _mana;          // ссылка на компонент маны
+
     public float CooldownNormalized
     {
         get
@@ -82,6 +86,7 @@ public class PlayerFireballShooter : MonoBehaviour
         _sr = GetComponent<SpriteRenderer>();
         hp = GetComponent<PlayerHealth>();
         rb = GetComponent<Rigidbody2D>();
+        _mana = GetComponent<PlayerMana>(); // <-- добавили
     }
 
     private void Start()
@@ -197,6 +202,14 @@ public class PlayerFireballShooter : MonoBehaviour
 
     private void ReleaseThrow()
     {
+
+        if (_mana != null && manaCostPerShot > 0 && !_mana.CanSpend(manaCostPerShot))
+        {
+            // можно сыграть звук «нет маны», мигнуть UI, и т.п.
+            CancelCharge(); // очистим точки/спрайт
+            return;
+        }
+
         if (!IsCooldownReady()) { CancelCharge(); return; }
 
         _isCharging = false;
@@ -275,6 +288,17 @@ public class PlayerFireballShooter : MonoBehaviour
         // === ВЫСТРЕЛ ===
         if (playerFireballPrefab != null && firePoint != null)
         {
+
+            if (_mana != null && manaCostPerShot > 0)
+            {
+                // TrySpend должен вернуть true, раз мы уже проверили CanSpend. На всякий случай:
+                if (!_mana.TrySpend(manaCostPerShot))
+                {
+                    CancelCharge();
+                    return;
+                }
+            }
+
             var go = Instantiate(playerFireballPrefab, firePoint.position, Quaternion.identity);
             var pf = go.GetComponent<PlayerFireball>();
             if (pf != null)

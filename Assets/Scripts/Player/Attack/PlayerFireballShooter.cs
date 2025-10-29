@@ -65,6 +65,18 @@ public class PlayerFireballShooter : MonoBehaviour
     [Tooltip("Если включено — каждая точка имеет свой диапазон (1-5, 5-9, 9-12) вместо общей мёртвой зоны.")]
     public bool useStepRanges = true;
 
+    public bool IsOnCooldown => Time.time < _cooldownUntil;
+
+    public float CooldownNormalized
+    {
+        get
+        {
+            if (fireCooldown <= 0f) return 0f;
+            float remain = _cooldownUntil - Time.time;
+            return Mathf.Clamp01(remain / fireCooldown); // 1 -> 0
+        }
+    }
+
     private void Awake()
     {
         _sr = GetComponent<SpriteRenderer>();

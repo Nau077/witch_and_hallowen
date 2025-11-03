@@ -78,6 +78,6 @@ public class FitCameraToBackground2D : MonoBehaviour
         _lastBgPos = backgroundRenderer.transform.position;
         _lastBgSize = b.size;
 
-        Debug.Log($"[FitCam] bg={bgW:F2}x{bgH:F2} screen={pixelW}x{pixelH} aspect={screenAspect:F3} size={orthoSize:F3}");
+       // Debug.Log($"[FitCam] bg={bgW:F2}x{bgH:F2} screen={pixelW}x{pixelH} aspect={screenAspect:F3} size={orthoSize:F3}");
     }
 }

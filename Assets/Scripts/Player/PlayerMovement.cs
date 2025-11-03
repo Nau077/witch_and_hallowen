@@ -1,66 +1,123 @@
-using UnityEngine;
+п»їusing UnityEngine;
 using System.Collections;
 
+[RequireComponent(typeof(Rigidbody2D))]
 public class PlayerMovement : MonoBehaviour
 {
     [Header("Move")]
-    public float speed = 3f;
-    public float leftLimit = -7f;
-    public float rightLimit = 7f;
+    public float moveSpeed = 10f;   // РІР°Р¶РЅРѕ РѕСЃС‚Р°РІРёС‚СЊ
+    public float leftLimit = -9.5f; // РІР°Р¶РЅРѕ РѕСЃС‚Р°РІРёС‚СЊ
+    public float rightLimit = 9.5f; // РІР°Р¶РЅРѕ РѕСЃС‚Р°РІРёС‚СЊ
 
+    [Header("Charge Slowdown")]
+    [Tooltip("Р—Р°РјРµРґР»СЏС‚СЊ Р»Рё РґРІРёР¶РµРЅРёРµ РІРѕ РІСЂРµРјСЏ Р·Р°РјР°С…Р° (Р·Р°СЂСЏРґРєРё РІС‹СЃС‚СЂРµР»Р°).")]
+    public bool slowWhileCharging = true;
+    [Tooltip("РњРЅРѕР¶РёС‚РµР»СЊ СЃРєРѕСЂРѕСЃС‚Рё РїСЂРё Р·Р°РјР°С…Рµ. 1 = Р±РµР· Р·Р°РјРµРґР»РµРЅРёСЏ, 0.5 = РІРґРІРѕРµ РјРµРґР»РµРЅРЅРµРµ Рё С‚.Рґ.")]
+    [Range(0.05f, 1f)] public float chargeMoveMultiplier = 0.4f;
+
+    [Header("Sprite Facing")]
+    [Tooltip("True, РµСЃР»Рё Р±Р°Р·РѕРІС‹Р№ (РЅРµРѕС‚СЂР°Р¶С‘РЅРЅС‹Р№) РєР°РґСЂ СЃРјРѕС‚СЂРёС‚ Р’РџР РђР’Рћ.")]
+    public bool baseSpriteFacesRight = true;
+
+    [Header("Input")]
+    [Range(0f, 0.3f)] public float inputDeadZone = 0.05f;
+
+    [Header("Animation")]
+    [Tooltip("РќРµ РјРµРЅСЏС‚СЊ flipX РІРѕ РІСЂРµРјСЏ Р·Р°СЂСЏРґРєРё, С‡С‚РѕР±С‹ РїРѕР·Р° Р·Р°РјР°С…Р° РЅРµ РїСЂС‹РіР°Р»Р°.")]
+    public bool blockFlipWhileCharging = true;
+
+    [Header("Stun Settings")]
+    public int blinkCount = 4;
+    public float blinkInterval = 0.10f;
+
+    // runtime refs
     private Rigidbody2D rb;
-    private SpriteRenderer spriteRenderer;
+    private SpriteRenderer spriteRenderer;   // РЅР° СЂРµР±С‘РЅРєРµ (witch_runner_2_1)
+    private Animator anim;                   // С‚Р°Рј Р¶Рµ
+    private PlayerFireballShooter shooter;
+    private PlayerHealth hp;
 
-    // Состояние оглушения
+    // state
     private bool isStunned = false;
     private Coroutine blinkRoutine;
+
+    public bool FacingLeft { get; private set; } = false;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        spriteRenderer = GetComponent<SpriteRenderer>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>(true);
+        anim = spriteRenderer ? spriteRenderer.GetComponent<Animator>() : null;
+        shooter = GetComponent<PlayerFireballShooter>();
+        hp = GetComponent<PlayerHealth>();
+
+        // СЃС‚СЂР°С…РѕРІРєР°: РµСЃР»Рё РІРґСЂСѓРі Animator РІС‹РєР»СЋС‡РµРЅ РІ СЃС†РµРЅРµ вЂ” РІРєР»СЋС‡РёРј
+        if (anim && !anim.enabled) anim.enabled = true;
     }
 
     void Update()
     {
-        // во время оглушения — не двигаемся
-        float moveInput = isStunned ? 0f : Input.GetAxisRaw("Horizontal"); // -1 = A, 1 = D
+        if (isStunned) return;
 
-        Vector2 currentPosition = rb.position;
-        currentPosition.x += moveInput * speed * Time.deltaTime;
-        currentPosition.x = Mathf.Clamp(currentPosition.x, leftLimit, rightLimit);
-        rb.MovePosition(currentPosition);
-
-        // Отзеркаливание спрайта при движении
-        if (!isStunned)
+        // Р•СЃР»Рё РјРµСЂС‚РІС‹ вЂ” СЃС‚РѕРїР°РµРј Р°РЅРёРјР°С‚РѕСЂ Рё РІС‹С…РѕРґРёРј
+        if (hp != null && hp.IsDead)
         {
-            if (moveInput < 0) spriteRenderer.flipX = true;
-            else if (moveInput > 0) spriteRenderer.flipX = false;
+            if (anim && anim.enabled) anim.enabled = false; // СЃС‚СЂР°С…РѕРІРєР° РїСЂРё СЃРјРµСЂС‚Рё
+            return;
+        }
+
+        float moveInput = Input.GetAxisRaw("Horizontal"); // -1..1
+
+        // === СЃРєРѕСЂРѕСЃС‚СЊ СЃ СѓС‡С‘С‚РѕРј Р·Р°РјР°С…Р° ===
+        float speedFactor = 1f;
+        if (slowWhileCharging && shooter != null && shooter.IsCharging)
+            speedFactor = chargeMoveMultiplier;
+        float currentSpeed = moveSpeed * Mathf.Clamp(speedFactor, 0.05f, 1f);
+
+        // Р”РІРёР¶РµРЅРёРµ
+        Vector2 pos = rb.position;
+        pos.x += moveInput * currentSpeed * Time.deltaTime;
+        pos.x = Mathf.Clamp(pos.x, leftLimit, rightLimit);
+        rb.MovePosition(pos);
+
+        // РќР°РїСЂР°РІР»РµРЅРёРµ
+        if (Mathf.Abs(moveInput) > inputDeadZone)
+            FacingLeft = moveInput < 0f;
+
+        // Р¤Р»РёРї (РµСЃР»Рё РЅРµ Р·Р°СЂСЏР¶Р°РµРј/РЅРµ Р±Р»РѕРєРёСЂСѓРµРј)
+        bool lockFlip = blockFlipWhileCharging && shooter != null && shooter.IsCharging;
+        if (spriteRenderer && !lockFlip)
+        {
+            // Р±Р°Р·РѕРІС‹Р№ РєР°РґСЂ РІРїСЂР°РІРѕ? РўРѕРіРґР° РїСЂРё РІР·РіР»СЏРґРµ РІР»РµРІРѕ вЂ” flipX=true.
+            bool needFlip = baseSpriteFacesRight ? FacingLeft : !FacingLeft;
+            spriteRenderer.flipX = needFlip;
+        }
+
+        // Animator: Idle/Run
+        if (anim && anim.enabled)
+        {
+            bool isRunning = Mathf.Abs(moveInput) > inputDeadZone && !isStunned;
+            anim.SetBool("isRunning", isRunning);
         }
     }
 
-    /// <summary>
-    /// Вызывается снарядом при попадании: оглушение + мигание.
-    /// </summary>
-    public void OnHit(float stunDuration, int blinkCount, float blinkInterval)
+    // === РѕРіР»СѓС€РµРЅРёРµ ===
+    public void OnHit(float stunDuration, int blinkCnt, float blinkInt)
     {
         if (!gameObject.activeInHierarchy) return;
-        StartCoroutine(StunAndBlink(stunDuration, blinkCount, blinkInterval));
+        StartCoroutine(StunAndBlink(stunDuration, blinkCnt, blinkInt));
     }
 
     private IEnumerator StunAndBlink(float duration, int blinks, float interval)
     {
         isStunned = true;
 
-        // Если уже мигаем — остановим прошлую корутину
         if (blinkRoutine != null) StopCoroutine(blinkRoutine);
         blinkRoutine = StartCoroutine(Blink(blinks, interval));
 
         yield return new WaitForSeconds(duration);
 
         isStunned = false;
-
-        // гарантированно включим спрайт после миганий
         if (spriteRenderer != null) spriteRenderer.enabled = true;
     }
 
@@ -70,10 +127,9 @@ public class PlayerMovement : MonoBehaviour
         {
             if (spriteRenderer != null)
                 spriteRenderer.enabled = !spriteRenderer.enabled;
-
             yield return new WaitForSeconds(interval);
         }
-        // убедимся, что в конце спрайт включен
-        if (spriteRenderer != null) spriteRenderer.enabled = true;
+        if (spriteRenderer != null)
+            spriteRenderer.enabled = true;
     }
 }

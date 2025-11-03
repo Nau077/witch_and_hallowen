@@ -31,6 +31,10 @@ public class PlayerFireballShooter : MonoBehaviour
     public Sprite throwSprite;
     [Min(0f)] public float throwSpriteTime = 0.08f;
 
+    [Header("Throw Flash (overlay)")]
+    [Tooltip("Опционально: отдельный SpriteRenderer поверх базового для вспышки броска.")]
+    public SpriteRenderer throwFlashRenderer; // <-- новинка: оверлей, OrderInLayer выше основного
+
     // ===================== DIRECTION =====================
     [Header("Direction")]
     [Tooltip("Если true — шары летят строго вертикально вверх или влево/вправо по facing (см. useFacingForHorizontal).")]
@@ -121,6 +125,9 @@ public class PlayerFireballShooter : MonoBehaviour
         // страховка: если Animator кто-то выключил в сцене — включим
         if (_anim && !_anim.enabled) _anim.enabled = true;
         _animFrozen = false;
+
+        // убедимся, что вспышка по умолчанию скрыта
+        if (throwFlashRenderer) throwFlashRenderer.enabled = false;
     }
 
     private void Update()
@@ -418,8 +425,10 @@ public class PlayerFireballShooter : MonoBehaviour
 
         _cooldownUntil = Time.time + fireCooldown;
 
-        // краткий кадр броска -> назад в idle + разморозка Animator
-        if (_sr != null && throwSprite != null)
+        // краткий кадр броска (оверлей приоритетно) -> назад в idle + разморозка Animator
+        if (throwFlashRenderer != null && throwSprite != null)
+            StartCoroutine(PlayThrowFlashAndBack());
+        else if (_sr != null && throwSprite != null)
             StartCoroutine(PlayThrowAndBack());
         else
             BackToIdle();
@@ -431,11 +440,32 @@ public class PlayerFireballShooter : MonoBehaviour
         if (chargeFX != null) chargeFX.Release();
     }
 
+    // Вариант 1: вспышка поверх (рекомендуется)
+    private IEnumerator PlayThrowFlashAndBack()
+    {
+        _lockWindupSpriteWhileCharging = false;
+
+        // показать вспышку броска поверх Animator
+        throwFlashRenderer.sprite = throwSprite;
+        throwFlashRenderer.enabled = true;
+
+        yield return new WaitForSeconds(throwSpriteTime);
+
+        // скрыть вспышку и вернуться к Idle (и разморозить Animator)
+        throwFlashRenderer.enabled = false;
+        BackToIdle();
+
+        _lockWindupSpriteWhileCharging = true;
+    }
+
+    // Вариант 2: фолбэк — меняем основной спрайт без оверлея
     private IEnumerator PlayThrowAndBack()
     {
         _lockWindupSpriteWhileCharging = false;
+
         if (_sr && throwSprite) _sr.sprite = throwSprite;
         yield return new WaitForSeconds(throwSpriteTime);
+
         BackToIdle();
         _lockWindupSpriteWhileCharging = true;
     }
@@ -443,6 +473,7 @@ public class PlayerFireballShooter : MonoBehaviour
     private void BackToIdle()
     {
         if (_sr && idleSprite) _sr.sprite = idleSprite;
+        if (throwFlashRenderer) throwFlashRenderer.enabled = false; // на всякий
         UnfreezeAnimator(); // ВОЗВРАЩАЕМ скорость Animator
     }
 
@@ -459,6 +490,8 @@ public class PlayerFireballShooter : MonoBehaviour
         _chargeElapsed = 0f;
 
         if (changeSprite && _sr && idleSprite) _sr.sprite = idleSprite;
+
+        if (throwFlashRenderer) throwFlashRenderer.enabled = false; // скрыть вспышку
         UnfreezeAnimator(); // всегда снимаем фриз
 
         if (chargeFX != null) chargeFX.Cancel();

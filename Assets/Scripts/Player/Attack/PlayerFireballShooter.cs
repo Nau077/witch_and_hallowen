@@ -8,39 +8,30 @@ public class PlayerFireballShooter : MonoBehaviour
     [Header("Refs")]
     public Transform firePoint;
     public GameObject playerFireballPrefab;
-    public ChargeDotsUI chargeUI;     // UI с точками заряда (опционально)
-    public FireballChargeFX chargeFX; // свечение/аура заряда (опционально)
+    public ChargeDotsUI chargeUI;
+    public FireballChargeFX chargeFX;
 
     // ===================== CHARGE =====================
     [Header("Charge")]
-    [Min(1)] public int maxDots = 3;                // 1..N "точек" заряда
-    [Min(0.01f)] public float secondsPerDot = 1f;   // сек на получение следующей точки
-    public float minDistance = 2.5f;                // для режима без EnemyZone
-    public float maxDistance = 9f;                  // для режима без EnemyZone
-    public bool autoReleaseAtMax = false;           // автом. бросать при достижении maxDots
+    [Min(1)] public int maxDots = 3;
+    [Min(0.01f)] public float secondsPerDot = 1f;
+    public float minDistance = 2.5f;
+    public float maxDistance = 9f;
+    public bool autoReleaseAtMax = false;
 
     // ===================== SPRITES =====================
     [Header("Sprites")]
-    [Tooltip("Базовая стойка (когда ничего не делаем). Если пусто — возьмём из SpriteRenderer на старте.")]
     public Sprite idleSprite;
-
-    [Tooltip("Поза замаха (держим ЛКМ). На время замаха Animator замораживаем.")]
     public Sprite windupSprite;
-
-    [Tooltip("Кадр броска (короткий всплеск при отпускании ЛКМ).")]
     public Sprite throwSprite;
-    [Min(0f)] public float throwSpriteTime = 0.08f;
+    [Min(0f)] public float throwSpriteTime = 0.2f;
 
     [Header("Throw Flash (overlay)")]
-    [Tooltip("Опционально: отдельный SpriteRenderer поверх базового для вспышки броска.")]
-    public SpriteRenderer throwFlashRenderer; // <-- новинка: оверлей, OrderInLayer выше основного
+    public SpriteRenderer throwFlashRenderer; // можно оставить None — будет фолбэк
 
     // ===================== DIRECTION =====================
     [Header("Direction")]
-    [Tooltip("Если true — шары летят строго вертикально вверх или влево/вправо по facing (см. useFacingForHorizontal).")]
     public bool shootAlwaysUp = true;
-
-    [Tooltip("Если shootAlwaysUp = true и включено — направление будет по facing (left/right), а не вверх.")]
     public bool useFacingForHorizontal = false;
 
     // ===================== COOLDOWN =====================
@@ -48,12 +39,10 @@ public class PlayerFireballShooter : MonoBehaviour
     [Min(0f)] public float fireCooldown = 0.6f;
     private float _cooldownUntil = 0f;
 
-    // ===================== ENEMY ZONE (ступени по высоте) =====================
+    // ===================== ENEMY ZONE =====================
     [Header("Clamp to Enemy Zone")]
     public SpriteRenderer enemyZone;
     public float zoneTopPadding = 0.05f;
-
-    [Tooltip("Старый дискретный режим: zoneSteps + ignoredZoneSteps.")]
     public bool useZoneSteps = true;
     [Min(1)] public int zoneSteps = 3;
     [Min(0)] public int ignoredZoneSteps = 0;
@@ -67,27 +56,27 @@ public class PlayerFireballShooter : MonoBehaviour
     public int dot2ReachStep = 9;
     public int dot3ReachStep = 12;
     public bool manualAimCenters = false;
-
-    [Tooltip("Если true — каждая точка имеет свой диапазон: 1:[1..dot1], 2:[dot1..dot2], 3:[dot2..dot3].")]
     public bool useStepRanges = true;
 
     // ===================== MANA =====================
     [Header("Mana")]
     [Min(0)] public int manaCostPerShot = 5;
 
-    // ===================== STATE/PROPS =====================
+    // ===================== DEBUG =====================
+    [Header("Debug")]
+    [SerializeField] private bool debugLogThrow = false;
+
+    // ===================== STATE =====================
     public bool IsCharging => _isCharging;
     public bool IsOnCooldown => Time.time < _cooldownUntil;
 
-    // private refs
-    private SpriteRenderer _sr;   // SpriteRenderer на ребёнке (witch_runner_2_1)
-    private Animator _anim;       // Animator на том же объекте
+    private SpriteRenderer _sr;
+    private Animator _anim;
     private Rigidbody2D _rb;
     private PlayerMovement _movement;
     private PlayerHealth _hp;
     private PlayerMana _mana;
 
-    // runtime
     private Coroutine _chargeRoutine;
     private int _currentDots;
     private bool _isCharging;
@@ -95,19 +84,31 @@ public class PlayerFireballShooter : MonoBehaviour
     private float _chargeElapsed;
     private bool _lockWindupSpriteWhileCharging = true;
 
-    // Animator freeze (вместо enabled=false)
     private float _animPrevSpeed = 1f;
     private bool _animFrozen = false;
 
-    // focus debounce (ложные клики при смене фокуса)
     private float _blockClicksUntil = 0f;
     private const float FocusClickBlockSecs = 0.12f;
+
+    // фейсинг, зафиксированный при начале замаха
+    private bool _facingLeftAtCharge;
+    private Vector3 _scaleBeforeCharge;
 
     // ===================== UNITY =====================
     private void Awake()
     {
-        _sr = GetComponentInChildren<SpriteRenderer>(true);
+        var srs = GetComponentsInChildren<SpriteRenderer>(true);
+        SpriteRenderer best = null;
+        int bestOrder = int.MinValue;
+        foreach (var sr in srs)
+        {
+            var an = sr.GetComponent<Animator>();
+            if (an) { best = sr; break; }
+            if (sr.sortingOrder > bestOrder) { bestOrder = sr.sortingOrder; best = sr; }
+        }
+        _sr = best;
         _anim = _sr ? _sr.GetComponent<Animator>() : null;
+
         _rb = GetComponent<Rigidbody2D>();
         _movement = GetComponent<PlayerMovement>();
         _hp = GetComponent<PlayerHealth>();
@@ -119,21 +120,19 @@ public class PlayerFireballShooter : MonoBehaviour
         if (chargeUI != null) chargeUI.Clear();
         if (_sr != null && idleSprite == null) idleSprite = _sr.sprite;
 
-        // игнорируем «ложный клик» сразу после старта/получения фокуса
         _blockClicksUntil = Time.unscaledTime + FocusClickBlockSecs;
 
-        // страховка: если Animator кто-то выключил в сцене — включим
         if (_anim && !_anim.enabled) _anim.enabled = true;
         _animFrozen = false;
 
-        // убедимся, что вспышка по умолчанию скрыта
         if (throwFlashRenderer) throwFlashRenderer.enabled = false;
+
+        EnsureThrowFlashRenderer();
     }
 
     private void Update()
     {
         if (_hp != null && _hp.IsDead) return;
-
         HandleInput();
 
         if (_isCharging && chargeFX != null)
@@ -154,10 +153,9 @@ public class PlayerFireballShooter : MonoBehaviour
             chargeFX.UpdateCharge(t);
         }
 
-        // Страховка потерянного MouseUp (например, при клике по вкладке Game)
-        if (_isCharging && _isMouseHeld && !Input.GetMouseButton(0))
+        // фикс: если замах активен и кнопка отпущена — всегда бросаем
+        if (_isCharging && !Input.GetMouseButton(0))
         {
-            _isMouseHeld = false;
             ReleaseIfCharging();
         }
     }
@@ -166,11 +164,10 @@ public class PlayerFireballShooter : MonoBehaviour
     {
         if (_hp != null && _hp.IsDead)
         {
-            if (_isCharging) CancelCharge(false, true); // ничего не трогаем в Animator
+            if (_isCharging) CancelCharge(false, true);
             return;
         }
 
-        // Поддерживаем позу замаха, пока зажата кнопка
         if (_isCharging && _lockWindupSpriteWhileCharging && _sr != null && windupSprite != null)
         {
             if (_sr.sprite != windupSprite)
@@ -178,7 +175,6 @@ public class PlayerFireballShooter : MonoBehaviour
         }
     }
 
-    // ===================== FOCUS/PAUSE =====================
     private void OnApplicationFocus(bool hasFocus)
     {
         if (hasFocus)
@@ -204,7 +200,6 @@ public class PlayerFireballShooter : MonoBehaviour
     // ===================== INPUT =====================
     private void HandleInput()
     {
-        // игнор мнимых кликов сразу после фокуса
         if (Time.unscaledTime < _blockClicksUntil) return;
 
         if (Input.GetMouseButtonDown(0))
@@ -226,7 +221,7 @@ public class PlayerFireballShooter : MonoBehaviour
     {
         if (_anim && !_animFrozen)
         {
-            if (!_anim.enabled) _anim.enabled = true; // на всякий
+            if (!_anim.enabled) _anim.enabled = true;
             _animPrevSpeed = _anim.speed;
             _anim.speed = 0f;
             _animFrozen = true;
@@ -255,9 +250,24 @@ public class PlayerFireballShooter : MonoBehaviour
 
         if (chargeUI != null) { chargeUI.Clear(); chargeUI.SetCount(_currentDots); }
 
-        // вместо выключения Animator — замораживаем его
         FreezeAnimator();
         if (_sr != null && windupSprite != null) _sr.sprite = windupSprite;
+
+        // фикс фейсинга
+        _facingLeftAtCharge = (_movement != null) ? _movement.FacingLeft : (_sr && _sr.flipX);
+        _scaleBeforeCharge = _sr ? _sr.transform.localScale : Vector3.one;
+
+        if (_sr) _sr.flipX = _facingLeftAtCharge;
+
+        if (firePoint)
+        {
+            var lp = firePoint.localPosition;
+            lp.x = Mathf.Abs(lp.x) * (_facingLeftAtCharge ? -1f : 1f);
+            firePoint.localPosition = lp;
+        }
+
+        // остановка по горизонтали, чтобы не маскировал бросок
+        if (_rb) _rb.velocity = new Vector2(0f, _rb.velocity.y);
 
         if (chargeFX != null) chargeFX.BeginCharge();
         _chargeRoutine = StartCoroutine(ChargeTick());
@@ -279,8 +289,8 @@ public class PlayerFireballShooter : MonoBehaviour
 
                 if (autoReleaseAtMax && _currentDots >= maxDots)
                 {
-                    yield return null; // один кадр «задержки»
-                    if (!_isMouseHeld) ReleaseThrow();
+                    yield return null;
+                    if (!Input.GetMouseButton(0)) ReleaseThrow();
                 }
             }
         }
@@ -293,18 +303,9 @@ public class PlayerFireballShooter : MonoBehaviour
         ReleaseThrow();
     }
 
-    // ===================== DISTANCE HELPERS =====================
-    private int GetManualReachStepForDot(int dots)
-    {
-        if (dots <= 1) return dot1ReachStep;
-        if (dots == 2) return dot2ReachStep;
-        return dot3ReachStep;
-    }
-
     // ===================== THROW =====================
     private void ReleaseThrow()
     {
-        // Мана
         if (_mana != null && manaCostPerShot > 0 && !_mana.CanSpend(manaCostPerShot))
         {
             CancelCharge(true, false);
@@ -315,7 +316,6 @@ public class PlayerFireballShooter : MonoBehaviour
         _isCharging = false;
         if (_chargeRoutine != null) StopCoroutine(_chargeRoutine);
 
-        // --- вычисление дистанции ---
         int dots = Mathf.Clamp(_currentDots, 1, Mathf.Max(1, maxDots));
         float distance;
         float ignoreFirstMeters = 0f;
@@ -343,7 +343,7 @@ public class PlayerFireballShooter : MonoBehaviour
                 else
                 {
                     fromStep = ignoredStepsCommon;
-                    toStep = GetManualReachStepForDot(dots);
+                    toStep = dot3ReachStep;
                 }
 
                 float fromY = (fromStep - 1) * step;
@@ -354,36 +354,15 @@ public class PlayerFireballShooter : MonoBehaviour
             }
             else
             {
-                float top = enemyZone.bounds.max.y - zoneTopPadding;
-                float allowed = Mathf.Max(0.05f, top - firePoint.position.y);
-
-                int workSteps = Mathf.Max(1, zoneSteps);
-                int ignored = Mathf.Max(0, ignoredZoneSteps);
-                int total = ignored + workSteps;
-                float step = allowed / total;
-
-                int k = Mathf.Clamp(dots, 1, workSteps);
-                float baseUnits = ignored + (snapToCenters ? (k - 0.5f) : k);
-
-                distance = Mathf.Clamp(baseUnits * step, 0f, allowed);
-                ignoreFirstMeters = Mathf.Clamp(ignored * step, 0f, Mathf.Max(0f, distance - 0.001f));
+                distance = Mathf.Lerp(minDistance, maxDistance, (dots - 1f) / (maxDots - 1f));
             }
         }
         else
         {
-            float t = (maxDots == 1) ? 1f : (dots - 1) / (float)(maxDots - 1);
+            float t = (maxDots == 1) ? 1f : (dots - 1f) / (float)(maxDots - 1);
             distance = Mathf.Lerp(minDistance, maxDistance, t);
-
-            if (shootAlwaysUp && enemyZone != null)
-            {
-                float top = enemyZone.bounds.max.y - zoneTopPadding;
-                float allowed = Mathf.Max(0.05f, top - firePoint.position.y);
-                distance = Mathf.Min(distance, allowed);
-            }
-            ignoreFirstMeters = 0f;
         }
 
-        // --- выстрел ---
         if (playerFireballPrefab != null && firePoint != null)
         {
             if (_mana != null && manaCostPerShot > 0 && !_mana.TrySpend(manaCostPerShot))
@@ -398,19 +377,16 @@ public class PlayerFireballShooter : MonoBehaviour
             if (pf != null)
             {
                 Vector2 dir = Vector2.up;
-
                 if (!shootAlwaysUp)
                 {
                     var cam = Camera.main;
                     if (cam != null)
                     {
                         Vector3 mp = Input.mousePosition;
-                        float depth = Mathf.Abs(cam.transform.position.z - firePoint.position.z);
-                        if (depth < cam.nearClipPlane + 0.01f) depth = cam.nearClipPlane + 0.01f;
-                        mp.z = depth;
-                        Vector3 mouseWorld = cam.ScreenToWorldPoint(mp);
-                        mouseWorld.z = firePoint.position.z;
-                        dir = (mouseWorld - firePoint.position).normalized;
+                        mp.z = Mathf.Abs(cam.transform.position.z - firePoint.position.z);
+                        Vector3 mw = cam.ScreenToWorldPoint(mp);
+                        mw.z = firePoint.position.z;
+                        dir = (mw - firePoint.position).normalized;
                     }
                 }
                 else if (useFacingForHorizontal && _movement != null)
@@ -425,7 +401,6 @@ public class PlayerFireballShooter : MonoBehaviour
 
         _cooldownUntil = Time.time + fireCooldown;
 
-        // краткий кадр броска (оверлей приоритетно) -> назад в idle + разморозка Animator
         if (throwFlashRenderer != null && throwSprite != null)
             StartCoroutine(PlayThrowFlashAndBack());
         else if (_sr != null && throwSprite != null)
@@ -440,46 +415,76 @@ public class PlayerFireballShooter : MonoBehaviour
         if (chargeFX != null) chargeFX.Release();
     }
 
-    // Вариант 1: вспышка поверх (рекомендуется)
+    // ===================== THROW FLASH =====================
+    private void EnsureThrowFlashRenderer()
+    {
+        // безопасно: если None, просто не создаём — фолбэк работает
+        if (!_sr || throwFlashRenderer == null) return;
+
+        throwFlashRenderer.sortingLayerID = _sr.sortingLayerID;
+        throwFlashRenderer.sortingLayerName = _sr.sortingLayerName;
+        throwFlashRenderer.sortingOrder = _sr.sortingOrder + 100;
+        throwFlashRenderer.renderingLayerMask = _sr.renderingLayerMask;
+        throwFlashRenderer.sharedMaterial = _sr.sharedMaterial;
+
+        throwFlashRenderer.sprite = null;
+        throwFlashRenderer.color = Color.white;
+        throwFlashRenderer.enabled = false;
+
+        throwFlashRenderer.transform.localPosition = new Vector3(0f, 0f, -0.01f);
+        throwFlashRenderer.transform.localRotation = Quaternion.identity;
+        throwFlashRenderer.transform.localScale = Vector3.one;
+    }
+
     private IEnumerator PlayThrowFlashAndBack()
     {
         _lockWindupSpriteWhileCharging = false;
+        if (_anim && _anim.enabled) _anim.enabled = false;
 
-        // показать вспышку броска поверх Animator
         throwFlashRenderer.sprite = throwSprite;
         throwFlashRenderer.enabled = true;
 
         yield return new WaitForSeconds(throwSpriteTime);
 
-        // скрыть вспышку и вернуться к Idle (и разморозить Animator)
         throwFlashRenderer.enabled = false;
         BackToIdle();
 
+        if (_anim) _anim.enabled = true;
         _lockWindupSpriteWhileCharging = true;
     }
 
-    // Вариант 2: фолбэк — меняем основной спрайт без оверлея
     private IEnumerator PlayThrowAndBack()
     {
         _lockWindupSpriteWhileCharging = false;
 
-        if (_sr && throwSprite) _sr.sprite = throwSprite;
+        if (_anim && _anim.enabled)
+            _anim.enabled = false;
+
+        if (_sr && throwSprite)
+            _sr.sprite = throwSprite;
+
         yield return new WaitForSeconds(throwSpriteTime);
 
         BackToIdle();
+
+        if (_anim)
+            _anim.enabled = true;
+
         _lockWindupSpriteWhileCharging = true;
     }
 
     private void BackToIdle()
     {
         if (_sr && idleSprite) _sr.sprite = idleSprite;
-        if (throwFlashRenderer) throwFlashRenderer.enabled = false; // на всякий
-        UnfreezeAnimator(); // ВОЗВРАЩАЕМ скорость Animator
+        if (throwFlashRenderer) throwFlashRenderer.enabled = false;
+
+        // возвращаем фейсинг
+        if (_sr) _sr.flipX = _movement ? _movement.FacingLeft : _sr.flipX;
+
+        UnfreezeAnimator();
     }
 
     // ===================== CANCEL =====================
-    // keepAnimatorDisabled оставлен для совместимости сигнатуры — теперь игнорируется,
-    // потому что мы не выключаем Animator, а фризим его.
     private void CancelCharge(bool changeSprite = true, bool keepAnimatorDisabled = false)
     {
         _isCharging = false;
@@ -490,24 +495,23 @@ public class PlayerFireballShooter : MonoBehaviour
         _chargeElapsed = 0f;
 
         if (changeSprite && _sr && idleSprite) _sr.sprite = idleSprite;
+        if (throwFlashRenderer) throwFlashRenderer.enabled = false;
 
-        if (throwFlashRenderer) throwFlashRenderer.enabled = false; // скрыть вспышку
-        UnfreezeAnimator(); // всегда снимаем фриз
-
+        UnfreezeAnimator();
         if (chargeFX != null) chargeFX.Cancel();
     }
 
     public void CancelAllImmediate(bool keepAnimatorDisabled = false)
         => CancelCharge(false, keepAnimatorDisabled);
 
-    // ===================== COOLDOWN normalized =====================
+    // ===================== COOLDOWN NORMALIZED =====================
     public float CooldownNormalized
     {
         get
         {
             if (fireCooldown <= 0f) return 0f;
             float remain = _cooldownUntil - Time.time;
-            return Mathf.Clamp01(remain / fireCooldown); // 1 -> 0 по мере остывания
+            return Mathf.Clamp01(remain / fireCooldown);
         }
     }
 }

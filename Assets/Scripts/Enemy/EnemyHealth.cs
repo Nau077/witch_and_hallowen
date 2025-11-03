@@ -1,14 +1,13 @@
-using System;            // добавлено
+using System;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.Audio; // для AudioMixerGroup (опционально)
+using UnityEngine.Audio;
 
 [RequireComponent(typeof(SpriteRenderer))]
 [RequireComponent(typeof(Collider2D))]
-[RequireComponent(typeof(AudioSource))] // гарантируем наличие источника звука
+[RequireComponent(typeof(AudioSource))]
 public class EnemyHealth : MonoBehaviour
 {
-    // === Событие: кто угодно может подписаться на смерть врага ===
     public static event Action<EnemyHealth> OnAnyEnemyDied;
 
     [Header("Health")]
@@ -27,14 +26,10 @@ public class EnemyHealth : MonoBehaviour
     [Header("HP Bar (sprite)")]
     public HealthBar2D hpBar;
 
-    // ---------- ЗВУКИ ----------
     [Header("Sound / Hit")]
-    [Tooltip("Варианты клипов для попадания (выбирается случайный). Можно указать 1 клип.")]
     public AudioClip[] hitClips;
     [Range(0f, 1f)] public float hitVolume = 0.85f;
-    [Tooltip("Случайное отклонение pitch для разнообразия звука, напр. 0.08 = ±8%.")]
     [Range(0f, 0.5f)] public float hitPitchJitter = 0.08f;
-    [Tooltip("Минимальный интервал между звуками попаданий, чтобы не было 'каши'.")]
     [Range(0f, 0.25f)] public float hitSoundCooldown = 0.05f;
 
     [Header("Sound / Death")]
@@ -42,15 +37,15 @@ public class EnemyHealth : MonoBehaviour
     [Range(0f, 1f)] public float deathVolume = 0.95f;
 
     [Header("Sound / Advanced")]
-    [Tooltip("Если true — звук позиционируется в пространстве (3D). Если false — плоский 2D звук.")]
     public bool spatialize = false;
-    [Tooltip("Опционально: назначь группу микшера (SFX), если используешь AudioMixer.")]
     public AudioMixerGroup outputMixerGroup;
 
     [Header("Hit FX (Particles)")]
     public GameObject hitParticlesPrefab;
 
-    // ---------- Приватные ----------
+    [Header("Rewards")]
+    public int cursedGoldOnDeath = 10;
+
     private SpriteRenderer sr;
     private Color baseColor;
     private bool isDead;
@@ -64,12 +59,11 @@ public class EnemyHealth : MonoBehaviour
         sr = GetComponent<SpriteRenderer>();
         audioSource = GetComponent<AudioSource>();
 
-        // Настройка источника звука (общие безопасные значения)
         if (audioSource != null)
         {
             audioSource.playOnAwake = false;
             audioSource.loop = false;
-            audioSource.spatialBlend = spatialize ? 1f : 0f; // 0 = 2D, 1 = 3D
+            audioSource.spatialBlend = spatialize ? 1f : 0f;
             audioSource.rolloffMode = AudioRolloffMode.Linear;
             audioSource.minDistance = 1f;
             audioSource.maxDistance = 25f;
@@ -88,7 +82,6 @@ public class EnemyHealth : MonoBehaviour
 
         currentHealth = Mathf.Max(0, currentHealth - amount);
 
-        // Визуальный фидбек
         StopAllCoroutines();
         StartCoroutine(HitFlash());
         if (burnParticles)
@@ -96,17 +89,14 @@ public class EnemyHealth : MonoBehaviour
             burnParticles.Play();
             StartCoroutine(StopParticlesSoon(0.25f));
         }
-
         if (hitParticlesPrefab)
         {
             var fx = Instantiate(hitParticlesPrefab, transform.position, Quaternion.identity);
-            Destroy(fx, 0.6f); // убрать после проигрыша
+            Destroy(fx, 0.6f);
         }
 
-        // Обновление полоски HP
         if (hpBar) hpBar.SetValue(currentHealth);
 
-        // Звук попадания (с защитой от частых срабатываний)
         TryPlayHitSound();
 
         if (currentHealth <= 0)
@@ -116,21 +106,15 @@ public class EnemyHealth : MonoBehaviour
     private void TryPlayHitSound()
     {
         if (hitClips == null || hitClips.Length == 0 || audioSource == null) return;
-
-        if (Time.time - lastHitSoundTime < hitSoundCooldown)
-            return;
+        if (Time.time - lastHitSoundTime < hitSoundCooldown) return;
 
         lastHitSoundTime = Time.time;
 
-        // Выбираем клип
         var clip = hitClips[UnityEngine.Random.Range(0, hitClips.Length)];
-        if (clip == null) return;
+        if (!clip) return;
 
-        // Лёгкая вариативность по питчу
-        float pitch = 1f + UnityEngine.Random.Range(-hitPitchJitter, hitPitchJitter);
-        audioSource.pitch = pitch;
+        audioSource.pitch = 1f + UnityEngine.Random.Range(-hitPitchJitter, hitPitchJitter);
         audioSource.PlayOneShot(clip, hitVolume);
-        // Не сбрасываем pitch сразу — следующий звук снова установит его перед воспроизведением.
     }
 
     private IEnumerator HitFlash()
@@ -155,18 +139,11 @@ public class EnemyHealth : MonoBehaviour
         if (burnParticles) burnParticles.Stop();
     }
 
-    void Die()
+    private void Die()
     {
         if (isDead) return;
         isDead = true;
 
-        // Начисляем души (с защитой от null)
-        if (SoulCounter.Instance != null)
-            SoulCounter.Instance.AddSouls(10);
-        else
-            Debug.LogWarning("[EnemyHealth] SoulCounter.Instance is null — душа не начислена.");
-
-        // Отключаем поведение/физику
         var walker = GetComponent<EnemyWalker>();
         if (walker) walker.OnDeathExternal();
 
@@ -174,51 +151,43 @@ public class EnemyHealth : MonoBehaviour
         var rb = GetComponent<Rigidbody2D>(); if (rb) rb.simulated = false;
         if (walker) walker.enabled = false;
 
-        // Анимация/спрайт смерти
         var anim = GetComponent<Animator>();
-        var srLocal = GetComponent<SpriteRenderer>();
         if (anim && anim.runtimeAnimatorController) anim.SetTrigger("Die");
-        else if (deadSprite) srLocal.sprite = deadSprite;
+        else if (deadSprite) sr.sprite = deadSprite;
 
-        // Прячем HP бар
         if (hpBar) hpBar.Hide();
 
-        // Звук смерти
         PlayDeathSound();
 
-        // Сообщаем всем: «враг умер»
         OnAnyEnemyDied?.Invoke(this);
 
-        // Фейд и удаление
-        StartCoroutine(FadeAndDestroy(srLocal, destroyAfter, 0.4f));
+        StartCoroutine(FadeAndDestroy(sr, destroyAfter, 0.4f));
     }
 
     private void PlayDeathSound()
     {
-        if (deathClip == null || audioSource == null) return;
-
-        // Для звука смерти не делаем кулдаун, но можно добавить небольшую вариативность
+        if (!deathClip || !audioSource) return;
         audioSource.pitch = 1f + UnityEngine.Random.Range(-hitPitchJitter * 0.5f, hitPitchJitter * 0.5f);
         audioSource.PlayOneShot(deathClip, deathVolume);
     }
 
-    IEnumerator FadeAndDestroy(SpriteRenderer sr, float delay, float fadeTime)
+    private IEnumerator FadeAndDestroy(SpriteRenderer srRen, float delay, float fadeTime)
     {
         float wait = Mathf.Max(0f, delay - fadeTime);
         yield return new WaitForSeconds(wait);
 
-        if (sr)
+        if (srRen)
         {
-            Color c = sr.color;
+            Color c = srRen.color;
             float t = 0f;
             while (t < fadeTime)
             {
                 float a = Mathf.Lerp(1f, 0f, t / fadeTime);
-                sr.color = new Color(c.r, c.g, c.b, a);
+                srRen.color = new Color(c.r, c.g, c.b, a);
                 t += Time.deltaTime;
                 yield return null;
             }
-            sr.color = new Color(c.r, c.g, c.b, 0f);
+            srRen.color = new Color(c.r, c.g, c.b, 0f);
         }
         Destroy(gameObject);
     }

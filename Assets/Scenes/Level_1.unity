@@ -1166,6 +1166,8 @@ MonoBehaviour:
   dot3ReachStep: 12
   manualAimCenters: 0
   useStepRanges: 1
+  currentElement: {fileID: 0}
+  availableElements: []
   manaCostPerShot: 5
   debugLogThrow: 0
 --- !u!114 &201944544
@@ -1493,7 +1495,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyTopSpawner
   enemyZone: {fileID: 1367967838}
   enemyPrefab: {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
-  initialCount: 2
+  initialCount: 3
   spawnInterval: 0
   container: {fileID: 0}
   xInset: 0.05

@@ -58,6 +58,11 @@ public class PlayerFireballShooter : MonoBehaviour
     public bool manualAimCenters = false;      // (зарезервировано) прицельные центры ступеней
     public bool useStepRanges = true;          // Если true — каждая точка имеет свой диапазон (1:[1..dot1], 2:[dot1..dot2], 3:[dot2..dot3])
 
+    // ===================== ELEMENTS =====================
+    [Header("Element")]
+    public ElementDefinition currentElement;
+    public ElementDefinition[] availableElements; // заполни Fire и Ice из инспектора
+
     // ===================== MANA =====================
     [Header("Mana")]
     [Min(0)] public int manaCostPerShot = 5;   // Стоимость выстрела в очках маны
@@ -97,6 +102,11 @@ public class PlayerFireballShooter : MonoBehaviour
     // — фикс фейсинга (в какую сторону был повёрнут персонаж при старте замаха)
     private bool _facingLeftAtCharge;          // Истинный «фейсинг» на момент начала замаха
     private Vector3 _scaleBeforeCharge;        // На случай, если где-то используете scale для разворота
+    // skills and elements compatibility
+    private SkillDefinition ActiveSkill => currentElement ? currentElement.basicSkill : null;
+    private int ManaCost => ActiveSkill ? ActiveSkill.manaCost : manaCostPerShot;      // совместимость со старым полем
+    private float Cooldown => ActiveSkill ? ActiveSkill.cooldown : fireCooldown;       // совместимость со старым полем
+    private GameObject ActiveProjectilePrefab => ActiveSkill ? ActiveSkill.projectilePrefab : playerFireballPrefab;
 
     // ===================== UNITY: поиск зависимостей =====================
     /// <summary>
@@ -204,6 +214,13 @@ public class PlayerFireballShooter : MonoBehaviour
             if (_sr.sprite != windupSprite)
                 _sr.sprite = windupSprite;
         }
+    }
+    // Метод смены стихии (публичный, для UI):
+    public void SetElement(ElementDefinition elem, ChargeDotsCooldownUI cooldownUi = null)
+    {
+        currentElement = elem;
+        // Обновим оверлей кулдауна (ледяные «осколки» вместо огненных)
+        if (cooldownUi) cooldownUi.ApplyElement(elem);
     }
 
     // ===================== UNITY: смена фокуса окна =====================
@@ -371,44 +388,55 @@ public class PlayerFireballShooter : MonoBehaviour
         ReleaseThrow();
     }
 
-    // ===================== THROW =====================
     /// <summary>
-    /// Собственно выстрел: проверки маны/кулдауна, вычисление дальности,
-    /// спавн префаба снаряда, короткая «вспышка» спрайта броска и возврат в idle.
+    /// Финальный выстрел: проверка маны/КД, расчёт дальности (с учётом ступеней зоны),
+    /// спавн префаба из активного скилла и короткая "вспышка" броска.
+    /// Работает для любых стихий, если projectilePrefab содержит компонент IProjectile.
     /// </summary>
     private void ReleaseThrow()
     {
-        // 1) Проверяем, достаточно ли маны (важно делать проверку до списания, чтобы не «уходить в минус»)
-        if (_mana != null && manaCostPerShot > 0 && !_mana.CanSpend(manaCostPerShot))
+        // === 1) Проверка маны ДО списания (не уходим "в минус")
+        if (_mana != null && ManaCost > 0 && !_mana.CanSpend(ManaCost))
         {
-            // Маны нет — отменяем замах, возвращаемся в idle
+            CancelCharge(changeSprite: true, keepAnimatorDisabled: false);
+            return;
+        }
+
+        // === 2) Проверка кулдауна
+        if (!IsCooldownReady())
+        {
             CancelCharge(true, false);
             return;
         }
-        // 2) Проверка кулдауна
-        if (!IsCooldownReady()) { CancelCharge(true, false); return; }
 
-        // Завершили режим «зарядки»
+        // === 3) Завершаем режим заряда
         _isCharging = false;
         if (_chargeRoutine != null) StopCoroutine(_chargeRoutine);
 
-        // 3) Вычисляем дальность броска (distance) и «игнорируемую» первую часть траектории (ignoreFirstMeters)
+        // Защита от NRE: без firePoint не можем корректно считать дистанцию/спавнить
+        if (firePoint == null)
+        {
+            Debug.LogWarning("PlayerFireballShooter: FirePoint is not assigned.");
+            CancelCharge(true, false);
+            return;
+        }
+
+        // === 4) Считаем дальность/игнор первых метров (как у тебя было)
         int dots = Mathf.Clamp(_currentDots, 1, Mathf.Max(1, maxDots));
         float distance;
         float ignoreFirstMeters = 0f;
 
         if (shootAlwaysUp && enemyZone != null && useZoneSteps)
         {
-            // «Ступенчатый» режим с зоной — дальность ограничиваем верхом enemyZone
+            // Ступени внутри зоны
             if (manualStepTuning)
             {
-                float top = enemyZone.bounds.max.y - zoneTopPadding;     // абсолютная Y-координата «крыши»
-                float allowed = Mathf.Max(0.05f, top - firePoint.position.y); // сколько «вверх» можно улететь
+                float top = enemyZone.bounds.max.y - zoneTopPadding; // верх "крыши"
+                float allowed = Mathf.Max(0.05f, top - firePoint.position.y);
 
                 int total = Mathf.Max(1, totalZoneSteps);
-                float step = allowed / total;                             // высота 1 «шага»
+                float step = allowed / total;
 
-                // «Диапазон» шагов на конкретное количество точек
                 int fromStep, toStep;
                 if (useStepRanges)
                 {
@@ -421,49 +449,50 @@ public class PlayerFireballShooter : MonoBehaviour
                 }
                 else
                 {
-                    // простой режим: «глухих» шагов снизу и «до какого шага долетаем»
                     fromStep = ignoredStepsCommon;
                     toStep = dot3ReachStep;
                 }
 
-                float fromY = (fromStep - 1) * step;                     // где начинается рабочий диапазон
-                float toY = toStep * step;                            // куда целимся
+                float fromY = (fromStep - 1) * step;
+                float toY = toStep * step;
 
                 distance = Mathf.Clamp(toY, 0f, allowed);
                 ignoreFirstMeters = Mathf.Clamp(fromY, 0f, allowed - 0.001f);
             }
             else
             {
-                // Старый режим: просто интерполяция между min/max с ограничением зоной
+                // Старый режим линейной интерполяции
                 distance = Mathf.Lerp(minDistance, maxDistance, (dots - 1f) / (maxDots - 1f));
             }
         }
         else
         {
-            // Режим без зоны или без ступеней — обычная линейная интерполяция дальности
+            // Без зоны/ступеней
             float t = (maxDots == 1) ? 1f : (dots - 1f) / (float)(maxDots - 1);
             distance = Mathf.Lerp(minDistance, maxDistance, t);
         }
 
-        // 4) Спавним префаб снаряда и задаём ему направление/параметры полёта
-        if (playerFireballPrefab != null && firePoint != null)
+        // === 5) Спавн снаряда активного скилла
+        var prefab = ActiveProjectilePrefab;                   // ← берём из Element/Skill
+        if (prefab != null && firePoint != null)
         {
-            // Фактическое списание маны (TrySpend) делаем тут, чуть позже, чтобы исключить двойные списания при ранних выходах
-            if (_mana != null && manaCostPerShot > 0 && !_mana.TrySpend(manaCostPerShot))
+            // Фактическое списание маны — здесь, перед самим спавном
+            if (_mana != null && ManaCost > 0 && !_mana.TrySpend(ManaCost))
             {
                 CancelCharge(true, false);
                 return;
             }
 
-            var go = Instantiate(playerFireballPrefab, firePoint.position, Quaternion.identity);
-            var pf = go.GetComponent<PlayerFireball>();
+            var go = Instantiate(prefab, firePoint.position, Quaternion.identity);
 
-            if (pf != null)
+            // Поддержка любого типа: достаточно, чтобы компонент реализовал IProjectile
+            var proj = go.GetComponent<IProjectile>();
+            if (proj != null)
             {
-                // Направление полёта.
-                //  - Если shootAlwaysUp == false — летим в сторону курсора.
-                //  - Если shootAlwaysUp == true и useFacingForHorizontal == true — строго влево/вправо по Facing.
-                //  - Иначе — строго вверх.
+                // Направление полёта:
+                //  - если shootAlwaysUp == false — летим к курсору
+                //  - если shootAlwaysUp == true и useFacingForHorizontal == true — строго влево/вправо
+                //  - иначе — строго вверх
                 Vector2 dir = Vector2.up;
                 if (!shootAlwaysUp)
                 {
@@ -471,7 +500,7 @@ public class PlayerFireballShooter : MonoBehaviour
                     if (cam != null)
                     {
                         Vector3 mp = Input.mousePosition;
-                        mp.z = Mathf.Abs(cam.transform.position.z - firePoint.position.z); // «глубина» до плоскости мира персонажа
+                        mp.z = Mathf.Abs(cam.transform.position.z - firePoint.position.z);
                         Vector3 mw = cam.ScreenToWorldPoint(mp);
                         mw.z = firePoint.position.z;
                         dir = (mw - firePoint.position).normalized;
@@ -482,29 +511,30 @@ public class PlayerFireballShooter : MonoBehaviour
                     dir = _movement.FacingLeft ? Vector2.left : Vector2.right;
                 }
 
-                pf.Init(dir, distance, pf.speed, ignoreFirstMeters);      // настраиваем полёт
-                pf.ignoreEnemiesFirstMeters = ignoreFirstMeters;          // игнор коллизий в первые X метров
+                // speedOverride = -1f → снаряд сам возьмёт свою скорость из компонента
+                proj.Init(dir, distance, -1f, ignoreFirstMeters);
             }
         }
 
-        // 5) Ставим кулдаун
-        _cooldownUntil = Time.time + fireCooldown;
+        // === 6) Ставим КД по активному скиллу
+        _cooldownUntil = Time.time + Cooldown;
 
-        // 6) Короткая «вспышка» броска → вернуть idle
+        // === 7) Короткая "вспышка" броска → назад в idle
         if (throwFlashRenderer != null && throwSprite != null)
-            StartCoroutine(PlayThrowFlashAndBack());  // приоритет: оверлей поверх анимации
+            StartCoroutine(PlayThrowFlashAndBack());
         else if (_sr != null && throwSprite != null)
-            StartCoroutine(PlayThrowAndBack());       // фолбэк: меняем основной спрайт
+            StartCoroutine(PlayThrowAndBack());
         else
-            BackToIdle();                              // ничего не можем показать — просто возвращаемся в idle
+            BackToIdle();
 
-        // 7) Сброс визуала заряда
+        // === 8) Сброс визуала заряда
         if (chargeUI != null) chargeUI.Clear();
         _currentDots = 0;
         _chargeElapsed = 0f;
 
-        if (chargeFX != null) chargeFX.Release();     // анимация «сброса» заряда
+        if (chargeFX != null) chargeFX.Release();
     }
+
 
     // ===================== THROW FLASH =====================
     /// <summary>
@@ -626,9 +656,11 @@ public class PlayerFireballShooter : MonoBehaviour
     {
         get
         {
-            if (fireCooldown <= 0f) return 0f;
+            float cd = Mathf.Max(0f, Cooldown);         // активный КД с учётом стихии/скилла
+            if (cd <= 0f) return 0f;
             float remain = _cooldownUntil - Time.time;
-            return Mathf.Clamp01(remain / fireCooldown);
+            return Mathf.Clamp01(remain / cd);
         }
     }
+
 }

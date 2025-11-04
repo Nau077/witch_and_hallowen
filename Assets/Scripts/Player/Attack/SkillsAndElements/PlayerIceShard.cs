@@ -1,14 +1,12 @@
 using UnityEngine;
 
 [RequireComponent(typeof(Collider2D))]
-public class PlayerFireball : MonoBehaviour
+public class PlayerIceShard : MonoBehaviour, IProjectile
 {
-    [Header("Flight")]
-    public float speed = 8f;
-    public float lifetime = 2f;
+    [Header("Flight")] public float speed = 7.5f;
+    public float lifetime = 2.2f;
 
-    [Header("Damage")]
-    public int damage = 10;
+    [Header("Damage")] public int damage = 9;
 
     [HideInInspector] public float ignoreEnemiesFirstMeters = 0f;
 
@@ -24,15 +22,15 @@ public class PlayerFireball : MonoBehaviour
         lifetime = Mathf.Max(0.01f, distance / Mathf.Max(0.01f, speed));
         ignoreEnemiesFirstMeters = Mathf.Max(0f, ignoreFirstMeters);
 
-        _startPos = transform.position;
+        _startPos = (Vector2)transform.position;
         _traveled = 0f;
         Destroy(gameObject, lifetime);
     }
 
     private void Update()
     {
-        Vector3 delta = (Vector3)(_dir * speed * Time.deltaTime);
-        transform.Translate(delta, Space.World);
+        Vector3 d = (Vector3)(_dir * speed * Time.deltaTime);
+        transform.Translate(d, Space.World);
         _traveled = Vector2.Distance(transform.position, _startPos);
     }
 
@@ -40,21 +38,16 @@ public class PlayerFireball : MonoBehaviour
     {
         if (other.CompareTag("Enemy"))
         {
-            // если враг в зоне игнора — перелетаем его
-            if (_traveled < ignoreEnemiesFirstMeters)
-                return;
-
+            if (_traveled < ignoreEnemiesFirstMeters) return;
             var hp = other.GetComponent<EnemyHealth>();
-            if (hp != null)
-                hp.TakeDamage(damage);
+            if (hp != null) hp.TakeDamage(damage);
 
+            // TODO: сюда потом добавим Slow/Debuff
             Destroy(gameObject);
             return;
         }
 
         if (other.CompareTag("Border") || other.CompareTag("EnemyLaneLimit"))
-        {
             Destroy(gameObject);
-        }
     }
 }

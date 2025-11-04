@@ -21,9 +21,13 @@ public class ChargeDotsCooldownUI : MonoBehaviour
     [Tooltip("С какой стороны начинать заливку (Top=2 обычно выглядит привычно)")]
     public Image.Origin360 origin = Image.Origin360.Top;
 
+    private Sprite _defaultOverlaySprite;
+
     private void Awake()
     {
         AutoWireIfNeeded();
+        if (cooldownOverlays != null && cooldownOverlays.Count > 0)
+            _defaultOverlaySprite = cooldownOverlays[0].sprite;
     }
 
     private void OnValidate()
@@ -106,6 +110,17 @@ public class ChargeDotsCooldownUI : MonoBehaviour
             var c = img.color;
             c.a = Mathf.Lerp(endAlpha, startAlpha, t);
             img.color = c;
+        }
+    }
+
+    // Позволяет элементам переопределять внешний вид сектора (огонь/лёд).
+    public void ApplyElement(ElementDefinition elem)
+    {
+        Sprite target = elem && elem.cooldownOverlaySprite ? elem.cooldownOverlaySprite : _defaultOverlaySprite;
+        foreach (var img in cooldownOverlays)
+        {
+            if (!img) continue;
+            img.sprite = target;
         }
     }
 }

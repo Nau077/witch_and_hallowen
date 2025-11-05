@@ -21,7 +21,7 @@ public class EnemyWalker : MonoBehaviour
     public float leftLimit = -9.0f;
     public float rightLimit = 9f;
     public float topLimit = 2.5f;
-    public float bottomLimit = -3.26f;
+    public float bottomLimit = -1.76f;
 
     [Header("Keep Distance from Player (X axis)")]
     public int minCellsFromPlayer = 4;

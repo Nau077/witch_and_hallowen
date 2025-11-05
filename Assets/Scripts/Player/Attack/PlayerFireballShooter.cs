@@ -52,8 +52,8 @@ public class PlayerFireballShooter : MonoBehaviour
     public bool manualStepTuning = true;       // Включает новый ручной режим ступеней
     [Min(1)] public int totalZoneSteps = 12;   // Сколько всего дискретных уровней от огневой точки до верха
     [Min(0)] public int ignoredStepsCommon = 4;// Сколько шагов снизу считаем «глухими» (новый режим)
-    public int dot1ReachStep = 7;              // До какого шага долетает 1-я точка
-    public int dot2ReachStep = 9;              // До какого шага долетает 2-я точка
+    public int dot1ReachStep = 2;              // До какого шага долетает 1-я точка
+    public int dot2ReachStep = 7;              // До какого шага долетает 2-я точка
     public int dot3ReachStep = 12;             // До какого шага долетает 3-я точка
     public bool manualAimCenters = false;      // (зарезервировано) прицельные центры ступеней
     public bool useStepRanges = true;          // Если true — каждая точка имеет свой диапазон (1:[1..dot1], 2:[dot1..dot2], 3:[dot2..dot3])

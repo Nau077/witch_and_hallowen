@@ -405,7 +405,7 @@ MonoBehaviour:
   leftLimit: -9
   rightLimit: 9
   topLimit: 2.5
-  bottomLimit: -2.76
+  bottomLimit: -1.76
   minCellsFromPlayer: 4
   cellSize: 1
   softStopDistanceFudge: 0.15
@@ -425,7 +425,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2c052e825bba424b8d8a9ff117f0b4b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
-  maxHealth: 20
+  maxHealth: 50
   currentHealth: 0
   fireTint: {r: 1, g: 0.45, b: 0.05, a: 1}
   flashDuration: 0.15

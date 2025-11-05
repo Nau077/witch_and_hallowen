@@ -10,20 +10,16 @@ public class PlayerMovement : MonoBehaviour
     public float rightLimit = 9.5f; // важно оставить
 
     [Header("Charge Slowdown")]
-    [Tooltip("Замедлять ли движение во время замаха (зарядки выстрела).")]
     public bool slowWhileCharging = true;
-    [Tooltip("Множитель скорости при замахе. 1 = без замедления, 0.5 = вдвое медленнее и т.д.")]
     [Range(0.05f, 1f)] public float chargeMoveMultiplier = 0.4f;
 
     [Header("Sprite Facing")]
-    [Tooltip("True, если базовый (неотражённый) кадр смотрит ВПРАВО.")]
     public bool baseSpriteFacesRight = true;
 
     [Header("Input")]
     [Range(0f, 0.3f)] public float inputDeadZone = 0.05f;
 
     [Header("Animation")]
-    [Tooltip("Не менять flipX во время зарядки, чтобы поза замаха не прыгала.")]
     public bool blockFlipWhileCharging = true;
 
     [Header("Stun Settings")]
@@ -32,14 +28,15 @@ public class PlayerMovement : MonoBehaviour
 
     // runtime refs
     private Rigidbody2D rb;
-    private SpriteRenderer spriteRenderer;   // на ребёнке (witch_runner_2_1)
-    private Animator anim;                   // там же
+    private SpriteRenderer spriteRenderer;
+    private Animator anim;
     private PlayerFireballShooter shooter;
     private PlayerHealth hp;
 
     // state
     private bool isStunned = false;
     private Coroutine blinkRoutine;
+    private float moveInput;            // читаем в Update, применяем в FixedUpdate
 
     public bool FacingLeft { get; private set; } = false;
 
@@ -51,22 +48,49 @@ public class PlayerMovement : MonoBehaviour
         shooter = GetComponent<PlayerFireballShooter>();
         hp = GetComponent<PlayerHealth>();
 
-        // страховка: если вдруг Animator выключен в сцене — включим
         if (anim && !anim.enabled) anim.enabled = true;
+
+        // Рекомендованные настройки Rigidbody2D для стабильности:
+        rb.interpolation = RigidbodyInterpolation2D.Interpolate;
+        rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+        rb.freezeRotation = true; // 2D персонажу обычно не нужна Z-ротация
     }
 
     void Update()
     {
         if (isStunned) return;
 
-        // Если мертвы — стопаем аниматор и выходим
         if (hp != null && hp.IsDead)
         {
-            if (anim && anim.enabled) anim.enabled = false; // страховка при смерти
+            if (anim && anim.enabled) anim.enabled = false;
             return;
         }
 
-        float moveInput = Input.GetAxisRaw("Horizontal"); // -1..1
+        // 1) Считываем ввод в Update
+        moveInput = Input.GetAxisRaw("Horizontal"); // -1..1
+
+        // 2) Обновляем направление (для флипа/анимации)
+        if (Mathf.Abs(moveInput) > inputDeadZone)
+            FacingLeft = moveInput < 0f;
+
+        bool lockFlip = blockFlipWhileCharging && shooter != null && shooter.IsCharging;
+        if (spriteRenderer && !lockFlip)
+        {
+            bool needFlip = baseSpriteFacesRight ? FacingLeft : !FacingLeft;
+            spriteRenderer.flipX = needFlip;
+        }
+
+        if (anim && anim.enabled)
+        {
+            bool isRunning = Mathf.Abs(moveInput) > inputDeadZone && !isStunned;
+            anim.SetBool("isRunning", isRunning);
+        }
+    }
+
+    void FixedUpdate()
+    {
+        if (isStunned) return;
+        if (hp != null && hp.IsDead) return;
 
         // === скорость с учётом замаха ===
         float speedFactor = 1f;
@@ -74,31 +98,11 @@ public class PlayerMovement : MonoBehaviour
             speedFactor = chargeMoveMultiplier;
         float currentSpeed = moveSpeed * Mathf.Clamp(speedFactor, 0.05f, 1f);
 
-        // Движение
+        // === Перемещение: ТОЛЬКО в FixedUpdate + fixedDeltaTime ===
         Vector2 pos = rb.position;
-        pos.x += moveInput * currentSpeed * Time.deltaTime;
+        pos.x += moveInput * currentSpeed * Time.fixedDeltaTime;
         pos.x = Mathf.Clamp(pos.x, leftLimit, rightLimit);
         rb.MovePosition(pos);
-
-        // Направление
-        if (Mathf.Abs(moveInput) > inputDeadZone)
-            FacingLeft = moveInput < 0f;
-
-        // Флип (если не заряжаем/не блокируем)
-        bool lockFlip = blockFlipWhileCharging && shooter != null && shooter.IsCharging;
-        if (spriteRenderer && !lockFlip)
-        {
-            // базовый кадр вправо? Тогда при взгляде влево — flipX=true.
-            bool needFlip = baseSpriteFacesRight ? FacingLeft : !FacingLeft;
-            spriteRenderer.flipX = needFlip;
-        }
-
-        // Animator: Idle/Run
-        if (anim && anim.enabled)
-        {
-            bool isRunning = Mathf.Abs(moveInput) > inputDeadZone && !isStunned;
-            anim.SetBool("isRunning", isRunning);
-        }
     }
 
     // === оглушение ===

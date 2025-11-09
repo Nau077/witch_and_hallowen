@@ -254,7 +254,7 @@ public class PlayerSkillShooter : MonoBehaviour
             loadout.SwitchToNextAvailable();
 
         PlayThrowThenIdle();
-        if (chargeUI) chargeUI.Clear();
+        if (chargeUI) chargeUI.SetCount(0);
         if (chargeFX) chargeFX.Release();
 
         _currentDots = 0;

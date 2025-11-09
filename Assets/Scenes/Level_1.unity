@@ -1094,7 +1094,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5af605956686564c88d3085efaf919d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
-  maxHealth: 10000
+  maxHealth: 200
   currentHealth: 0
   barFill: {fileID: 725129547}
   sr: {fileID: 1792579273}
@@ -1163,7 +1163,7 @@ MonoBehaviour:
   - def: {fileID: 0}
     charges: 0
     cooldownUntil: 0
-  startIndex: 0
+  activeIndex: 0
 --- !u!114 &201944547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1194,6 +1194,7 @@ MonoBehaviour:
   autoReleaseAtMax: 0
   shootAlwaysUp: 1
   useFacingForHorizontal: 0
+  playerMana: {fileID: 0}
   enemyZone: {fileID: 1367967838}
   zoneTopPadding: 0.05
   manualStepTuning: 1
@@ -1513,7 +1514,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyTopSpawner
   enemyZone: {fileID: 1367967838}
   enemyPrefab: {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
-  initialCount: 6
+  initialCount: 3
   spawnInterval: 0
   container: {fileID: 0}
   xInset: 0.05

@@ -1,86 +1,106 @@
-﻿// SkillLoadout.cs
-using UnityEngine;
-using System;
+﻿using UnityEngine;
+using System; // <-- ДОБАВЬ это пространство имён
 
-[System.Serializable]
-public class SkillSlotRuntime
+[Serializable]
+public class SkillSlot
 {
     public SkillDefinition def;
-    [Min(0)] public int charges;                 // текущее кол-во зарядов
-    [HideInInspector] public float cooldownUntil; // Time.time, когда снова можно юзать
+    public int charges;
+    public float cooldownUntil;
 
-    public bool IsOnCooldown => Time.time < cooldownUntil;
-
+    public bool HasCharges => def == null ? false : (def.infiniteCharges || charges > 0);
+    public bool IsOnCooldown => def != null && Time.time < cooldownUntil;
     public float CooldownNormalized
     {
         get
         {
             if (def == null || def.cooldown <= 0f) return 0f;
-            float remain = cooldownUntil - Time.time;
-            return Mathf.Clamp01(remain / def.cooldown);
+            float left = Mathf.Max(0f, cooldownUntil - Time.time);
+            return Mathf.Clamp01(left / def.cooldown);
         }
     }
-
-    public bool HasCharges => def != null && (def.infiniteCharges || charges > 0);
 }
 
 public class SkillLoadout : MonoBehaviour
 {
     public const int SlotsCount = 5;
 
-    [Header("Slots (fill in Inspector)")]
-    public SkillSlotRuntime[] slots = new SkillSlotRuntime[SlotsCount];
+    public SkillSlot[] slots = new SkillSlot[SlotsCount];
 
-    [Header("Start")]
-    public int startIndex = 0;
+    [SerializeField] private int activeIndex = 0;
+    public int ActiveIndex => activeIndex;
+    public SkillSlot Active => (slots != null && activeIndex >= 0 && activeIndex < slots.Length) ? slots[activeIndex] : null;
 
-    public int ActiveIndex { get; private set; }
-
-    // Событие: старт кулдауна (для UI точек)
+    // >>> НОВОЕ: событие старта кулдауна (slotIndex, duration)
     public event Action<int, float> OnCooldownStarted;
 
     void Awake()
     {
-        // гарантируем массив и стартовые данные
-        for (int i = 0; i < SlotsCount; i++)
-            if (slots[i] == null) slots[i] = new SkillSlotRuntime();
+        if (slots == null || slots.Length != SlotsCount)
+            slots = new SkillSlot[SlotsCount];
 
-        for (int i = 0; i < SlotsCount; i++)
+        for (int i = 0; i < slots.Length; i++)
+            if (slots[i] == null) slots[i] = new SkillSlot();
+
+        EnsureValidActive();
+    }
+
+    public void EnsureValidActive()
+    {
+        if (!IsSlotUsable(activeIndex))
         {
-            var s = slots[i];
-            if (s.def == null) continue;
-            if (!s.def.infiniteCharges && s.charges == 0)
-                s.charges = Mathf.Max(0, s.def.startCharges);
+            int first = FindNextUsableFrom(-1, forward: true);
+            activeIndex = first;
         }
-
-        ActiveIndex = Mathf.Clamp(startIndex, 0, SlotsCount - 1);
-        AutoSkipIfEmptyForward(); // если стартовый пуст — найдём ближайший доступный
     }
 
-    public SkillSlotRuntime Active =>
-        slots != null && ActiveIndex >= 0 && ActiveIndex < slots.Length ? slots[ActiveIndex] : null;
-
-    // ==== ОБСЛУЖИВАНИЕ ВЫСТРЕЛА / КД ====
-
-    public bool TrySpendOneCharge()
+    bool IsSlotUsable(int idx)
     {
-        var s = Active;
-        if (s == null || s.def == null) return false;
-        if (s.def.infiniteCharges) return true;
-        if (s.charges <= 0) return false;
-        s.charges -= 1;
-        return true;
+        if (slots == null || idx < 0 || idx >= slots.Length) return false;
+        return slots[idx] != null && slots[idx].def != null;
     }
 
-    public void StartCooldownNow()
+    int FindNextUsableFrom(int start, bool forward)
     {
-        var s = Active;
-        if (s == null || s.def == null) return;
+        if (slots == null || slots.Length == 0) return -1;
+        int n = slots.Length;
+        int i = start;
+        for (int step = 0; step < n; step++)
+        {
+            i = forward ? (i + 1 + n) % n : (i - 1 + n) % n;
+            if (IsSlotUsable(i)) return i;
+        }
+        return -1;
+    }
 
-        float duration = Mathf.Max(0f, s.def.cooldown);
-        s.cooldownUntil = Time.time + duration;
+    public void SelectNext()
+    {
+        int next = FindNextUsableFrom(activeIndex, forward: true);
+        activeIndex = (next != -1) ? next : -1;
+    }
 
-        OnCooldownStarted?.Invoke(ActiveIndex, duration); // оповестим UI
+    public void SelectPrev()
+    {
+        int prev = FindNextUsableFrom(activeIndex, forward: false);
+        activeIndex = (prev != -1) ? prev : -1;
+    }
+
+    public void SwitchToNextAvailable()
+    {
+        int n = slots?.Length ?? 0;
+        if (n == 0) { activeIndex = -1; return; }
+
+        for (int step = 0, i = activeIndex; step < n; step++)
+        {
+            i = (i + 1) % n;
+            if (IsSlotUsable(i))
+            {
+                var s = slots[i];
+                if (s.def.infiniteCharges || s.charges > 0) { activeIndex = i; return; }
+            }
+        }
+        int any = FindNextUsableFrom(activeIndex, true);
+        activeIndex = (any != -1) ? any : -1;
     }
 
     public bool IsActiveReadyToUse()
@@ -88,115 +108,41 @@ public class SkillLoadout : MonoBehaviour
         var s = Active;
         if (s == null || s.def == null) return false;
         if (s.IsOnCooldown) return false;
-        if (!s.def.infiniteCharges && s.charges <= 0) return false;
+        if (!s.HasCharges) return false;
         return true;
     }
 
-    // ==== ПЕРЕКЛЮЧЕНИЕ СЛОТОВ (ДОБАВЛЕНО) ====
-
-    /// <summary>Выбрать следующий слот. Если onlyAvailable=true — пропускает пустые/на КД.</summary>
-    public int SelectNext(bool onlyAvailable = false)
+    public void TrySpendOneCharge()
     {
-        if (slots == null || slots.Length == 0) return ActiveIndex;
-
-        for (int step = 1; step <= SlotsCount; step++)
-        {
-            int idx = (ActiveIndex + step) % SlotsCount;
-            if (!onlyAvailable) { ActiveIndex = idx; break; }
-
-            var s = slots[idx];
-            if (s?.def != null && s.HasCharges && !s.IsOnCooldown)
-            {
-                ActiveIndex = idx;
-                break;
-            }
-        }
-        return ActiveIndex;
+        var s = Active;
+        if (s == null || s.def == null) return;
+        if (!s.def.infiniteCharges && s.charges > 0) s.charges--;
     }
 
-    /// <summary>Выбрать предыдущий слот. Если onlyAvailable=true — пропускает пустые/на КД.</summary>
-    public int SelectPrev(bool onlyAvailable = false)
+    // >>> ОБНОВЛЕНО: два метода запуска кулдауна + вызов события
+    public void StartCooldownNow()
     {
-        if (slots == null || slots.Length == 0) return ActiveIndex;
-
-        for (int step = 1; step <= SlotsCount; step++)
-        {
-            int idx = (ActiveIndex - step + SlotsCount) % SlotsCount;
-            if (!onlyAvailable) { ActiveIndex = idx; break; }
-
-            var s = slots[idx];
-            if (s?.def != null && s.HasCharges && !s.IsOnCooldown)
-            {
-                ActiveIndex = idx;
-                break;
-            }
-        }
-        return ActiveIndex;
+        StartCooldownFor(activeIndex);
     }
 
-    /// <summary>Выбрать конкретный индекс 0..4 (например по цифрам 1..5).</summary>
-    public void SelectIndex(int index, bool onlyAvailable = false)
+    public void StartCooldownFor(int index)
     {
-        if (slots == null || slots.Length == 0) return;
-        index = Mathf.Clamp(index, 0, SlotsCount - 1);
-
-        if (!onlyAvailable)
-        {
-            ActiveIndex = index;
-            return;
-        }
-
+        if (slots == null || index < 0 || index >= slots.Length) return;
         var s = slots[index];
-        if (s?.def != null && s.HasCharges && !s.IsOnCooldown)
-            ActiveIndex = index;
-        // если недоступен — ничего не делаем
-    }
+        if (s == null || s.def == null) return;
 
-    // ==== АВТО-ПЕРЕКЛЮЧЕНИЕ ПОСЛЕ ВЫСТРЕЛА / СТАРТА ====
-
-    public bool AutoSkipIfEmptyForward()
-    {
-        for (int i = 0; i < SlotsCount; i++)
+        float cd = Mathf.Max(0f, s.def.cooldown);
+        if (cd > 0f)
         {
-            int idx = (ActiveIndex + i) % SlotsCount;
-            var s = slots[idx];
-            if (s?.def != null && s.HasCharges)
-            {
-                ActiveIndex = idx;
-                return true;
-            }
+            s.cooldownUntil = Time.time + cd;
+            // уведомим всех UI (в т.ч. ChargeDotsUI)
+            OnCooldownStarted?.Invoke(index, cd);
         }
-        return false;
     }
 
-    public bool SwitchToNextAvailable()
+    public void SetActiveIndex(int index)
     {
-        for (int step = 1; step < SlotsCount; step++)
-        {
-            int idx = (ActiveIndex + step) % SlotsCount;
-            var s = slots[idx];
-            if (s?.def != null && s.HasCharges)
-            {
-                ActiveIndex = idx;
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // ==== Покупка зарядов (как было) ====
-
-    public bool BuyCharges(int slotIndex, int count)
-    {
-        if (slotIndex < 0 || slotIndex >= SlotsCount) return false;
-        var s = slots[slotIndex];
-        if (s?.def == null || s.def.infiniteCharges) return false;
-
-        int price = count * Mathf.Max(0, s.def.coinCostPerCharge);
-        if (!PlayerWallet.Instance || !PlayerWallet.Instance.CanSpend(price)) return false;
-
-        if (!PlayerWallet.Instance.TrySpend(price)) return false;
-        s.charges += count;
-        return true;
+        activeIndex = Mathf.Clamp(index, -1, (slots?.Length ?? 1) - 1);
+        EnsureValidActive();
     }
 }

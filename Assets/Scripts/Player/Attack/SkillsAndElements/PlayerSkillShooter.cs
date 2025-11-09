@@ -1,5 +1,4 @@
-﻿// Assets/Scripts/Player/Attack/SkillsAndElements/PlayerSkillShooter.cs
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -9,7 +8,7 @@ public class PlayerSkillShooter : MonoBehaviour
     public Transform firePoint;
     public SkillLoadout loadout;       // 5 слотов скиллов
     public FireballChargeFX chargeFX;  // опционально
-    public ChargeDotsUI chargeUI;      // если используется визуал "точек"
+    public ChargeDotsUI chargeUI;      // визуал «точек»
 
     [Header("Sprites / Animator Targets")]
     [Tooltip("Основной SpriteRenderer тела персонажа (НЕ ThrowFlash). Задай сюда ребёнка со спрайтом ведьмы.")]
@@ -47,11 +46,9 @@ public class PlayerSkillShooter : MonoBehaviour
     public int dot3ReachStep = 12;
     public bool useStepRanges = true;
 
-    // внешние геттеры
     public bool IsChargingPublic => _isCharging;
-    public bool IsCharging => _isCharging; // на всякий случай для старых ссылок
+    public bool IsCharging => _isCharging;
 
-    // state/refs
     private Rigidbody2D _rb;
     private PlayerMovement _movement;
 
@@ -65,8 +62,12 @@ public class PlayerSkillShooter : MonoBehaviour
     {
         _rb = GetComponent<Rigidbody2D>();
         _movement = GetComponent<PlayerMovement>();
+        // НОВОЕ: подхватить loadout автоматически, если не назначен в инспекторе
+        if (!loadout)
+            loadout = GetComponent<SkillLoadout>();
+        if (!loadout)
+            loadout = FindObjectOfType<SkillLoadout>();
 
-        // ---- автонастройки, если что-то не задано в инспекторе ----
         if (bodyRenderer == null)
         {
             var allSR = GetComponentsInChildren<SpriteRenderer>(true);
@@ -125,7 +126,6 @@ public class PlayerSkillShooter : MonoBehaviour
 
     void LateUpdate()
     {
-        // Жёстко удерживаем кадр замаха поверх аниматора
         if (_isCharging && _lockWindupSpriteWhileCharging && bodyRenderer && windupSprite)
             if (bodyRenderer.sprite != windupSprite) bodyRenderer.sprite = windupSprite;
     }
@@ -142,29 +142,28 @@ public class PlayerSkillShooter : MonoBehaviour
         float scroll = Input.mouseScrollDelta.y;
         if (Mathf.Abs(scroll) < 0.01f) return;
 
-        // Если крутим колесо во время заряда — сбросим заряд и вернём idle,
-        // чтобы визуал не застревал.
         if (_isCharging) CancelCharge(changeSprite: true);
 
-        if (scroll > 0f) loadout.SelectPrev(); // вверх — прошлый
-        else loadout.SelectNext(); // вниз — следующий
+        if (scroll > 0f) loadout.SelectPrev();
+        else loadout.SelectNext();
     }
 
     void StartCharging()
     {
-        if (loadout == null || loadout.Active == null || loadout.Active.def == null) return;
-        if (!loadout.IsActiveReadyToUse())
-        {
-            if (!loadout.AutoSkipIfEmptyForward()) return;
-        }
+        // Должен быть задан и готов активный слот — иначе сразу выходим,
+        // НИЧЕГО в UI не меняем (точки не загораются).
+        if (!loadout) return;
+        var s = loadout.Active;
+        if (s == null || s.def == null) return;          // нет скилла — не начинаем
+        if (!loadout.IsActiveReadyToUse()) return;       // КД или нет зарядов — ждём
 
+        // Готово — начинаем заряд
         _isCharging = true;
         _currentDots = 1;
         _chargeElapsed = 0f;
 
         if (chargeUI) { chargeUI.Clear(); chargeUI.SetCount(_currentDots); }
 
-        // Фризим нужный аниматор (на теле), а НЕ ThrowFlash
         if (bodyAnimator != null) bodyAnimator.speed = 0f;
         if (bodyRenderer && windupSprite) bodyRenderer.sprite = windupSprite;
 
@@ -249,7 +248,7 @@ public class PlayerSkillShooter : MonoBehaviour
         }
 
         loadout.TrySpendOneCharge();
-        loadout.StartCooldownNow();
+        loadout.StartCooldownNow(); // ← триггер события; ChargeDotsUI начнёт анимацию
 
         if (!slot.def.infiniteCharges && slot.charges <= 0)
             loadout.SwitchToNextAvailable();
@@ -264,19 +263,13 @@ public class PlayerSkillShooter : MonoBehaviour
 
     void PlayThrowThenIdle()
     {
-        // Всегда показываем кадр броска на основном спрайте (гарантия видимости)
-        if (bodyAnimator) bodyAnimator.enabled = false;         // остановим аниматор на момент броска
-        if (bodyRenderer && throwSprite) bodyRenderer.sprite = throwSprite; // главный спрайт = кадр броска
+        if (bodyAnimator) bodyAnimator.enabled = false;
+        if (bodyRenderer && throwSprite) bodyRenderer.sprite = throwSprite;
 
-        // Параллельно, если задан ThrowFlash — дадим вспышку поверх
         if (throwFlashRenderer && throwSprite)
-        {
             StartCoroutine(FlashRoutine());
-        }
         else
-        {
-            StartCoroutine(ThrowRoutine()); // просто таймер и возврат к idle
-        }
+            StartCoroutine(ThrowRoutine());
     }
 
     float ComputeDistance(int dots, out float ignoreFirstMeters)
@@ -300,7 +293,6 @@ public class PlayerSkillShooter : MonoBehaviour
                 else { fromStep = dot2ReachStep; toStep = dot3ReachStep; }
                 fromStep = Mathf.Clamp(fromStep, 1, total);
                 toStep = Mathf.Clamp(toStep, fromStep + 1, total);
-
             }
             else { fromStep = ignoredStepsCommon; toStep = dot3ReachStep; }
 
@@ -318,13 +310,11 @@ public class PlayerSkillShooter : MonoBehaviour
     {
         _lockWindupSpriteWhileCharging = false;
 
-        // включаем флэш
         throwFlashRenderer.sprite = throwSprite;
         throwFlashRenderer.enabled = true;
 
         yield return new WaitForSeconds(throwSpriteTime);
 
-        // выключаем флэш и возвращаемся к idle
         throwFlashRenderer.enabled = false;
         BackToIdle();
 
@@ -336,7 +326,6 @@ public class PlayerSkillShooter : MonoBehaviour
     {
         _lockWindupSpriteWhileCharging = false;
 
-        // кадр броска уже выставлен в PlayThrowThenIdle
         yield return new WaitForSeconds(throwSpriteTime);
 
         BackToIdle();
@@ -349,12 +338,9 @@ public class PlayerSkillShooter : MonoBehaviour
     {
         if (bodyRenderer && idleSprite) bodyRenderer.sprite = idleSprite;
         if (throwFlashRenderer) throwFlashRenderer.enabled = false;
-
-        // размораживаем (speed), но включение/выключение .enabled оставляем как есть
         if (bodyAnimator) bodyAnimator.speed = 1f;
     }
 
-    // ----- СБРОС ПРОЦЕССА ЗАРЯДА -----
     void CancelCharge(bool changeSprite)
     {
         _isCharging = false;
@@ -364,17 +350,13 @@ public class PlayerSkillShooter : MonoBehaviour
         if (changeSprite && bodyRenderer && idleSprite) bodyRenderer.sprite = idleSprite;
         if (throwFlashRenderer) throwFlashRenderer.enabled = false;
 
-        if (bodyAnimator) bodyAnimator.speed = 1f;   // не трогаем enabled
+        if (bodyAnimator) bodyAnimator.speed = 1f;
         if (chargeFX) chargeFX.Cancel();
 
         _currentDots = 0;
         _chargeElapsed = 0f;
     }
 
-    /// <summary>
-    /// Внешний быстрый сброс *без* изменения спрайта/аниматора (для смерти).
-    /// Если keepAnimatorDisabled = true, не включаем Animator обратно.
-    /// </summary>
     public void CancelAllImmediate(bool keepAnimatorDisabled = false)
     {
         CancelCharge(changeSprite: false);

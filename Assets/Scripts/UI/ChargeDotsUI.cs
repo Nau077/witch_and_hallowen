@@ -18,27 +18,28 @@ public class ChargeDotsUI : MonoBehaviour
 
     struct Dot
     {
-        public Image icon;
-        public Image cooldown;
+        public Image icon;        // внешний спрайт точки (виден всегда)
+        public Image cooldown;    // заливка-клин поверх
         public float endTime;
         public float duration;
         public bool active;
     }
 
-    Dot[] dots = new Dot[3];
+    private Dot[] dots = new Dot[3];
 
     void Awake()
     {
         SetupDot(0, Dot1);
         SetupDot(1, Dot2);
         SetupDot(2, Dot3);
-        ApplyCountVisuals(0);
+        ApplyCountVisuals(0); // «пустые, но видимые» точки
     }
 
     void OnEnable()
     {
         if (!loadout) loadout = FindObjectOfType<SkillLoadout>();
         if (loadout) loadout.OnCooldownStarted += HandleCooldownStarted;
+
         ApplyCountVisuals(CurrentActiveCount);
     }
 
@@ -49,6 +50,7 @@ public class ChargeDotsUI : MonoBehaviour
 
     void Update()
     {
+        // обновляем анимацию КД (1 -> 0)
         for (int i = 0; i < dots.Length; i++)
         {
             var d = dots[i];
@@ -60,7 +62,6 @@ public class ChargeDotsUI : MonoBehaviour
                 float fill = Mathf.Clamp01(remain / d.duration);
 
                 if (!d.cooldown.enabled && fill > 0f) d.cooldown.enabled = true;
-
                 d.cooldown.fillAmount = fill;
 
                 if (fill <= 0f)
@@ -74,7 +75,7 @@ public class ChargeDotsUI : MonoBehaviour
         }
     }
 
-    // -------- Public API ----------
+    // ---------- Public API ----------
     public void SetCount(int count)
     {
         count = Mathf.Clamp(count, 0, 3);
@@ -86,33 +87,42 @@ public class ChargeDotsUI : MonoBehaviour
         ApplyCountVisuals(0);
         for (int i = 0; i < dots.Length; i++)
         {
-            if (dots[i].cooldown)
+            var d = dots[i];
+            if (d.cooldown)
             {
-                dots[i].cooldown.fillAmount = 0f;
-                dots[i].cooldown.enabled = false;
+                d.cooldown.fillAmount = 0f;
+                d.cooldown.enabled = false;
             }
-            dots[i].endTime = 0f;
-            dots[i].duration = 0f;
+            d.endTime = 0f;
+            d.duration = 0f;
+            dots[i] = d;
         }
     }
 
-    // -------- Events ----------
+    // ---------- Events ----------
+    // ВАЖНО: независимо от slotIndex запускаем КД на всех точках.
     void HandleCooldownStarted(int slotIndex, float duration)
     {
-        if (slotIndex < 0 || slotIndex > 2) return;
+        duration = Mathf.Max(0.0001f, duration);
+        float end = Time.time + duration;
 
-        var d = dots[slotIndex];
-        if (d.cooldown)
+        for (int i = 0; i < dots.Length; i++)
         {
+            var d = dots[i];
+            if (!d.cooldown) continue;
+
+            d.cooldown.color = cooldownColor;
             d.cooldown.enabled = true;
-            d.cooldown.fillAmount = (duration <= 0f) ? 0f : 1f;
+            d.cooldown.fillAmount = 1f;
+
+            d.duration = duration;
+            d.endTime = end;
+
+            dots[i] = d;
         }
-        d.duration = Mathf.Max(0.0001f, duration);
-        d.endTime = Time.time + d.duration;
-        dots[slotIndex] = d;
     }
 
-    // -------- Utils ----------
+    // ---------- Utils ----------
     void SetupDot(int i, RectTransform rt)
     {
         if (!rt) return;
@@ -133,8 +143,8 @@ public class ChargeDotsUI : MonoBehaviour
 
         if (icon)
         {
-            icon.enabled = true;
-            icon.color = inactiveColor;
+            icon.enabled = true;                // точки всегда видны
+            icon.color = inactiveColor;         // пока «пустые»
         }
         if (cooldown)
         {

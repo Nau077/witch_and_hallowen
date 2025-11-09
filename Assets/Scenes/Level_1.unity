@@ -1188,7 +1188,7 @@ MonoBehaviour:
   throwSprite: {fileID: 9078332681390874442, guid: 3e869241dc0ed754c890d3bfd1527414, type: 3}
   throwSpriteTime: 0.2
   maxDots: 3
-  secondsPerDot: 1
+  secondsPerDot: 0.4
   minDistance: 2.5
   maxDistance: 9
   autoReleaseAtMax: 0

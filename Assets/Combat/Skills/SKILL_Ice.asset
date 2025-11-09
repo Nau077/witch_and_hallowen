@@ -13,7 +13,16 @@ MonoBehaviour:
   m_Name: SKILL_Ice
   m_EditorClassIdentifier: Assembly-CSharp::SkillDefinition
   displayName: Ice Shard
-  projectilePrefab: {fileID: 0}
-  manaCost: 5
-  cooldown: 0.6
   icon: {fileID: 0}
+  element: 0
+  projectilePrefab: {fileID: 1307152648960653708, guid: 31cb199c84ca44943a5d7db6e3d1d2fa, type: 3}
+  damage: 10
+  cooldown: 0.6
+  xpPerUse: 1
+  infiniteCharges: 1
+  startCharges: 0
+  coinCostPerCharge: 1
+  tag: 0
+  freezeSeconds: 0
+  slowPercent: 0
+  slowSeconds: 0

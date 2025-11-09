@@ -143,3 +143,4 @@ MonoBehaviour:
   speed: 8
   lifetime: 2
   damage: 10
+  ignoreEnemiesFirstMeters: 0

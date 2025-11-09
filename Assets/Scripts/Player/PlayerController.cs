@@ -1,5 +1,10 @@
 using UnityEngine;
 
+/// <summary>
+/// Простой контроллер перемещения по горизонтали + флип спрайта.
+/// Обновлён: больше не зависит от PlayerFireballShooter. Использует (если есть) PlayerSkillShooter.
+/// </summary>
+[RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour
 {
     public float moveSpeed = 10f;
@@ -8,17 +13,15 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody2D rb;
     private SpriteRenderer sr;
-    private PlayerFireballShooter shooter;
+
+    // НЕ обязательная ссылка — если стрелка нет, код просто не будет учитывать "заряд".
+    private PlayerSkillShooter shooter;
 
     void Awake()
     {
-        shooter = FindObjectOfType<PlayerFireballShooter>(); // или GetComponent/ссылка из инспектора
-    }
-
-    void Start()
-    {
         rb = GetComponent<Rigidbody2D>();
         sr = GetComponent<SpriteRenderer>();
+        shooter = GetComponent<PlayerSkillShooter>() ?? FindObjectOfType<PlayerSkillShooter>();
     }
 
     void Update()
@@ -34,8 +37,9 @@ public class PlayerController : MonoBehaviour
 
         transform.position = newPos;
 
-        // Отражаем спрайт влево/вправо
-        if (move != 0 && shooter != null && !shooter.IsCharging)
+        // Отражаем спрайт влево/вправо (если нет активного заряда)
+        bool isCharging = shooter != null && shooter.IsChargingPublic;
+        if (move != 0 && !isCharging && sr != null)
             sr.flipX = move < 0;
     }
 }

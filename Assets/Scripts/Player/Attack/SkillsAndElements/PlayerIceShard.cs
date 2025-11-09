@@ -42,7 +42,7 @@ public class PlayerIceShard : MonoBehaviour, IProjectile
             var hp = other.GetComponent<EnemyHealth>();
             if (hp != null) hp.TakeDamage(damage);
 
-            // TODO: сюда потом добавим Slow/Debuff
+            // Здесь позже можно повесить заморозку/замедление
             Destroy(gameObject);
             return;
         }

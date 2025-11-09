@@ -106,8 +106,8 @@ public class PlayerHealth : MonoBehaviour
         if (disableMovementOnDeath && movement != null)
             movement.enabled = false;
 
-        // 5) Жёстко гасим замах/стрельбу, НЕ разрешая шутеру включать Animator.
-        var shooter = GetComponent<PlayerFireballShooter>();
+        // 5) Жёстко гасим замах/стрельбу, НЕ разрешая стрелку включать Animator.
+        var shooter = GetComponent<PlayerSkillShooter>(); // <-- НОВЫЙ КЛАСС
         if (shooter != null)
         {
             shooter.CancelAllImmediate(keepAnimatorDisabled: true);

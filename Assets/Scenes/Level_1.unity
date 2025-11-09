@@ -464,7 +464,6 @@ GameObject:
   - component: {fileID: 40252239}
   - component: {fileID: 40252238}
   - component: {fileID: 40252240}
-  - component: {fileID: 40252241}
   m_Layer: 5
   m_Name: ChargeDotsUI
   m_TagString: Untagged
@@ -546,33 +545,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7cb643864e2d3bf48a2d29a62d77dd3b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ChargeDotsUI
-  inactiveColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  Dot1: {fileID: 2109589962}
+  Dot2: {fileID: 1732971584}
+  Dot3: {fileID: 998268364}
+  loadout: {fileID: 201944546}
   activeColor: {r: 1, g: 1, b: 1, a: 1}
-  fillFadeSpeed: 8
-  dots:
-  - {fileID: 2109589963}
-  - {fileID: 1732971585}
-  - {fileID: 998268365}
---- !u!114 &40252241
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 40252236}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6cdec3bc8fb8d7743b950df202365e45, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ChargeDotsCooldownUI
-  shooter: {fileID: 201944543}
-  cooldownOverlays:
-  - {fileID: 1328055928}
-  - {fileID: 1020735932}
-  - {fileID: 133517192}
-  startAlpha: 0.65
-  endAlpha: 0
-  origin: 2
+  inactiveColor: {r: 1, g: 1, b: 1, a: 0.35}
+  cooldownColor: {r: 0, g: 0, b: 0, a: 0.65}
 --- !u!1 &42897994
 GameObject:
   m_ObjectHideFlags: 0
@@ -608,7 +587,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 300, y: 16}
+  m_SizeDelta: {x: 200, y: 16}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &42897996
 MonoBehaviour:
@@ -761,7 +740,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 300, y: 16}
+  m_SizeDelta: {x: 200, y: 16}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &122926064
 MonoBehaviour:
@@ -979,9 +958,11 @@ GameObject:
   - component: {fileID: 201944540}
   - component: {fileID: 201944541}
   - component: {fileID: 201944542}
-  - component: {fileID: 201944543}
   - component: {fileID: 201944544}
   - component: {fileID: 201944545}
+  - component: {fileID: 201944547}
+  - component: {fileID: 201944546}
+  - component: {fileID: 201944548}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -1004,7 +985,6 @@ Transform:
   m_Children:
   - {fileID: 1792579271}
   - {fileID: 837333365}
-  - {fileID: 999052074}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!50 &201944539
@@ -1123,53 +1103,6 @@ MonoBehaviour:
   deadSprite: {fileID: 4893574615064217924, guid: a898a11e3215c994da3c514d8d83a1bf, type: 3}
   disableMovementOnDeath: 1
   isDead: 0
---- !u!114 &201944543
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 201944535}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ea949c2a1ddbbb84b9814d8fd5526f69, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerFireballShooter
-  firePoint: {fileID: 837333365}
-  playerFireballPrefab: {fileID: 1307152648960653708, guid: 9208ec402c3e7074cb98db0980c096a5, type: 3}
-  chargeUI: {fileID: 40252240}
-  chargeFX: {fileID: 201944544}
-  maxDots: 3
-  secondsPerDot: 0.5
-  minDistance: 2.5
-  maxDistance: 9
-  autoReleaseAtMax: 1
-  idleSprite: {fileID: 2917350467636519215, guid: 52465af8edd1ba94eb26b5636ff769b9, type: 3}
-  windupSprite: {fileID: 512408727741140516, guid: 3e869241dc0ed754c890d3bfd1527414, type: 3}
-  throwSprite: {fileID: 9078332681390874442, guid: 3e869241dc0ed754c890d3bfd1527414, type: 3}
-  throwSpriteTime: 0.08
-  throwFlashRenderer: {fileID: 0}
-  shootAlwaysUp: 1
-  useFacingForHorizontal: 0
-  fireCooldown: 0.5
-  enemyZone: {fileID: 1367967838}
-  zoneTopPadding: 0.05
-  useZoneSteps: 1
-  zoneSteps: 5
-  ignoredZoneSteps: 4
-  snapToCenters: 1
-  manualStepTuning: 1
-  totalZoneSteps: 12
-  ignoredStepsCommon: 0
-  dot1ReachStep: 2
-  dot2ReachStep: 7
-  dot3ReachStep: 12
-  manualAimCenters: 0
-  useStepRanges: 1
-  currentElement: {fileID: 0}
-  availableElements: []
-  manaCostPerShot: 5
-  debugLogThrow: 0
 --- !u!114 &201944544
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1202,6 +1135,91 @@ MonoBehaviour:
   maxMana: 50
   currentMana: 50
   regenPerSecond: 2
+--- !u!114 &201944546
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 201944535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95e3b5ee32adcec49a498d67a649e4b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SkillLoadout
+  slots:
+  - def: {fileID: 11400000, guid: ef8186b943d0f1d4baedec5035d5adb1, type: 2}
+    charges: 0
+    cooldownUntil: 0
+  - def: {fileID: 11400000, guid: c346e92dc04059d4bbc9a72386c91a79, type: 2}
+    charges: 10
+    cooldownUntil: 0
+  - def: {fileID: 0}
+    charges: 0
+    cooldownUntil: 0
+  - def: {fileID: 0}
+    charges: 0
+    cooldownUntil: 0
+  - def: {fileID: 0}
+    charges: 0
+    cooldownUntil: 0
+  startIndex: 0
+--- !u!114 &201944547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 201944535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fac435903ae78be4e9b3aa3e255daacb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSkillShooter
+  firePoint: {fileID: 837333365}
+  loadout: {fileID: 201944546}
+  chargeFX: {fileID: 201944548}
+  chargeUI: {fileID: 40252240}
+  bodyRenderer: {fileID: 1792579273}
+  bodyAnimator: {fileID: 1792579272}
+  throwFlashRenderer: {fileID: 1631145303}
+  idleSprite: {fileID: 2917350467636519215, guid: 52465af8edd1ba94eb26b5636ff769b9, type: 3}
+  windupSprite: {fileID: 512408727741140516, guid: 3e869241dc0ed754c890d3bfd1527414, type: 3}
+  throwSprite: {fileID: 9078332681390874442, guid: 3e869241dc0ed754c890d3bfd1527414, type: 3}
+  throwSpriteTime: 0.2
+  maxDots: 3
+  secondsPerDot: 1
+  minDistance: 2.5
+  maxDistance: 9
+  autoReleaseAtMax: 0
+  shootAlwaysUp: 1
+  useFacingForHorizontal: 0
+  enemyZone: {fileID: 1367967838}
+  zoneTopPadding: 0.05
+  manualStepTuning: 1
+  totalZoneSteps: 12
+  ignoredStepsCommon: 4
+  dot1ReachStep: 2
+  dot2ReachStep: 7
+  dot3ReachStep: 12
+  useStepRanges: 1
+--- !u!114 &201944548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 201944535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e26e4c02642437f468f4234277cee5cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FireballChargeFX
+  fireAuraRoot: {fileID: 999052073}
+  auraRenderers: []
+  maxAlpha: 1
+  fadeDuration: 0.2
+  deactivateWhenHidden: 1
 --- !u!1 &222688803
 GameObject:
   m_ObjectHideFlags: 0
@@ -1312,7 +1330,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 300, y: 16}
+  m_SizeDelta: {x: 200, y: 16}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &347501310
 MonoBehaviour:
@@ -2052,7 +2070,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 300, y: 16}
+  m_SizeDelta: {x: 200, y: 16}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &725129547
 MonoBehaviour:
@@ -2224,6 +2242,96 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 754047094}
   m_CullTransparentMesh: 1
+--- !u!1 &827282063
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 827282064}
+  - component: {fileID: 827282065}
+  m_Layer: 0
+  m_Name: IceAura
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &827282064
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 827282063}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.59760654, y: 1.3573314, z: 0}
+  m_LocalScale: {x: 3.1452618, y: 3.051424, z: 11.973587}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1792579271}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!212 &827282065
+SpriteRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 827282063}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 0
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 0
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 3
+  m_Sprite: {fileID: 1085368050587903601, guid: 437a982f58c79a146beb40efbe9205e9, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_FlipX: 0
+  m_FlipY: 0
+  m_DrawMode: 0
+  m_Size: {x: 10.24, y: 10.24}
+  m_AdaptiveModeThreshold: 0.5
+  m_SpriteTileMode: 0
+  m_WasSpriteAssigned: 1
+  m_MaskInteraction: 0
+  m_SpriteSortPoint: 0
 --- !u!1 &837333364
 GameObject:
   m_ObjectHideFlags: 0
@@ -2724,12 +2832,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 999052073}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.474, y: 1.127, z: 0}
-  m_LocalScale: {x: 2.494708, y: 2.5336177, z: 0.8155}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.59760654, y: 1.3573314, z: 0}
+  m_LocalScale: {x: 3.1452618, y: 3.051424, z: 11.973587}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 201944537}
+  m_Father: {fileID: 1792579271}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &999052075
 SpriteRenderer:
@@ -3451,8 +3559,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 536, y: 63.1}
-  m_SizeDelta: {x: 300, y: 16}
+  m_AnchoredPosition: {x: 437, y: 63.1}
+  m_SizeDelta: {x: 200, y: 16}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1328055926
 GameObject:
@@ -4163,6 +4271,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1631145304}
+  - {fileID: 999052074}
+  - {fileID: 827282064}
   m_Father: {fileID: 201944537}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &1792579272
@@ -4280,8 +4390,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 536, y: 30.632}
-  m_SizeDelta: {x: 300, y: 16}
+  m_AnchoredPosition: {x: 436.7, y: 30.632}
+  m_SizeDelta: {x: 200, y: 16}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1945590206
 MonoBehaviour:
@@ -4325,7 +4435,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 8300000, guid: 423c230c8b2fca441b5536469167720a, type: 3}
+  m_Resource: {fileID: 0}
   m_PlayOnAwake: 1
   m_Volume: 0.53
   m_Pitch: 1

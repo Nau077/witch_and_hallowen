@@ -30,7 +30,9 @@ public class PlayerMovement : MonoBehaviour
     private Rigidbody2D rb;
     private SpriteRenderer spriteRenderer;
     private Animator anim;
-    private PlayerFireballShooter shooter;
+
+    // Обновлённая ссылка на новый стрелок
+    private PlayerSkillShooter shooter;
     private PlayerHealth hp;
 
     // state
@@ -40,12 +42,16 @@ public class PlayerMovement : MonoBehaviour
 
     public bool FacingLeft { get; private set; } = false;
 
+    // Вспомогательный геттер: есть ли активный заряд сейчас
+    private bool IsChargingNow => shooter != null && shooter.IsChargingPublic;
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponentInChildren<SpriteRenderer>(true);
         anim = spriteRenderer ? spriteRenderer.GetComponent<Animator>() : null;
-        shooter = GetComponent<PlayerFireballShooter>();
+
+        shooter = GetComponent<PlayerSkillShooter>() ?? FindObjectOfType<PlayerSkillShooter>();
         hp = GetComponent<PlayerHealth>();
 
         if (anim && !anim.enabled) anim.enabled = true;
@@ -53,7 +59,7 @@ public class PlayerMovement : MonoBehaviour
         // Рекомендованные настройки Rigidbody2D для стабильности:
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-        rb.freezeRotation = true; // 2D персонажу обычно не нужна Z-ротация
+        rb.freezeRotation = true;
     }
 
     void Update()
@@ -73,7 +79,7 @@ public class PlayerMovement : MonoBehaviour
         if (Mathf.Abs(moveInput) > inputDeadZone)
             FacingLeft = moveInput < 0f;
 
-        bool lockFlip = blockFlipWhileCharging && shooter != null && shooter.IsCharging;
+        bool lockFlip = blockFlipWhileCharging && IsChargingNow;
         if (spriteRenderer && !lockFlip)
         {
             bool needFlip = baseSpriteFacesRight ? FacingLeft : !FacingLeft;
@@ -94,11 +100,11 @@ public class PlayerMovement : MonoBehaviour
 
         // === скорость с учётом замаха ===
         float speedFactor = 1f;
-        if (slowWhileCharging && shooter != null && shooter.IsCharging)
+        if (slowWhileCharging && IsChargingNow)
             speedFactor = chargeMoveMultiplier;
         float currentSpeed = moveSpeed * Mathf.Clamp(speedFactor, 0.05f, 1f);
 
-        // === Перемещение: ТОЛЬКО в FixedUpdate + fixedDeltaTime ===
+        // === Перемещение только в FixedUpdate ===
         Vector2 pos = rb.position;
         pos.x += moveInput * currentSpeed * Time.fixedDeltaTime;
         pos.x = Mathf.Clamp(pos.x, leftLimit, rightLimit);

@@ -35,6 +35,9 @@ public class PlayerSkillShooter : MonoBehaviour
     public bool shootAlwaysUp = true;
     public bool useFacingForHorizontal = false;
 
+    [Header("Mana")]
+    public PlayerMana playerMana; // ссылка на компонент PlayerMana (автоматически ищем, если не задан)
+
     [Header("Enemy Zone")]
     public SpriteRenderer enemyZone;
     public float zoneTopPadding = 0.05f;
@@ -67,6 +70,11 @@ public class PlayerSkillShooter : MonoBehaviour
             loadout = GetComponent<SkillLoadout>();
         if (!loadout)
             loadout = FindObjectOfType<SkillLoadout>();
+
+        if (!playerMana)
+            playerMana = GetComponent<PlayerMana>();
+        if (!playerMana)
+            playerMana = FindObjectOfType<PlayerMana>();
 
         if (bodyRenderer == null)
         {
@@ -156,6 +164,11 @@ public class PlayerSkillShooter : MonoBehaviour
         var s = loadout.Active;
         if (s == null || s.def == null) return;          // нет скилла — не начинаем
         if (!loadout.IsActiveReadyToUse()) return;       // КД или нет зарядов — ждём
+                                                         // --- НОВОЕ: проверка по мане ---
+                                                         // берём стоимость маны из активного скилла
+        int manaCost = s.def.manaCostPerShot;
+        if (playerMana && manaCost > 0 && !playerMana.CanSpend(manaCost))
+            return; // не хватает — просто ничего не происходит (точки не загораются)
 
         // Готово — начинаем заряд
         _isCharging = true;
@@ -219,111 +232,86 @@ public class PlayerSkillShooter : MonoBehaviour
         // --- 1) Останавливаем режим заряда ---
         _isCharging = false;
 
-        // Если шла корутина набора точек (увеличивала счётчик каждые secondsPerDot),
-        // обязательно её останавливаем, чтобы она не продолжила работать в фоне.
-        if (_chargeRoutine != null) StopCoroutine(_chargeRoutine);
+        if (_chargeRoutine != null)
+            StopCoroutine(_chargeRoutine);
 
-        // Берём активный слот навыка из загрузки (SkillLoadout).
-        // Слот содержит ссылку на определение скилла (SkillDefinition), заряды, таймер КД.
+        // Берём активный слот навыка из загрузки (SkillLoadout)
         var slot = loadout.Active;
 
-        // Если скилл отсутствует — безопасный выход: сбросить визуал и прекратить действие.
-        if (slot == null || slot.def == null) { CancelCharge(true); return; }
+        // Безопасные проверки
+        if (slot == null || slot.def == null)
+        {
+            CancelCharge(true);
+            return;
+        }
 
-        // Если скилл уже на кулдауне или у него нет зарядов — тоже выходим, не бросаем.
-        // CancelCharge приведёт спрайты/аниматор/эффекты в базовое состояние.
-        if (slot.IsOnCooldown || !slot.HasCharges) { CancelCharge(true); return; }
+        if (slot.IsOnCooldown || !slot.HasCharges)
+        {
+            CancelCharge(true);
+            return;
+        }
 
-        // --- 2) Подсчёт «силы» броска и расчёт дистанции ---
-        // Количество набранных точек: минимум 1, максимум maxDots
+        // --- 2) Проверка и списание маны ---
+        int manaCost = slot.def.manaCostPerShot;
+        if (playerMana && manaCost > 0)
+        {
+            if (!playerMana.TrySpend(manaCost))
+            {
+                // если не хватило (например, между замахом и броском), отменяем атаку
+                CancelCharge(true);
+                return;
+            }
+        }
+
+        // --- 3) Подсчёт силы броска и создание снаряда ---
         int dots = Mathf.Clamp(_currentDots, 1, Mathf.Max(1, maxDots));
-
-        // По количеству точек вычисляем дистанцию полёта (и «игнорируемый» начальный участок).
-        // ComputeDistance учитывает вертикальную зону врагов и «ступеньки»,
-        // чтобы огненный шар не улетал за пределы.
         float distance = ComputeDistance(dots, out float ignoreFirstMeters);
 
-        // --- 3) Порождение (Instantiate) и инициализация снаряда ---
-        // Проверяем, что есть точка выстрела (firePoint) и prefab снаряда в SkillDefinition.
         if (firePoint && slot.def.projectilePrefab)
         {
-            // Создаём экземпляр префаба снаряда в позиции firePoint без вращения.
-            // Instantiate в Unity создаёт клон указанного объекта в сцене.
             var go = Object.Instantiate(slot.def.projectilePrefab, firePoint.position, Quaternion.identity);
-
-            // Для удобства поведение снаряда задано интерфейсом IProjectile.
-            // Получаем компонент, реализующий это поведение.
             var proj = go.GetComponent<IProjectile>();
             if (proj != null)
             {
-                // Направление по умолчанию — строго вверх (подходит для «броска наверх»).
                 Vector2 dir = Vector2.up;
 
                 if (!shootAlwaysUp)
                 {
-                    // Если разрешён произвольный бросок — целимся курсором мыши.
-                    // Экранные пиксели → мировые координаты: ScreenToWorldPoint.
                     var cam = Camera.main;
                     if (cam)
                     {
-                        // В ScreenToWorldPoint обязательно задаём Z = расстояние от камеры до цели,
-                        // иначе точка будет вычислена на плоскости камеры (z=0).
                         var mp = Input.mousePosition;
                         mp.z = Mathf.Abs(cam.transform.position.z - firePoint.position.z);
-
-                        var mw = cam.ScreenToWorldPoint(mp);  // мировая точка под курсором
-                        mw.z = firePoint.position.z;          // выравниваем Z со снарядом (2D)
-                        dir = (mw - firePoint.position).normalized; // нормализованный вектор направления
+                        var mw = cam.ScreenToWorldPoint(mp);
+                        mw.z = firePoint.position.z;
+                        dir = (mw - firePoint.position).normalized;
                     }
                 }
                 else if (useFacingForHorizontal && _movement != null)
                 {
-                    // Если «стреляем не вверх», но хотим учитывать «куда смотрит персонаж»
-                    // — берём левый/правый вектор по флагу FacingLeft у движения.
                     dir = _movement.FacingLeft ? Vector2.left : Vector2.right;
                 }
 
-                // Инициализируем снаряд:
-                // dir                — направление полёта,
-                // distance           — целевая дистанция (может использоваться как лимит полёта),
-                // -1f                — пример «скорости/времени жизни» (если у проекта есть такой параметр),
-                // ignoreFirstMeters  — сколько первых метров «пробросить» (например, чтобы не задевать игрока).
                 proj.Init(dir, distance, -1f, ignoreFirstMeters);
             }
         }
 
-        // --- 4) Учёт ресурсов и запуск кулдауна ---
-        // Пытаемся списать один заряд у текущего скилла (если он конечный).
-        // Для бесконечных зарядов метод вернёт true и ничего не изменит.
+        // --- 4) Учёт зарядов и кулдаун ---
         loadout.TrySpendOneCharge();
-
-        // Запускаем КД у активного слота.
-        // Внутри SkillLoadout это:
-        //   cooldownUntil = Time.time + def.cooldown;
-        //   OnCooldownStarted?.Invoke(ActiveIndex, duration);
-        // Наш UI подписан на событие и запускает «пирог» (fillAmount 1→0).
         loadout.StartCooldownNow();
 
-        // Если заряды закончились (и они конечные) — можно переключиться на следующий доступный слот.
-        // В твоей логике автопереключение после выстрела допустимо; во время КД — нет.
         if (!slot.def.infiniteCharges && slot.charges <= 0)
             loadout.SwitchToNextAvailable();
 
-        // --- 5) Визуал броска и очистка «зарядных» индикаторов ---
-        // Показать кадр броска (sprite) на теле персонажа и вернуть потом к idle.
+        // --- 5) Визуал и сброс ---
         PlayThrowThenIdle();
-
-        // Сбрасываем только количество «зарядных» точек (иконки),
-        // НЕ выключая анимацию кулдауна — она продолжит крутиться на «Cooldown»-слоях.
         if (chargeUI) chargeUI.SetCount(0);
-
-        // Сообщаем FX-системе, что заряд завершён (например, отключить свечение «накопления»).
         if (chargeFX) chargeFX.Release();
 
-        // Обнуляем локальные счётчики заряда, чтобы следующий замах начинался с 1-й точки.
         _currentDots = 0;
         _chargeElapsed = 0f;
     }
+
 
     void PlayThrowThenIdle()
     {

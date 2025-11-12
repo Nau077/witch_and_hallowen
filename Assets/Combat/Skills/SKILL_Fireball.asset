@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SKILL_Fireball
   m_EditorClassIdentifier: Assembly-CSharp::SkillDefinition
   displayName: Fireball
-  icon: {fileID: 0}
+  icon: {fileID: -33682183, guid: 0f490d568767fa044b52e7c6cc5ead8b, type: 3}
   element: 0
   projectilePrefab: {fileID: 1307152648960653708, guid: 9208ec402c3e7074cb98db0980c096a5, type: 3}
   damage: 10

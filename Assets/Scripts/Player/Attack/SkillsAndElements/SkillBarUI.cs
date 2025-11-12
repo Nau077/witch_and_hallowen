@@ -1,5 +1,4 @@
-﻿// SkillBarUI.cs
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
@@ -8,9 +7,13 @@ public class SkillBarUI : MonoBehaviour
     [System.Serializable]
     public class SlotUI
     {
-        public Image icon;
-        public Image cooldown;
-        public TMP_Text countText;
+        public Button button;          // <- повесь сюда Button на корневой объект слота
+        public Image icon;             // иконка навыка
+        public Image cooldown;         // радиальная заливка
+        public TMP_Text countText;     // "∞" или число
+        public Image selectedFrame;    // рамка/подсветка активного
+
+        [Header("Cooldown Visual")]
         [Range(0f, 1f)] public float startAlpha = 0.65f;
         [Range(0f, 1f)] public float endAlpha = 0f;
         public Image.Origin360 origin = Image.Origin360.Top;
@@ -18,12 +21,21 @@ public class SkillBarUI : MonoBehaviour
 
     public SkillLoadout loadout;
     public SlotUI[] slotsUI = new SlotUI[SkillLoadout.SlotsCount];
+
+    [Header("Colors")]
     public Color activeColor = Color.white;
     public Color inactiveColor = new Color(1, 1, 1, 0.5f);
 
     void Awake()
     {
         SetupCooldownImages();
+        WireButtons();
+    }
+
+    void OnEnable()
+    {
+        // на всякий — подтянуть валидный актив
+        if (loadout) loadout.EnsureValidActive();
     }
 
     void Update()
@@ -34,19 +46,25 @@ public class SkillBarUI : MonoBehaviour
         {
             var sUI = slotsUI[i];
             var s = loadout.slots[i];
+            bool isUsable = (s?.def != null);
             bool isActive = (i == loadout.ActiveIndex);
 
             // icon
             if (sUI.icon)
             {
-                sUI.icon.sprite = s?.def ? s.def.icon : null;
-                sUI.icon.color = isActive ? activeColor : inactiveColor;
+                sUI.icon.sprite = isUsable ? s.def.icon : null;
+                sUI.icon.color = (isUsable && isActive) ? activeColor :
+                                 (isUsable ? inactiveColor : new Color(1, 1, 1, 0.2f));
             }
 
-            // charges text
+            // selected frame
+            if (sUI.selectedFrame)
+                sUI.selectedFrame.enabled = isActive && isUsable;
+
+            // text
             if (sUI.countText)
             {
-                if (s?.def == null) sUI.countText.text = "";
+                if (!isUsable) sUI.countText.text = "";
                 else if (s.def.infiniteCharges) sUI.countText.text = "∞";
                 else sUI.countText.text = s.charges.ToString();
             }
@@ -54,7 +72,7 @@ public class SkillBarUI : MonoBehaviour
             // cooldown
             if (sUI.cooldown)
             {
-                if (s == null || s.def == null || !s.IsOnCooldown)
+                if (!isUsable || !s.IsOnCooldown)
                 {
                     sUI.cooldown.enabled = false;
                 }
@@ -69,6 +87,9 @@ public class SkillBarUI : MonoBehaviour
                     sUI.cooldown.color = c;
                 }
             }
+
+            // кнопка должна быть кликабельной только если там есть навык
+            if (sUI.button) sUI.button.interactable = isUsable;
         }
     }
 
@@ -86,5 +107,27 @@ public class SkillBarUI : MonoBehaviour
             img.fillAmount = 0f;
             var c = img.color; c.a = 0f; img.color = c;
         }
+    }
+
+    void WireButtons()
+    {
+        for (int i = 0; i < slotsUI.Length; i++)
+        {
+            int captured = i;
+            var sUI = slotsUI[i];
+            if (sUI != null && sUI.button != null)
+            {
+                sUI.button.onClick.RemoveAllListeners();
+                sUI.button.onClick.AddListener(() => OnSlotClicked(captured));
+            }
+        }
+    }
+
+    void OnSlotClicked(int index)
+    {
+        if (!loadout) return;
+        // если на слоте реально есть скилл — активируем его
+        // (активный индекс поставим напрямую и проверим валидность)
+        loadout.SetActiveIndex(index);
     }
 }

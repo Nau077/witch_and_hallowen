@@ -1,4 +1,4 @@
-using UnityEngine;
+п»їusing UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
@@ -6,22 +6,18 @@ using TMPro;
 public class HealthBarUI : MonoBehaviour
 {
     [Header("Refs")]
-    public PlayerHealth health;          // перетащи Player
-    public Image fill;                   // красный внутренний Image
-    public TextMeshProUGUI text;         // HealthText справа
+    public PlayerHealth health;          // РїРµСЂРµС‚Р°С‰Рё Player
+    public Image fill;                   // РєСЂР°СЃРЅС‹Р№ РІРЅСѓС‚СЂРµРЅРЅРёР№ Image
+    public TextMeshProUGUI text;         // HealthText СЃРїСЂР°РІР° (РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ)
 
     [Header("Blink")]
-    [Tooltip("При каком проценте здоровья начинать мигание (0.3 = 30%)")]
+    [Tooltip("РџСЂРё РєР°РєРѕРј РїСЂРѕС†РµРЅС‚Рµ Р·РґРѕСЂРѕРІСЊСЏ РЅР°С‡РёРЅР°С‚СЊ РјРёРіР°РЅРёРµ (0.3 = 30%)")]
     [Range(0f, 1f)] public float lowHealthThreshold = 0.30f;
     public float lowBlinkSpeed = 8f;
-    public Color lowHealthColor = new Color(1f, 0.4f, 0.4f); // мягко-красный
-
-    [Header("Blink Intensity")]
-    [Range(0f, 1f)] public float lowBlinkAlphaMin = 0.2f;
-    [Range(0f, 1f)] public float lowBlinkAlphaMax = 1f;
+    public Color lowHealthColor = new Color(1f, 0.4f, 0.4f); // Р±РѕР»РµРµ СЏСЂРєРёР№ РєСЂР°СЃРЅС‹Р№
 
     [Header("Scale Pulse")]
-    [Tooltip("Насколько сильно СЖИМАТЬ полоску при низком здоровье.")]
+    [Tooltip("РќР°СЃРєРѕР»СЊРєРѕ СЃРёР»СЊРЅРѕ РЎР–РРњРђРўР¬ РїРѕР»РѕСЃРєСѓ РїСЂРё РЅРёР·РєРѕРј Р·РґРѕСЂРѕРІСЊРµ.")]
     [Range(0f, 0.5f)] public float scaleAmplitude = 0.15f;
 
     private Color _fillBaseColor;
@@ -47,40 +43,38 @@ public class HealthBarUI : MonoBehaviour
     {
         if (health == null || fill == null) return;
 
-        // режим заливки
+        // СЂРµР¶РёРј Р·Р°Р»РёРІРєРё
         if (fill.type != Image.Type.Filled) fill.type = Image.Type.Filled;
         if (fill.fillMethod != Image.FillMethod.Horizontal) fill.fillMethod = Image.FillMethod.Horizontal;
 
         float normalized = health.Normalized;
         fill.fillAmount = normalized;
 
+        // С†РёС„СЂС‹ 35/50
         if (text != null)
         {
             text.text = $"{health.currentHealth}/{health.maxHealth}";
         }
 
-        // Низкое здоровье?
         bool isLow = normalized <= lowHealthThreshold && health.currentHealth > 0;
 
         if (isLow)
         {
+            // 0..1..0..1..0
             float pulse = (Mathf.Sin(Time.time * lowBlinkSpeed) + 1f) * 0.5f;
 
-            float alpha = Mathf.Lerp(lowBlinkAlphaMin, lowBlinkAlphaMax, pulse);
-
-            Color c = lowHealthColor;
-            c.a = alpha;
+            // С†РІРµС‚ РјРёРіР°РµС‚ РјРµР¶РґСѓ РѕР±С‹С‡РЅС‹Рј Рё В«С‚СЂРµРІРѕР¶РЅС‹РјВ» РєСЂР°СЃРЅС‹Рј, РќРћ Р±РµР· РёР·РјРµРЅРµРЅРёСЏ Р°Р»СЊС„С‹
+            Color c = Color.Lerp(_fillBaseColor, lowHealthColor, pulse);
             fill.color = c;
 
             if (text != null)
             {
-                Color tc = lowHealthColor;
-                tc.a = Mathf.Lerp(lowBlinkAlphaMin, 1f, pulse);
+                Color tc = Color.Lerp(_textBaseColor, lowHealthColor, pulse);
                 text.color = tc;
             }
 
-            // СЖИМАЕМ симметрично, не больше базового размера
-            float scaleFactor = 1f - pulse * scaleAmplitude;
+            // РїРѕР»РѕСЃРєР° РЎР–РРњРђР•РўРЎРЇ, РЅРѕ РЅРµ СЃС‚Р°РЅРѕРІРёС‚СЃСЏ Р±РѕР»СЊС€Рµ РёСЃС…РѕРґРЅРѕРіРѕ СЂР°Р·РјРµСЂР°
+            float scaleFactor = 1f - pulse * scaleAmplitude; // 1 в†’ (1 - amp)
             transform.localScale = _baseScale * scaleFactor;
         }
         else

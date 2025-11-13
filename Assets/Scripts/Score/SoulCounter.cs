@@ -30,6 +30,12 @@ public class SoulCounter : MonoBehaviour
     private int snapshotKills = 0;
     private int snapshotGold = 0;
 
+    [Header("Audio")]
+    public AudioSource audioSource;
+
+    public AudioClip killSfx;   // звук убийства
+    public AudioClip goldSfx;   // звон монет
+
     private void Awake()
     {
         // Singleton
@@ -72,6 +78,10 @@ public class SoulCounter : MonoBehaviour
 
         PlayerPrefs.Save();
         UpdateUI(updateKills: true, updateGold: true);
+
+        // --- AUDIO ---
+        PlayKillSound();
+        if (addGold > 0) PlayGoldSound();
 
         // ---- ПОПАПЫ ----
         Vector3 pos = enemy ? enemy.transform.position : Vector3.zero;
@@ -156,4 +166,16 @@ public class SoulCounter : MonoBehaviour
     // Геттеры
     public int Kills => killsLifetime;
     public int RunGold => cursedGoldRun;
+
+    private void PlayKillSound()
+    {
+        if (audioSource && killSfx)
+            audioSource.PlayOneShot(killSfx, 1f);
+    }
+
+    private void PlayGoldSound()
+    {
+        if (audioSource && goldSfx)
+            audioSource.PlayOneShot(goldSfx, 1f);
+    }
 }

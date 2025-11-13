@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.EventSystems;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerSkillShooter : MonoBehaviour
@@ -138,10 +139,34 @@ public class PlayerSkillShooter : MonoBehaviour
             if (bodyRenderer.sprite != windupSprite) bodyRenderer.sprite = windupSprite;
     }
 
+    private bool _skipNextClickFromUI;   // <- НОВОЕ
+
+    public void SkipNextClickFromUI()    // <- НОВОЕ
+    {
+        _skipNextClickFromUI = true;
+    }
+
     void HandleInput()
     {
-        if (Input.GetMouseButtonDown(0)) StartCharging();
-        if (Input.GetMouseButtonUp(0)) ReleaseIfCharging();
+        // НАЖАТИЕ ЛКМ
+        if (Input.GetMouseButtonDown(0))
+        {
+            // если UI уже сказал "этот клик мой" — просто съедаем его
+            if (_skipNextClickFromUI)
+            {
+                _skipNextClickFromUI = false; // сбросили флаг и ничего не делаем
+            }
+            else
+            {
+                StartCharging();
+            }
+        }
+
+        // ОТПУСКАНИЕ ЛКМ — как раньше, всегда отпускаем замах
+        if (Input.GetMouseButtonUp(0))
+        {
+            ReleaseIfCharging();
+        }
     }
 
     void HandleWheel()
@@ -427,5 +452,11 @@ public class PlayerSkillShooter : MonoBehaviour
         throwFlashRenderer.color = Color.white;
         throwFlashRenderer.enabled = false;
         throwFlashRenderer.transform.localPosition = new Vector3(0f, 0f, -0.01f);
+    }
+
+    bool IsPointerOverUI()
+    {
+        var es = EventSystem.current;
+        return es != null && es.IsPointerOverGameObject();
     }
 }

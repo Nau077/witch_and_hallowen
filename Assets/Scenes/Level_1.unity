@@ -490,7 +490,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 852.94, y: -255}
+  m_AnchoredPosition: {x: 875, y: -250}
   m_SizeDelta: {x: 0, y: 45.2}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &40252238
@@ -2890,7 +2890,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 281, y: -285}
+  m_AnchoredPosition: {x: 303.06, y: -280}
   m_SizeDelta: {x: 193.24, y: 33}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &743115436
@@ -4384,7 +4384,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 437, y: 63.1}
+  m_AnchoredPosition: {x: 431.3, y: 74.46802}
   m_SizeDelta: {x: 200, y: 16}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1253432783 stripped
@@ -5281,6 +5281,7 @@ GameObject:
   - component: {fileID: 1931342540}
   - component: {fileID: 1931342542}
   - component: {fileID: 1931342543}
+  - component: {fileID: 1931342544}
   m_Layer: 5
   m_Name: SkillBar
   m_TagString: Untagged
@@ -5309,7 +5310,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 25.6, y: -266.95}
+  m_AnchoredPosition: {x: 38, y: -261.95}
   m_SizeDelta: {x: 317.56, y: -545.17}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1931342540
@@ -5388,6 +5389,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 632718e147ee67a4884b90052c119d09, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkillBarUI
+  shooter: {fileID: 201944547}
   loadout: {fileID: 201944546}
   slotsUI:
   - button: {fileID: 893962622}
@@ -5432,6 +5434,18 @@ MonoBehaviour:
     origin: 2
   activeColor: {r: 1, g: 1, b: 1, a: 1}
   inactiveColor: {r: 1, g: 1, b: 1, a: 0.5}
+--- !u!114 &1931342544
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1931342538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e451e4cedec6ae741809760fe41747f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TestButtonLogger
 --- !u!1 &1945590204
 GameObject:
   m_ObjectHideFlags: 0
@@ -5467,7 +5481,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 436.7, y: 30.632}
+  m_AnchoredPosition: {x: 431, y: 42}
   m_SizeDelta: {x: 200, y: 16}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1945590206
@@ -5962,6 +5976,7 @@ GameObject:
   - component: {fileID: 2143260456}
   - component: {fileID: 2143260455}
   - component: {fileID: 2143260454}
+  - component: {fileID: 2143260459}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -6072,6 +6087,37 @@ RectTransform:
   m_AnchoredPosition: {x: -0.077, y: -1.067}
   m_SizeDelta: {x: 1178.3625, y: 614.2632}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &2143260459
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2143260453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01614664b831546d2ae94a42149d80ac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.UI.InputSystemUIInputModule
+  m_SendPointerHoverToParent: 1
+  m_MoveRepeatDelay: 0.5
+  m_MoveRepeatRate: 0.1
+  m_XRTrackingOrigin: {fileID: 0}
+  m_ActionsAsset: {fileID: -944628639613478452, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_PointAction: {fileID: -1654692200621890270, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_MoveAction: {fileID: -8784545083839296357, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_SubmitAction: {fileID: 392368643174621059, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_CancelAction: {fileID: 7727032971491509709, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_LeftClickAction: {fileID: 3001919216989983466, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_MiddleClickAction: {fileID: -2185481485913320682, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_RightClickAction: {fileID: -4090225696740746782, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_ScrollWheelAction: {fileID: 6240969308177333660, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_TrackedDevicePositionAction: {fileID: 6564999863303420839, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_TrackedDeviceOrientationAction: {fileID: 7970375526676320489, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_DeselectOnBackgroundClick: 1
+  m_PointerBehavior: 0
+  m_CursorLockBehavior: 0
+  m_ScrollDeltaPerTick: 6
 --- !u!1001 &4302400940307576391
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6271,6 +6317,34 @@ PrefabInstance:
     - target: {fileID: 3350498717946441674, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}
       propertyPath: m_IsActive
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3593985162733531193, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3593985162733531193, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Mode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3593985162733531193, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 1931342544}
+    - target: {fileID: 3593985162733531193, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3593985162733531193, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: LogClick
+      objectReference: {fileID: 0}
+    - target: {fileID: 3593985162733531193, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: TestButtonLogger, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 3593985162733531193, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
       objectReference: {fileID: 0}
     - target: {fileID: 4123742268159405139, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}
       propertyPath: m_Sprite

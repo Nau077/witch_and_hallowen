@@ -18,7 +18,7 @@ public class SkillBarUI : MonoBehaviour
         [Range(0f, 1f)] public float endAlpha = 0f;
         public Image.Origin360 origin = Image.Origin360.Top;
     }
-
+    public PlayerSkillShooter shooter;
     public SkillLoadout loadout;
     public SlotUI[] slotsUI = new SlotUI[SkillLoadout.SlotsCount];
 
@@ -28,6 +28,9 @@ public class SkillBarUI : MonoBehaviour
 
     void Awake()
     {
+        if (!shooter)
+            shooter = FindObjectOfType<PlayerSkillShooter>();
+
         SetupCooldownImages();
         WireButtons();
     }
@@ -126,8 +129,12 @@ public class SkillBarUI : MonoBehaviour
     void OnSlotClicked(int index)
     {
         if (!loadout) return;
-        // если на слоте реально есть скилл — активируем его
-        // (активный индекс поставим напрямую и проверим валидность)
+
+        // 1) переключаем активный слот
         loadout.SetActiveIndex(index);
+
+        // 2) говорим шутеру: этот клик был по UI, замах не начинать
+        if (shooter != null)
+            shooter.SkipNextClickFromUI();
     }
 }

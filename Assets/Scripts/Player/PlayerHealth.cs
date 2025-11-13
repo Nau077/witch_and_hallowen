@@ -29,6 +29,9 @@ public class PlayerHealth : MonoBehaviour
     public bool IsDead => isDead;
     public int CurrentHealth => currentHealth;
 
+    // НОВОЕ: процент хп для UI
+    public float Normalized => maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -87,14 +90,11 @@ public class PlayerHealth : MonoBehaviour
 
     private void ApplyDeathVisual()
     {
-        // 1) Полностью останавливаем аниматор и фиксируем позу.
         if (anim) { anim.enabled = false; anim.Update(0f); }
 
-        // 2) Спрайт смерти.
         if (deadSprite != null && sr != null)
             sr.sprite = deadSprite;
 
-        // 3) Физика стоп.
         if (rb != null)
         {
             rb.linearVelocity = Vector2.zero;
@@ -102,12 +102,10 @@ public class PlayerHealth : MonoBehaviour
             rb.bodyType = RigidbodyType2D.Kinematic;
         }
 
-        // 4) Отключаем управление, чтобы ничего больше не трогало визуал.
         if (disableMovementOnDeath && movement != null)
             movement.enabled = false;
 
-        // 5) Жёстко гасим замах/стрельбу, НЕ разрешая стрелку включать Animator.
-        var shooter = GetComponent<PlayerSkillShooter>(); // <-- НОВЫЙ КЛАСС
+        var shooter = GetComponent<PlayerSkillShooter>();
         if (shooter != null)
         {
             shooter.CancelAllImmediate(keepAnimatorDisabled: true);

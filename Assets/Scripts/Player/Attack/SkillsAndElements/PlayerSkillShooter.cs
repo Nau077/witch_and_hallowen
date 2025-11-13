@@ -38,7 +38,7 @@ public class PlayerSkillShooter : MonoBehaviour
 
     [Header("Mana")]
     public PlayerMana playerMana; // ссылка на компонент PlayerMana (автоматически ищем, если не задан)
-
+    public ManaBarUI manaBarUI;
     [Header("Enemy Zone")]
     public SpriteRenderer enemyZone;
     public float zoneTopPadding = 0.05f;
@@ -188,13 +188,22 @@ public class PlayerSkillShooter : MonoBehaviour
         // НИЧЕГО в UI не меняем (точки не загораются).
         if (!loadout) return;
         var s = loadout.Active;
-        if (s == null || s.def == null) return;          // нет скилла — не начинаем
-        if (!loadout.IsActiveReadyToUse()) return;       // КД или нет зарядов — ждём
-                                                         // --- НОВОЕ: проверка по мане ---
-                                                         // берём стоимость маны из активного скилла
+        if (s == null || s.def == null) return;
+        if (!loadout.IsActiveReadyToUse()) return;
+
+        // --- НОВОЕ: читаем стоимость маны и сообщаем её полоске ---
         int manaCost = s.def.manaCostPerShot;
+        if (manaBarUI != null)
+            manaBarUI.minCastCost = manaCost;
+
+        // Проверка по мане
         if (playerMana && manaCost > 0 && !playerMana.CanSpend(manaCost))
-            return; // не хватает — просто ничего не происходит (точки не загораются)
+        {
+            if (manaBarUI != null)
+                manaBarUI.FlashNoMana();   // короткая красная вспышка
+            return;                        // замах не начинаем
+        }
+
 
         // Готово — начинаем заряд
         _isCharging = true;

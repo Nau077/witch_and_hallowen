@@ -151,18 +151,19 @@ public class PlayerSkillShooter : MonoBehaviour
         // НАЖАТИЕ ЛКМ
         if (Input.GetMouseButtonDown(0))
         {
-            // если UI уже сказал "этот клик мой" — просто съедаем его
             if (_skipNextClickFromUI)
             {
-                _skipNextClickFromUI = false; // сбросили флаг и ничего не делаем
+                // этот клик принадлежал UI (клик по слоту) — просто съедаем его
+                _skipNextClickFromUI = false;
             }
             else
             {
+                // обычный клик по миру — начинаем замах
                 StartCharging();
             }
         }
 
-        // ОТПУСКАНИЕ ЛКМ — как раньше, всегда отпускаем замах
+        // ОТПУСКАНИЕ ЛКМ: всегда отпускаем замах
         if (Input.GetMouseButtonUp(0))
         {
             ReleaseIfCharging();
@@ -454,9 +455,4 @@ public class PlayerSkillShooter : MonoBehaviour
         throwFlashRenderer.transform.localPosition = new Vector3(0f, 0f, -0.01f);
     }
 
-    bool IsPointerOverUI()
-    {
-        var es = EventSystem.current;
-        return es != null && es.IsPointerOverGameObject();
-    }
 }

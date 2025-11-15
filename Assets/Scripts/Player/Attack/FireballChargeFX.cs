@@ -1,96 +1,118 @@
 ﻿using System.Collections;
 using UnityEngine;
-// Если используешь URP 2D Light, раскомментируй:
-// using UnityEngine.Rendering.Universal;
 
 public class FireballChargeFX : MonoBehaviour
 {
-    [Header("Refs")]
-    [Tooltip("Корень визуала ауры (объект FireAura). Будет включаться/выключаться.")]
+    [Header("Auras")]
+    [Tooltip("Огненная аура – используется для обычных скиллов.")]
     public GameObject fireAuraRoot;
 
-    [Tooltip("Если не заполнено — найдём все SpriteRenderer-ы под fireAuraRoot.")]
-    public SpriteRenderer[] auraRenderers;
+    [Tooltip("Ледяная аура – используется только для IceShard.")]
+    public GameObject iceAuraRoot;
 
-    // [Tooltip("Опционально: 2D-света для ауры")]
-    // public Light2D[] auraLights;
+    [SerializeField] private SpriteRenderer[] fireRenderers;
+    [SerializeField] private SpriteRenderer[] iceRenderers;
 
     [Header("Fade")]
-    [Tooltip("Максимальная непрозрачность ауры на полном заряде")]
+    [Tooltip("Максимальная непрозрачность ауры на полном заряде.")]
     public float maxAlpha = 1f;
 
-    [Tooltip("Сколько секунд длится «быстрое» включение/выключение")]
+    [Tooltip("Сколько секунд длится плавное появление/исчезновение.")]
     public float fadeDuration = 0.2f;
 
-    [Tooltip("Выключать ли объект fireAuraRoot, когда альфа = 0")]
+    [Tooltip("Выключать ли объект ауры, когда альфа = 0.")]
     public bool deactivateWhenHidden = true;
 
-    Coroutine fadeRoutine;
-    float currentAlpha = 0f;
+    private Coroutine fadeRoutine;
+    private float currentAlpha = 0f;
+
+    private enum AuraType { None, Fire, Ice }
+    private AuraType activeAura = AuraType.None;
 
     void Awake()
     {
-        if (fireAuraRoot != null && (auraRenderers == null || auraRenderers.Length == 0))
-            auraRenderers = fireAuraRoot.GetComponentsInChildren<SpriteRenderer>(true);
+        if (fireAuraRoot && (fireRenderers == null || fireRenderers.Length == 0))
+            fireRenderers = fireAuraRoot.GetComponentsInChildren<SpriteRenderer>(true);
 
-        // if (fireAuraRoot != null && (auraLights == null || auraLights.Length == 0))
-        //     auraLights = fireAuraRoot.GetComponentsInChildren<Light2D>(true);
+        if (iceAuraRoot && (iceRenderers == null || iceRenderers.Length == 0))
+            iceRenderers = iceAuraRoot.GetComponentsInChildren<SpriteRenderer>(true);
 
-        SetAlphaImmediate(0f);
-        if (deactivateWhenHidden && fireAuraRoot != null)
-            fireAuraRoot.SetActive(false);
+        SetAllAurasAlphaImmediate(0f);
+
+        if (deactivateWhenHidden)
+        {
+            if (fireAuraRoot) fireAuraRoot.SetActive(false);
+            if (iceAuraRoot) iceAuraRoot.SetActive(false);
+        }
     }
 
-    // ---- API, которое уже вызывает PlayerFireballShooter ----
+    // ===== API, вызываемое PlayerSkillShooter =====
 
-    /// <summary>Начали заряд — мягко включаем ауру с альфы 0.</summary>
-    public void BeginCharge()
+    /// <summary>
+    /// Начинаем заряд – отображаем нужную ауру.
+    /// </summary>
+    public void BeginCharge(bool useIceAura)
     {
-        if (fireAuraRoot != null && deactivateWhenHidden)
-            fireAuraRoot.SetActive(true);
+        activeAura = useIceAura ? AuraType.Ice : AuraType.Fire;
 
-        // быстрый старт до небольшой видимости
-        StartFadeTo(0.001f, 0.05f);
+        if (activeAura == AuraType.Fire)
+        {
+            if (fireAuraRoot && deactivateWhenHidden) fireAuraRoot.SetActive(true);
+            if (iceAuraRoot && deactivateWhenHidden) iceAuraRoot.SetActive(false);
+        }
+        else
+        {
+            if (iceAuraRoot && deactivateWhenHidden) iceAuraRoot.SetActive(true);
+            if (fireAuraRoot && deactivateWhenHidden) fireAuraRoot.SetActive(false);
+        }
+
+        StartFadeTo(0.001f, 0.05f); // лёгкое появление
     }
 
-    /// <summary>Плавное обновление яркости: t = 0..1 (от первой точки до максимума).</summary>
+    /// <summary>
+    /// Обновление яркости заряда (t = 0..1).
+    /// </summary>
     public void UpdateCharge(float t)
     {
         float target = Mathf.Clamp01(t) * maxAlpha;
-        // двигаем альфу «напрямую», без дерганий
         SetAlphaImmediate(target);
     }
 
-    /// <summary>Выстрел: можно дать короткий флаш и потушить.</summary>
+    /// <summary>
+    /// Выстрел – вспышка и исчезновение.
+    /// </summary>
     public void Release()
     {
-        // небольшой флэш (опционально)
         StartCoroutine(FlashThenFadeOut());
     }
 
-    /// <summary>Отмена: просто потушить.</summary>
+    /// <summary>
+    /// Отмена замаха.
+    /// </summary>
     public void Cancel()
     {
-        StartFadeTo(0f, fadeDuration, () =>
-        {
-            if (fireAuraRoot != null && deactivateWhenHidden)
-                fireAuraRoot.SetActive(false);
-        });
+        FadeOutAll();
     }
 
-    // ---- внутренние штуки ----
+    // ===== внутреннее =====
 
     IEnumerator FlashThenFadeOut()
     {
-        // вспышка до maxAlpha на короткое время
         SetAlphaImmediate(maxAlpha);
         yield return new WaitForSeconds(0.05f);
+        FadeOutAll();
+    }
 
-        // мягко погасить
+    void FadeOutAll()
+    {
         StartFadeTo(0f, fadeDuration, () =>
         {
-            if (fireAuraRoot != null && deactivateWhenHidden)
-                fireAuraRoot.SetActive(false);
+            if (deactivateWhenHidden)
+            {
+                if (fireAuraRoot) fireAuraRoot.SetActive(false);
+                if (iceAuraRoot) iceAuraRoot.SetActive(false);
+            }
+            activeAura = AuraType.None;
         });
     }
 
@@ -104,6 +126,7 @@ public class FireballChargeFX : MonoBehaviour
     {
         float start = currentAlpha;
         float t = 0f;
+
         while (t < duration)
         {
             t += Time.deltaTime;
@@ -111,6 +134,7 @@ public class FireballChargeFX : MonoBehaviour
             SetAlphaImmediate(a);
             yield return null;
         }
+
         SetAlphaImmediate(target);
         fadeRoutine = null;
         onComplete?.Invoke();
@@ -120,25 +144,28 @@ public class FireballChargeFX : MonoBehaviour
     {
         currentAlpha = a;
 
-        if (auraRenderers != null)
-        {
-            for (int i = 0; i < auraRenderers.Length; i++)
-            {
-                if (!auraRenderers[i]) continue;
-                var c = auraRenderers[i].color;
-                c.a = a;
-                auraRenderers[i].color = c;
-            }
-        }
+        if (activeAura == AuraType.Fire)
+            SetAlphaOn(fireRenderers, a);
+        else if (activeAura == AuraType.Ice)
+            SetAlphaOn(iceRenderers, a);
+    }
 
-        // Если используешь 2D Light:
-        // if (auraLights != null)
-        // {
-        //     for (int i = 0; i < auraLights.Length; i++)
-        //     {
-        //         if (!auraLights[i]) continue;
-        //         auraLights[i].intensity = a; // или a * maxIntensity
-        //     }
-        // }
+    void SetAllAurasAlphaImmediate(float a)
+    {
+        SetAlphaOn(fireRenderers, a);
+        SetAlphaOn(iceRenderers, a);
+    }
+
+    void SetAlphaOn(SpriteRenderer[] arr, float a)
+    {
+        if (arr == null) return;
+
+        for (int i = 0; i < arr.Length; i++)
+        {
+            if (!arr[i]) continue;
+            var c = arr[i].color;
+            c.a = a;
+            arr[i].color = c;
+        }
     }
 }

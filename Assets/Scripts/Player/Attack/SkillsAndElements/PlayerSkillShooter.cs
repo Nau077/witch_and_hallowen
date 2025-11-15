@@ -8,7 +8,7 @@ public class PlayerSkillShooter : MonoBehaviour
     [Header("Refs")]
     public Transform firePoint;
     public SkillLoadout loadout;       // 5 слотов скиллов
-    public FireballChargeFX chargeFX;  // опционально
+    public FireballChargeFX chargeFX;  // визуал ауры заряда
     public ChargeDotsUI chargeUI;      // визуал «точек»
 
     [Header("Sprites / Animator Targets")]
@@ -37,8 +37,9 @@ public class PlayerSkillShooter : MonoBehaviour
     public bool useFacingForHorizontal = false;
 
     [Header("Mana")]
-    public PlayerMana playerMana; // ссылка на компонент PlayerMana (автоматически ищем, если не задан)
+    public PlayerMana playerMana;
     public ManaBarUI manaBarUI;
+
     [Header("Enemy Zone")]
     public SpriteRenderer enemyZone;
     public float zoneTopPadding = 0.05f;
@@ -66,7 +67,7 @@ public class PlayerSkillShooter : MonoBehaviour
     {
         _rb = GetComponent<Rigidbody2D>();
         _movement = GetComponent<PlayerMovement>();
-        // НОВОЕ: подхватить loadout автоматически, если не назначен в инспекторе
+
         if (!loadout)
             loadout = GetComponent<SkillLoadout>();
         if (!loadout)
@@ -139,31 +140,27 @@ public class PlayerSkillShooter : MonoBehaviour
             if (bodyRenderer.sprite != windupSprite) bodyRenderer.sprite = windupSprite;
     }
 
-    private bool _skipNextClickFromUI;   // <- НОВОЕ
+    private bool _skipNextClickFromUI;
 
-    public void SkipNextClickFromUI()    // <- НОВОЕ
+    public void SkipNextClickFromUI()
     {
         _skipNextClickFromUI = true;
     }
 
     void HandleInput()
     {
-        // НАЖАТИЕ ЛКМ
         if (Input.GetMouseButtonDown(0))
         {
             if (_skipNextClickFromUI)
             {
-                // этот клик принадлежал UI (клик по слоту) — просто съедаем его
                 _skipNextClickFromUI = false;
             }
             else
             {
-                // обычный клик по миру — начинаем замах
                 StartCharging();
             }
         }
 
-        // ОТПУСКАНИЕ ЛКМ: всегда отпускаем замах
         if (Input.GetMouseButtonUp(0))
         {
             ReleaseIfCharging();
@@ -184,28 +181,22 @@ public class PlayerSkillShooter : MonoBehaviour
 
     void StartCharging()
     {
-        // Должен быть задан и готов активный слот — иначе сразу выходим,
-        // НИЧЕГО в UI не меняем (точки не загораются).
         if (!loadout) return;
         var s = loadout.Active;
         if (s == null || s.def == null) return;
         if (!loadout.IsActiveReadyToUse()) return;
 
-        // --- НОВОЕ: читаем стоимость маны и сообщаем её полоске ---
         int manaCost = s.def.manaCostPerShot;
         if (manaBarUI != null)
             manaBarUI.minCastCost = manaCost;
 
-        // Проверка по мане
         if (playerMana && manaCost > 0 && !playerMana.CanSpend(manaCost))
         {
             if (manaBarUI != null)
-                manaBarUI.FlashNoMana();   // короткая красная вспышка
-            return;                        // замах не начинаем
+                manaBarUI.FlashNoMana();
+            return;
         }
 
-
-        // Готово — начинаем заряд
         _isCharging = true;
         _currentDots = 1;
         _chargeElapsed = 0f;
@@ -216,7 +207,13 @@ public class PlayerSkillShooter : MonoBehaviour
         if (bodyRenderer && windupSprite) bodyRenderer.sprite = windupSprite;
 
         if (_rb) _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
-        if (chargeFX) chargeFX.BeginCharge();
+
+        // определяем, ледяной ли это скилл
+        bool isIceSkill =
+            s.def.projectilePrefab != null &&
+            s.def.projectilePrefab.GetComponent<PlayerIceShard>() != null;
+
+        if (chargeFX) chargeFX.BeginCharge(isIceSkill);
 
         if (_movement && firePoint)
         {
@@ -255,25 +252,15 @@ public class PlayerSkillShooter : MonoBehaviour
         if (_isCharging) ReleaseThrow();
     }
 
-    /// <summary>
-    /// Завершает процесс «замаха» и выполняет бросок:
-    /// 1) прекращаем набор зарядных точек,
-    /// 2) инстанциируем снаряд и настраиваем ему направление/дистанцию,
-    /// 3) списываем заряд (если нужно) и запускаем КД,
-    /// 4) проигрываем кадр броска и приводим UI/FX в порядок.
-    /// </summary>
     void ReleaseThrow()
     {
-        // --- 1) Останавливаем режим заряда ---
         _isCharging = false;
 
         if (_chargeRoutine != null)
             StopCoroutine(_chargeRoutine);
 
-        // Берём активный слот навыка из загрузки (SkillLoadout)
         var slot = loadout.Active;
 
-        // Безопасные проверки
         if (slot == null || slot.def == null)
         {
             CancelCharge(true);
@@ -286,19 +273,16 @@ public class PlayerSkillShooter : MonoBehaviour
             return;
         }
 
-        // --- 2) Проверка и списание маны ---
         int manaCost = slot.def.manaCostPerShot;
         if (playerMana && manaCost > 0)
         {
             if (!playerMana.TrySpend(manaCost))
             {
-                // если не хватило (например, между замахом и броском), отменяем атаку
                 CancelCharge(true);
                 return;
             }
         }
 
-        // --- 3) Подсчёт силы броска и создание снаряда ---
         int dots = Mathf.Clamp(_currentDots, 1, Mathf.Max(1, maxDots));
         float distance = ComputeDistance(dots, out float ignoreFirstMeters);
 
@@ -331,14 +315,12 @@ public class PlayerSkillShooter : MonoBehaviour
             }
         }
 
-        // --- 4) Учёт зарядов и кулдаун ---
         loadout.TrySpendOneCharge();
         loadout.StartCooldownNow();
 
         if (!slot.def.infiniteCharges && slot.charges <= 0)
             loadout.SwitchToNextAvailable();
 
-        // --- 5) Визуал и сброс ---
         PlayThrowThenIdle();
         if (chargeUI) chargeUI.SetCount(0);
         if (chargeFX) chargeFX.Release();
@@ -346,7 +328,6 @@ public class PlayerSkillShooter : MonoBehaviour
         _currentDots = 0;
         _chargeElapsed = 0f;
     }
-
 
     void PlayThrowThenIdle()
     {
@@ -463,5 +444,4 @@ public class PlayerSkillShooter : MonoBehaviour
         throwFlashRenderer.enabled = false;
         throwFlashRenderer.transform.localPosition = new Vector3(0f, 0f, -0.01f);
     }
-
 }

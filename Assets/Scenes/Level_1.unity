@@ -1327,7 +1327,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5af605956686564c88d3085efaf919d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
-  maxHealth: 100
+  maxHealth: 300
   currentHealth: 0
   barFill: {fileID: 725129547}
   sr: {fileID: 1792579273}
@@ -1953,7 +1953,7 @@ Camera:
   far clip plane: 1000
   field of view: 34
   orthographic: 1
-  orthographic size: 8.461624
+  orthographic size: 7.5335155
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -3903,13 +3903,13 @@ MonoBehaviour:
   fillerLeft: {fileID: 0}
   fillerRight: {fileID: 0}
   fillerTop: {fileID: 0}
-  cameraSizeWU: {x: 30.085775, y: 16.923248}
-  leftGapWU: 4.9627876
-  rightGapWU: 5.1229877
-  topGapWU: 3.5939682
-  leftGapPX: 496
-  rightGapPX: 512
-  topGapPX: 359
+  cameraSizeWU: {x: 33.74293, y: 15.067031}
+  leftGapWU: 6.7913656
+  rightGapWU: 6.9515657
+  topGapWU: 2.66586
+  leftGapPX: 679
+  rightGapPX: 695
+  topGapPX: 267
 --- !u!212 &1050190538
 SpriteRenderer:
   m_ObjectHideFlags: 0

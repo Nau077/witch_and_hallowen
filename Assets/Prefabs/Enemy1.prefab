@@ -434,7 +434,7 @@ MonoBehaviour:
   destroyAfter: 1.6
   hpBar: {fileID: 1825588627723170468}
   hitClips:
-  - {fileID: 8300000, guid: aecad2c0e13d4544aa7b5b4b65953988, type: 3}
+  - {fileID: 8300000, guid: f17e7b04caa21ad468c8bfe4e964f048, type: 3}
   hitVolume: 0.85
   hitPitchJitter: 0.08
   hitSoundCooldown: 0.05
@@ -455,7 +455,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 8300000, guid: aecad2c0e13d4544aa7b5b4b65953988, type: 3}
+  m_Resource: {fileID: 8300000, guid: f17e7b04caa21ad468c8bfe4e964f048, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 0.494
   m_Pitch: 1

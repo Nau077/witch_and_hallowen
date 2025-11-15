@@ -3909,12 +3909,12 @@ MonoBehaviour:
   fillerLeft: {fileID: 0}
   fillerRight: {fileID: 0}
   fillerTop: {fileID: 0}
-  cameraSizeWU: {x: 51.111744, y: 15.067031}
-  leftGapWU: 15.475772
-  rightGapWU: 15.635972
+  cameraSizeWU: {x: 35.892162, y: 15.067031}
+  leftGapWU: 7.865981
+  rightGapWU: 8.026181
   topGapWU: 2.66586
-  leftGapPX: 1548
-  rightGapPX: 1564
+  leftGapPX: 787
+  rightGapPX: 803
   topGapPX: 267
 --- !u!212 &1050190538
 SpriteRenderer:

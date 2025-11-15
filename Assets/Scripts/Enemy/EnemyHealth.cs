@@ -53,6 +53,7 @@ public class EnemyHealth : MonoBehaviour
 
     [Tooltip("Префаб льда (SpriteRenderer), который будет появляться поверх врага при заморозке.")]
     public GameObject freezeVfxPrefab;
+
     [Tooltip("Смещение льда относительно центра врага (например, 0, 0.3).")]
     public Vector2 freezeVfxOffset = new Vector2(0f, 0.3f);
 
@@ -61,6 +62,18 @@ public class EnemyHealth : MonoBehaviour
 
     private GameObject _currentFreezeVfx;
     private Coroutine _freezeRoutine;
+
+    // ---------- DAMAGE TEXT ----------
+    [Header("Damage Text")]
+    [Tooltip("Префаб с TMP_Text + DamageTextPopup.")]
+    public GameObject damageTextPrefab;
+
+    [Tooltip("Мировое смещение над врагом, откуда вылетают цифры.")]
+    public Vector3 damageTextOffset = new Vector3(0f, 1.1f, 0f);
+
+    [Tooltip("Небольшой разброс вокруг offset, чтобы цифры не налезали друг на друга.")]
+    public float damageTextRandomRadius = 0.25f;
+    // -----------------------------
 
     // ---------- INTERNAL ----------
     private SpriteRenderer sr;
@@ -73,6 +86,8 @@ public class EnemyHealth : MonoBehaviour
 
     private Coroutine _hitFlashRoutine;
     private Coroutine _stopParticlesRoutine;
+
+    private Canvas _cachedDamageCanvas;
 
     private void Awake()
     {
@@ -101,6 +116,9 @@ public class EnemyHealth : MonoBehaviour
         if (isDead || amount <= 0) return;
 
         currentHealth = Mathf.Max(0, currentHealth - amount);
+
+        // ----- цифра урона -----
+        ShowDamageNumber(amount);
 
         // не трогаем заморозку, только эффекты удара
         if (_hitFlashRoutine != null)
@@ -272,5 +290,69 @@ public class EnemyHealth : MonoBehaviour
             srRen.color = new Color(c.r, c.g, c.b, 0f);
         }
         Destroy(gameObject);
+    }
+
+    // ---------- DAMAGE TEXT LOGIC ----------
+
+    private Canvas GetDamageCanvas()
+    {
+        if (_cachedDamageCanvas != null) return _cachedDamageCanvas;
+
+        // Unity 6 / 2023+ — современный API без устаревшего предупреждения
+        _cachedDamageCanvas = FindFirstObjectByType<Canvas>();
+        return _cachedDamageCanvas;
+    }
+
+    private void ShowDamageNumber(int amount)
+    {
+        if (!damageTextPrefab) return;
+
+        var cam = Camera.main;
+        if (cam == null) return;
+
+        // 1) Мировая позиция над врагом
+        Vector3 worldPos = transform.position + damageTextOffset;
+
+        if (damageTextRandomRadius > 0f)
+        {
+            Vector2 rnd = UnityEngine.Random.insideUnitCircle * damageTextRandomRadius;
+            worldPos += new Vector3(rnd.x, rnd.y, 0f);
+        }
+
+        // 2) Переводим в экранные координаты
+        Vector3 screenPos = cam.WorldToScreenPoint(worldPos);
+
+        // 3) Ищем Canvas
+        Canvas canvas = GetDamageCanvas();
+        if (canvas == null) return;
+
+        RectTransform canvasRect = canvas.transform as RectTransform;
+
+        // 4) Создаём UI-объект под Canvas
+        GameObject go = Instantiate(damageTextPrefab, canvas.transform);
+        RectTransform rect = go.transform as RectTransform;
+
+        if (rect != null && canvasRect != null)
+        {
+            Vector2 localPos;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                canvasRect,
+                screenPos,
+                canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : cam,
+                out localPos
+            );
+
+            rect.anchoredPosition = localPos;
+        }
+        else
+        {
+            // запасной вариант
+            go.transform.position = screenPos;
+        }
+
+        // 5) Передаём значение урона
+        var popup = go.GetComponent<DamageTextPopup>();
+        if (popup != null)
+            popup.Setup(amount);
     }
 }

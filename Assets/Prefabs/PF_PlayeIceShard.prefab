@@ -142,7 +142,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerIceShard
   speed: 7.5
   lifetime: 2.2
-  damage: 9
+  damage: 15
   ignoreEnemiesFirstMeters: 0
   currentIceSkillLevel: 1
   hitsToFreezeLvl1: 3

@@ -46,6 +46,23 @@ public class EnemyHealth : MonoBehaviour
     [Header("Rewards")]
     public int cursedGoldOnDeath = 10;
 
+    // ---------- ICE / FREEZE ----------
+    [Header("Ice Freeze")]
+    [Tooltip("Можно ли этого врага вообще замораживать.")]
+    public bool canBeFrozen = true;
+
+    [Tooltip("Префаб льда (SpriteRenderer), который будет появляться поверх врага при заморозке.")]
+    public GameObject freezeVfxPrefab;
+    [Tooltip("Смещение льда относительно центра врага (например, 0, 0.3).")]
+    public Vector2 freezeVfxOffset = new Vector2(0f, 0.3f);
+
+    private bool isFrozen;
+    public bool IsFrozen => isFrozen;
+
+    private GameObject _currentFreezeVfx;
+    private Coroutine _freezeRoutine;
+
+    // ---------- INTERNAL ----------
     private SpriteRenderer sr;
     private Color baseColor;
     private bool isDead;
@@ -53,6 +70,9 @@ public class EnemyHealth : MonoBehaviour
 
     private AudioSource audioSource;
     private float lastHitSoundTime = -999f;
+
+    private Coroutine _hitFlashRoutine;
+    private Coroutine _stopParticlesRoutine;
 
     private void Awake()
     {
@@ -82,13 +102,19 @@ public class EnemyHealth : MonoBehaviour
 
         currentHealth = Mathf.Max(0, currentHealth - amount);
 
-        StopAllCoroutines();
-        StartCoroutine(HitFlash());
+        // не трогаем заморозку, только эффекты удара
+        if (_hitFlashRoutine != null)
+            StopCoroutine(_hitFlashRoutine);
+        _hitFlashRoutine = StartCoroutine(HitFlash());
+
         if (burnParticles)
         {
             burnParticles.Play();
-            StartCoroutine(StopParticlesSoon(0.25f));
+            if (_stopParticlesRoutine != null)
+                StopCoroutine(_stopParticlesRoutine);
+            _stopParticlesRoutine = StartCoroutine(StopParticlesSoon(0.25f));
         }
+
         if (hitParticlesPrefab)
         {
             var fx = Instantiate(hitParticlesPrefab, transform.position, Quaternion.identity);
@@ -101,6 +127,50 @@ public class EnemyHealth : MonoBehaviour
 
         if (currentHealth <= 0)
             Die();
+    }
+
+    /// <summary>
+    /// Снаружи (скил) говорит врагу: "замёрзни на duration секунд".
+    /// </summary>
+    public void ApplyFreeze(float duration)
+    {
+        if (!canBeFrozen || isDead) return;
+
+        if (_freezeRoutine != null)
+            StopCoroutine(_freezeRoutine);
+
+        _freezeRoutine = StartCoroutine(FreezeCoroutine(duration));
+    }
+
+    private IEnumerator FreezeCoroutine(float duration)
+    {
+        isFrozen = true;
+
+        if (freezeVfxPrefab != null && _currentFreezeVfx == null)
+        {
+            Vector3 pos = transform.position + new Vector3(freezeVfxOffset.x, freezeVfxOffset.y, 0f);
+            _currentFreezeVfx = Instantiate(freezeVfxPrefab, pos, Quaternion.identity, transform);
+        }
+
+        float t = 0f;
+        float d = Mathf.Max(0.05f, duration);
+
+        while (t < d)
+        {
+            if (isDead) break;
+            t += Time.deltaTime;
+            yield return null;
+        }
+
+        isFrozen = false;
+
+        if (_currentFreezeVfx != null)
+        {
+            Destroy(_currentFreezeVfx);
+            _currentFreezeVfx = null;
+        }
+
+        _freezeRoutine = null;
     }
 
     private void TryPlayHitSound()
@@ -131,18 +201,30 @@ public class EnemyHealth : MonoBehaviour
             yield return null;
         }
         sr.color = baseColor;
+
+        _hitFlashRoutine = null;
     }
 
     private IEnumerator StopParticlesSoon(float t)
     {
         yield return new WaitForSeconds(t);
         if (burnParticles) burnParticles.Stop();
+        _stopParticlesRoutine = null;
     }
 
     private void Die()
     {
         if (isDead) return;
         isDead = true;
+
+        // снимаем заморозку
+        if (_freezeRoutine != null) StopCoroutine(_freezeRoutine);
+        isFrozen = false;
+        if (_currentFreezeVfx != null)
+        {
+            Destroy(_currentFreezeVfx);
+            _currentFreezeVfx = null;
+        }
 
         var walker = GetComponent<EnemyWalker>();
         if (walker) walker.OnDeathExternal();

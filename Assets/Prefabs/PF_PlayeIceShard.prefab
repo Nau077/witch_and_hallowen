@@ -144,3 +144,10 @@ MonoBehaviour:
   lifetime: 2.2
   damage: 9
   ignoreEnemiesFirstMeters: 0
+  currentIceSkillLevel: 1
+  hitsToFreezeLvl1: 3
+  hitsToFreezeLvl2: 2
+  hitsToFreezeLvl3: 1
+  freezeDurationLvl1: 6
+  freezeDurationLvl2: 8
+  freezeDurationLvl3: 10

@@ -87,6 +87,13 @@ public class EnemyWalker : MonoBehaviour
             return;
         }
 
+        // --- НОВОЕ: если заморожен — не двигаемся, не думаем, просто стоим ---
+        if (selfHP && selfHP.IsFrozen)
+        {
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
+
         if (isAttacking || isHoldingForAttack)
         {
             rb.linearVelocity = Vector2.zero;
@@ -109,6 +116,14 @@ public class EnemyWalker : MonoBehaviour
     private void FixedUpdate()
     {
         if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead)) return;
+
+        // --- НОВОЕ: заморожен => вообще не двигаемся ---
+        if (selfHP && selfHP.IsFrozen)
+        {
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
+
         if (isAttacking || isHoldingForAttack) return;
 
         Vector2 cur = rb.position;
@@ -133,6 +148,10 @@ public class EnemyWalker : MonoBehaviour
         while (true)
         {
             yield return new WaitForSeconds(decideEvery);
+
+            // если враг умер или заморожен — не пересчитываем направление
+            if ((selfHP && selfHP.IsDead) || (selfHP && selfHP.IsFrozen))
+                continue;
 
             int r = Random.Range(0, 4);
             Vector2 dir = r switch
@@ -173,6 +192,10 @@ public class EnemyWalker : MonoBehaviour
     {
         if (!fireballPrefab || !firePoint || !player) return;
         if ((playerHP && playerHP.IsDead) || (selfHP && selfHP.IsDead)) return;
+
+        // --- НОВОЕ: пока лёд, таймер атак не тикает и атака не запускается ---
+        if (selfHP && selfHP.IsFrozen) return;
+
         if (isAttacking || isHoldingForAttack) return;
 
         attackTimer += Time.deltaTime;
@@ -185,16 +208,29 @@ public class EnemyWalker : MonoBehaviour
 
     private IEnumerator PerformAttack()
     {
+        // если к моменту атаки заморозили — отменяем
+        if (selfHP && selfHP.IsFrozen) yield break;
+
         isAttacking = true;
         rb.linearVelocity = Vector2.zero;
 
         yield return new WaitForSeconds(preAttackHold);
 
-        if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead))
-        { isAttacking = false; yield break; }
+        if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead) || (selfHP && selfHP.IsFrozen))
+        {
+            isAttacking = false;
+            yield break;
+        }
 
         if (sr && attackSprite) sr.sprite = attackSprite;
         yield return new WaitForSeconds(0.25f);
+
+        if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead) || (selfHP && selfHP.IsFrozen))
+        {
+            isAttacking = false;
+            if (sr && baseSprite) sr.sprite = baseSprite;
+            yield break;
+        }
 
         Vector2 toPlayer = player.position - transform.position;
         Vector2 dir = (Mathf.Abs(toPlayer.x) < 0.5f) ? Vector2.down : toPlayer.normalized;
@@ -238,20 +274,10 @@ public class EnemyWalker : MonoBehaviour
 
     public void OnDeathExternal()
     {
-        // Жёстко гасим активность, чтобы никакая корутина (атака/замах)
-        // не успела вернуть базовый спрайт/состояние.
-        // НИЧЕГО не трогаем со спрайтами — это делает EnemyHealth (аниматор/ deadSprite).
         StopAllCoroutines();
-
-        // Ставим жёсткие флаги, если их используешь
-        // (если у тебя есть hardDead/isAttacking — установи их):
-        // hardDead = true;
-        // isAttacking = false;
-        // isHoldingForAttack = false;
 
         if (TryGetComponent<Rigidbody2D>(out var rb))
         {
-            rb.linearVelocity = Vector2.zero;
             rb.linearVelocity = Vector2.zero;
             rb.angularVelocity = 0f;
         }

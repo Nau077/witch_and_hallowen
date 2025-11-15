@@ -1953,7 +1953,7 @@ Camera:
   far clip plane: 1000
   field of view: 34
   orthographic: 1
-  orthographic size: 7.5335155
+  orthographic size: 7.903549
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -2915,6 +2915,8 @@ MonoBehaviour:
   audioSource: {fileID: 743115437}
   killSfx: {fileID: 0}
   goldSfx: {fileID: 8300000, guid: 2a99623b82605204a9236ad54287e615, type: 3}
+  counterPunchScale: 1.2
+  counterPunchTime: 0.16
 --- !u!82 &743115437
 AudioSource:
   m_ObjectHideFlags: 0
@@ -3903,13 +3905,13 @@ MonoBehaviour:
   fillerLeft: {fileID: 0}
   fillerRight: {fileID: 0}
   fillerTop: {fileID: 0}
-  cameraSizeWU: {x: 33.74293, y: 15.067031}
-  leftGapWU: 6.7913656
-  rightGapWU: 6.9515657
-  topGapWU: 2.66586
-  leftGapPX: 679
-  rightGapPX: 695
-  topGapPX: 267
+  cameraSizeWU: {x: 30.085775, y: 15.807098}
+  leftGapWU: 4.9627876
+  rightGapWU: 5.1229877
+  topGapWU: 3.0358932
+  leftGapPX: 496
+  rightGapPX: 512
+  topGapPX: 304
 --- !u!212 &1050190538
 SpriteRenderer:
   m_ObjectHideFlags: 0

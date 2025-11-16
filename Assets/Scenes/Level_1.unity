@@ -1327,7 +1327,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5af605956686564c88d3085efaf919d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
-  maxHealth: 300
+  maxHealth: 800
   currentHealth: 0
   barFill: {fileID: 725129547}
   sr: {fileID: 1792579273}
@@ -1789,8 +1789,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyTopSpawner
   enemyZone: {fileID: 1367967838}
-  enemyPrefab: {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
-  initialCount: 3
+  enemyPrefab: {fileID: 0}
+  enemyPrefabs:
+  - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
+  - {fileID: 5553669972159275953, guid: 6c85a8b7040f0f646b2f713c9520cb15, type: 3}
+  spawnMode: 0
+  initialCount: 2
   spawnInterval: 0
   container: {fileID: 0}
   xInset: 0.05
@@ -3909,12 +3913,12 @@ MonoBehaviour:
   fillerLeft: {fileID: 0}
   fillerRight: {fileID: 0}
   fillerTop: {fileID: 0}
-  cameraSizeWU: {x: 35.892162, y: 15.067031}
-  leftGapWU: 7.865981
-  rightGapWU: 8.026181
+  cameraSizeWU: {x: 35.70915, y: 15.067031}
+  leftGapWU: 7.774474
+  rightGapWU: 7.9346743
   topGapWU: 2.66586
-  leftGapPX: 787
-  rightGapPX: 803
+  leftGapPX: 777
+  rightGapPX: 793
   topGapPX: 267
 --- !u!212 &1050190538
 SpriteRenderer:

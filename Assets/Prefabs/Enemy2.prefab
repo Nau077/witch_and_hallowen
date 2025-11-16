@@ -229,7 +229,7 @@ GameObject:
   - component: {fileID: 3411630086860159866}
   - component: {fileID: 1740578849881125198}
   m_Layer: 0
-  m_Name: Enemy1
+  m_Name: Enemy2
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -299,7 +299,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 5
-  m_Sprite: {fileID: -6328051917553211350, guid: 3e1877fd24e435c4680c56fe7b304dfd, type: 3}
+  m_Sprite: {fileID: 7640061994819572038, guid: e60c3c78067f1bb4fafb49357b1f1a02, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -373,9 +373,9 @@ BoxCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: -0.106405556, y: 0.1}
   m_SpriteTilingProperty:
-    border: {x: 0.74, y: 0, z: 0, w: 0}
+    border: {x: 0.099999994, y: 0, z: 0.01, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 5.22, y: 6.2}
+    oldSize: {x: 4.67, y: 6.13}
     newSize: {x: 10.14, y: 10.17}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
@@ -396,8 +396,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyWalker
   player: {fileID: 0}
-  attackSprite: {fileID: -5007276879233255147, guid: 3e1877fd24e435c4680c56fe7b304dfd, type: 3}
-  idleSprite: {fileID: 2257999382807605110, guid: 04cad7a3d812c774da5269c239f95713, type: 3}
+  attackSprite: {fileID: 8389730086967677793, guid: e60c3c78067f1bb4fafb49357b1f1a02, type: 3}
+  idleSprite: {fileID: 7640061994819572038, guid: e60c3c78067f1bb4fafb49357b1f1a02, type: 3}
   moveSpeed: 6
   decideEvery: 1
   snapToGrid: 1
@@ -430,7 +430,7 @@ MonoBehaviour:
   fireTint: {r: 1, g: 0.45, b: 0.05, a: 1}
   flashDuration: 0.15
   burnParticles: {fileID: 0}
-  deadSprite: {fileID: 7396482167666171185, guid: 3e1877fd24e435c4680c56fe7b304dfd, type: 3}
+  deadSprite: {fileID: 1235045758769831084, guid: e60c3c78067f1bb4fafb49357b1f1a02, type: 3}
   destroyAfter: 1.6
   hpBar: {fileID: 1825588627723170468}
   hitClips:
@@ -562,12 +562,12 @@ MonoBehaviour:
   priority: 0
   useChance: 1
   everyNthAttack: 0
-  fireballPrefab: {fileID: 3777930235256885239, guid: 37786758cd9b4e24ebb7a082fed18c4d, type: 3}
+  fireballPrefab: {fileID: 3777930235256885239, guid: ae0204e475012144ba3c30e6ae390278, type: 3}
   firePoint: {fileID: 6030212675129193224}
   overrideSpeed: 0
-  speed: 10
+  speed: 15
   overrideDamage: 0
-  damage: 10
+  damage: 15
 --- !u!114 &1740578849881125198
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -582,10 +582,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemySkillFireballFan
   priority: 10
   useChance: 1
-  everyNthAttack: 5
-  fireballPrefab: {fileID: 3777930235256885239, guid: 37786758cd9b4e24ebb7a082fed18c4d, type: 3}
+  everyNthAttack: 2
+  fireballPrefab: {fileID: 3777930235256885239, guid: ae0204e475012144ba3c30e6ae390278, type: 3}
   firePoint: {fileID: 6030212675129193224}
-  projectileCount: 3
+  projectileCount: 4
   fanAngle: 40
   speedOverride: -1
   damageOverride: -1

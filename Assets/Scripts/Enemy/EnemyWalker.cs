@@ -6,8 +6,8 @@ public class EnemyWalker : MonoBehaviour
 {
     [Header("Refs")]
     public Transform player; // цель (игрок)
-    public GameObject fireballPrefab;
-    public Transform firePoint;
+
+    [Header("Visuals")]
     public Sprite attackSprite;
     public Sprite idleSprite;
 
@@ -45,19 +45,29 @@ public class EnemyWalker : MonoBehaviour
     private Rigidbody2D rb;
     private SpriteRenderer sr;
     private Vector2 desiredDir = Vector2.zero;
+
     private bool isAttacking = false;
     private bool isHoldingForAttack = false;
     private float attackTimer;
+    private int attackIndex; // глобальный счётчик атак
+
     private Sprite baseSprite;
 
     private PlayerHealth playerHP;
     private EnemyHealth selfHP;
 
+    private EnemySkillBase[] skills;
+
+    // публичные вещи, которые могут смотреть скиллы
+    public int AttackIndex => attackIndex;
+    public bool PlayerIsDead => playerHP != null && playerHP.IsDead;
+    public Transform PlayerTransform => player;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         sr = GetComponent<SpriteRenderer>();
-        if (sr) baseSprite = sr.sprite;
+        if (sr != null) baseSprite = sr.sprite;
 
         rb.gravityScale = 0f;
         rb.freezeRotation = true;
@@ -74,8 +84,21 @@ public class EnemyWalker : MonoBehaviour
 
     private void Start()
     {
-        if (player) playerHP = player.GetComponent<PlayerHealth>();
+        if (player != null) playerHP = player.GetComponent<PlayerHealth>();
         selfHP = GetComponent<EnemyHealth>();
+
+        // Собираем и инициализируем все скиллы на этом объекте
+        skills = GetComponents<EnemySkillBase>();
+        if (skills != null && skills.Length > 0)
+        {
+            // сортируем по приоритету (больший приоритет ходит первым)
+            System.Array.Sort(skills, (a, b) => b.Priority.CompareTo(a.Priority));
+            foreach (var s in skills)
+            {
+                if (s != null) s.Init(this);
+            }
+        }
+
         StartCoroutine(DecideLoop());
     }
 
@@ -87,11 +110,23 @@ public class EnemyWalker : MonoBehaviour
             return;
         }
 
-        // --- НОВОЕ: если заморожен — не двигаемся, не думаем, просто стоим ---
+        // если заморожен — ничего не делаем
         if (selfHP && selfHP.IsFrozen)
         {
             rb.linearVelocity = Vector2.zero;
             return;
+        }
+
+        // обновление скиллов по времени
+        float dt = Time.deltaTime;
+        if (skills != null)
+        {
+            for (int i = 0; i < skills.Length; i++)
+            {
+                var s = skills[i];
+                if (s != null && s.isActiveAndEnabled)
+                    s.OnBrainUpdateSkill(dt);
+            }
         }
 
         if (isAttacking || isHoldingForAttack)
@@ -111,13 +146,15 @@ public class EnemyWalker : MonoBehaviour
                 desiredDir = new Vector2(signAway, 0f);
             }
         }
+
+        HandleAttackTimer();
     }
 
     private void FixedUpdate()
     {
         if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead)) return;
 
-        // --- НОВОЕ: заморожен => вообще не двигаемся ---
+        // заморожен => вообще не двигаемся
         if (selfHP && selfHP.IsFrozen)
         {
             rb.linearVelocity = Vector2.zero;
@@ -133,13 +170,12 @@ public class EnemyWalker : MonoBehaviour
         rb.MovePosition(clamped);
         rb.linearVelocity = (clamped - cur) / Time.fixedDeltaTime;
 
-        // === ФЛИП ПО ФАКТИЧЕСКОМУ ДВИЖЕНИЮ ===
+        // флип по фактическому движению
         if (sr)
         {
             float mx = rb.linearVelocity.x;
-            if (mx > flipDeadzone) sr.flipX = false; // дефолт: лицом вправо
-            else if (mx < -flipDeadzone) sr.flipX = true;  // идём влево — отражаем по X
-            // при |mx| ~ 0 — оставляем предыдущий флип
+            if (mx > flipDeadzone) sr.flipX = false; // лицом вправо
+            else if (mx < -flipDeadzone) sr.flipX = true; // лицом влево
         }
     }
 
@@ -178,71 +214,98 @@ public class EnemyWalker : MonoBehaviour
                 Vector2 d = target - (Vector2)transform.position;
                 desiredDir = d.sqrMagnitude > 0.000001f ? d.normalized : Vector2.zero;
             }
-
-            // Флип здесь больше не трогаем — он делается по реальной скорости в FixedUpdate().
         }
-    }
-
-    private void LateUpdate()
-    {
-        HandleAttackTimer();
     }
 
     private void HandleAttackTimer()
     {
-        if (!fireballPrefab || !firePoint || !player) return;
-        if ((playerHP && playerHP.IsDead) || (selfHP && selfHP.IsDead)) return;
-
-        // --- НОВОЕ: пока лёд, таймер атак не тикает и атака не запускается ---
-        if (selfHP && selfHP.IsFrozen) return;
-
+        if (!CanAttackNow()) return;
         if (isAttacking || isHoldingForAttack) return;
 
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackInterval)
         {
             attackTimer = 0f;
-            StartCoroutine(PerformAttack());
+            StartCoroutine(AttackSequence());
         }
     }
 
-    private IEnumerator PerformAttack()
+    private bool CanAttackNow()
     {
-        // если к моменту атаки заморозили — отменяем
-        if (selfHP && selfHP.IsFrozen) yield break;
+        if (player == null) return false;
+        if (selfHP && selfHP.IsDead) return false;
+        if (playerHP && playerHP.IsDead) return false;
+        if (selfHP && selfHP.IsFrozen) return false;
+        return true;
+    }
+
+    private IEnumerator AttackSequence()
+    {
+        if (!CanAttackNow()) yield break;
+        if (isAttacking) yield break;
 
         isAttacking = true;
+        isHoldingForAttack = true;
         rb.linearVelocity = Vector2.zero;
 
-        yield return new WaitForSeconds(preAttackHold);
+        // задержка перед атакой
+        if (preAttackHold > 0f)
+            yield return new WaitForSeconds(preAttackHold);
 
-        if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead) || (selfHP && selfHP.IsFrozen))
+        isHoldingForAttack = false;
+
+        if (!CanAttackNow())
         {
             isAttacking = false;
+            RestoreSprite();
             yield break;
         }
 
-        if (sr && attackSprite) sr.sprite = attackSprite;
+        // включаем спрайт атаки
+        if (sr && attackSprite)
+            sr.sprite = attackSprite;
+
+        // короткий «кадр броска» как раньше
         yield return new WaitForSeconds(0.25f);
 
-        if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead) || (selfHP && selfHP.IsFrozen))
+        if (!CanAttackNow())
         {
             isAttacking = false;
-            if (sr && baseSprite) sr.sprite = baseSprite;
+            RestoreSprite();
             yield break;
         }
 
-        Vector2 toPlayer = player.position - transform.position;
-        Vector2 dir = (Mathf.Abs(toPlayer.x) < 0.5f) ? Vector2.down : toPlayer.normalized;
+        // глобальный счётчик атак
+        attackIndex++;
+        bool attackConsumed = false;
 
-        GameObject fb = Instantiate(fireballPrefab, firePoint.position, Quaternion.identity);
-        var fireball = fb.GetComponent<Fireball>();
-        if (fireball) fireball.Init(dir);
+        // даём шанс всем скиллам по очереди
+        if (skills != null)
+        {
+            for (int i = 0; i < skills.Length; i++)
+            {
+                var s = skills[i];
+                if (s == null || !s.isActiveAndEnabled) continue;
+                s.OnBrainAttackTick(attackIndex, ref attackConsumed);
+            }
+        }
 
-        yield return new WaitForSeconds(postAttackHold);
+        // пост-задержка
+        if (postAttackHold > 0f)
+            yield return new WaitForSeconds(postAttackHold);
 
-        if (sr && baseSprite) sr.sprite = baseSprite;
+        RestoreSprite();
         isAttacking = false;
+    }
+
+    private void RestoreSprite()
+    {
+        if (!sr) return;
+
+        if (idleSprite)
+            sr.sprite = idleSprite;
+        else if (baseSprite)
+            sr.sprite = baseSprite;
     }
 
     private Vector2 ClampToBounds(Vector2 pos)
@@ -276,10 +339,10 @@ public class EnemyWalker : MonoBehaviour
     {
         StopAllCoroutines();
 
-        if (TryGetComponent<Rigidbody2D>(out var rb))
+        if (TryGetComponent<Rigidbody2D>(out var rb2))
         {
-            rb.linearVelocity = Vector2.zero;
-            rb.angularVelocity = 0f;
+            rb2.linearVelocity = Vector2.zero;
+            rb2.angularVelocity = 0f;
         }
     }
 

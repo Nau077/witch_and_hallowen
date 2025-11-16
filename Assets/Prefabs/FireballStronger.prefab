@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 1192811654979692413}
   - component: {fileID: 3233802663231194193}
   m_Layer: 0
-  m_Name: Fireball
+  m_Name: FireballStronger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -82,7 +82,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 2
-  m_Sprite: {fileID: 5149732257121768304, guid: 15127a8a4a1d6664484fb0bb3e194525, type: 3}
+  m_Sprite: {fileID: 843622496049368262, guid: 938926da68e7c65448a47aaee6753a54, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -168,9 +168,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 33f89b86d134bd04599e8f002dfce46b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Fireball
-  speed: 6
+  speed: 8
   lifetime: 3
-  damage: 10
+  damage: 15
   stunDuration: 0.25
   blinkCount: 6
   blinkInterval: 0.06

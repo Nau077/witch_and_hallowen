@@ -1,16 +1,16 @@
 fileFormatVersion: 2
-guid: e60c3c78067f1bb4fafb49357b1f1a02
+guid: 938926da68e7c65448a47aaee6753a54
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 8389730086967677793
-    second: Enemy2_2_0
+      213: 843622496049368262
+    second: fireboll_greenReal_0
   - first:
-      213: 7640061994819572038
-    second: Enemy2_2_1
+      213: -8722274458335333632
+    second: fireboll_greenReal_1
   - first:
-      213: 1235045758769831084
-    second: Enemy2_2_2
+      213: 6392127791781682296
+    second: fireboll_greenReal_2
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -106,67 +106,67 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Enemy2_2_0
+      name: fireboll_greenReal_0
       rect:
         serializedVersion: 2
-        x: 86
-        y: 199
-        width: 361
-        height: 600
+        x: 74
+        y: 549
+        width: 977
+        height: 827
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 1639d1b301f4e6470800000000000000
-      internalID: 8389730086967677793
+      spriteID: 6cc0d81c03625bb00800000000000000
+      internalID: 843622496049368262
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Enemy2_2_1
+      name: fireboll_greenReal_1
       rect:
         serializedVersion: 2
-        x: 554
-        y: 193
-        width: 467
-        height: 613
+        x: 1124
+        y: 774
+        width: 76
+        height: 77
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 10, y: 0, z: 1, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 641de2fc7e3f60a60800000000000000
-      internalID: 7640061994819572038
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Enemy2_2_2
-      rect:
-        serializedVersion: 2
-        x: 1080
-        y: 197
-        width: 485
-        height: 248
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: cac14d4f293c32110800000000000000
-      internalID: 1235045758769831084
+      spriteID: 003b57db79144f680800000000000000
+      internalID: -8722274458335333632
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: fireboll_greenReal_2
+      rect:
+        serializedVersion: 2
+        x: 116
+        y: 0
+        width: 935
+        height: 345
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 87c9c041c5665b850800000000000000
+      internalID: 6392127791781682296
       vertices: []
       indices: 
       edges: []
@@ -175,7 +175,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: b19e4d00cb9b1d84f87d0d25f861a621
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -185,9 +185,9 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Enemy2_2_0: 8389730086967677793
-      Enemy2_2_1: 7640061994819572038
-      Enemy2_2_2: 1235045758769831084
+      fireboll_greenReal_0: 843622496049368262
+      fireboll_greenReal_1: -8722274458335333632
+      fireboll_greenReal_2: 6392127791781682296
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

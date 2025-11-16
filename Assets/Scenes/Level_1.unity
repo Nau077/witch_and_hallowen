@@ -1337,7 +1337,7 @@ MonoBehaviour:
   deadSprite: {fileID: 4893574615064217924, guid: a898a11e3215c994da3c514d8d83a1bf, type: 3}
   disableMovementOnDeath: 1
   audioSource: {fileID: 201944549}
-  hitSfx: {fileID: 0}
+  hitSfx: {fileID: 8300000, guid: 3131086b11ad7934aa42c2b5e96b0752, type: 3}
   isDead: 0
 --- !u!114 &201944544
 MonoBehaviour:
@@ -1473,15 +1473,15 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 8300000, guid: c2e52e1b22ee83148889db2451f34dee, type: 3}
+  m_Resource: {fileID: 8300000, guid: 3131086b11ad7934aa42c2b5e96b0752, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 1
+  m_Volume: 0.806
   m_Pitch: 1
   Loop: 0
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
-  Priority: 128
+  Priority: 124
   DopplerLevel: 1
   MinDistance: 1
   MaxDistance: 500
@@ -1893,7 +1893,7 @@ MonoBehaviour:
   enemyPrefabs:
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
   - {fileID: 5553669972159275953, guid: 6c85a8b7040f0f646b2f713c9520cb15, type: 3}
-  spawnMode: 0
+  spawnMode: 2
   initialCount: 2
   spawnInterval: 0
   container: {fileID: 0}
@@ -5004,8 +5004,8 @@ Transform:
   m_GameObject: {fileID: 1412434824}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 9.86, y: -3.38, z: 0}
-  m_LocalScale: {x: 0.1, y: 6.27, z: 1}
+  m_LocalPosition: {x: 9.86, y: -1.49, z: 0}
+  m_LocalScale: {x: 0.1, y: 9.9, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -5082,8 +5082,8 @@ Transform:
   m_GameObject: {fileID: 1428795656}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -10.01, y: -3.38, z: 0}
-  m_LocalScale: {x: 0.1, y: 6.27, z: 1}
+  m_LocalPosition: {x: -10.01, y: -1.49, z: 0}
+  m_LocalScale: {x: 0.1, y: 9.9, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}

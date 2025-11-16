@@ -45,6 +45,21 @@ public class DamageTextPopup : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Вариант с указанием цвета (на будущее, можно не использовать).
+    /// </summary>
+    public void Setup(int amount, Color color)
+    {
+        if (_text == null) _text = GetComponent<TMP_Text>();
+
+        if (_text != null)
+        {
+            _text.text = amount.ToString();
+            _text.color = color;
+            _startColor = color;
+        }
+    }
+
     void Update()
     {
         // Легко подпрыгиваем вверх

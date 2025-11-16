@@ -24,6 +24,13 @@ public class PlayerHealth : MonoBehaviour
     public AudioSource audioSource;   // AudioSource на ведьме
     public AudioClip hitSfx;          // звук попадания по ведьме
 
+    [Header("Damage Text")]
+    [Tooltip("Префаб DamageTextPopup (тот же, что у врагов, или его копия).")]
+    public DamageTextPopup damageTextPrefab;
+
+    [Tooltip("Смещение текста относительно позиции игрока (в мировых координатах).")]
+    public Vector3 damageTextOffset = new Vector3(0f, 1.2f, 0f);
+
     [Header("Debug / State")]
     public bool isDead = false;
 
@@ -64,15 +71,18 @@ public class PlayerHealth : MonoBehaviour
         currentHealth = Mathf.Max(0, currentHealth - amount);
         UpdateBar();
 
-        // ВАЖНО: звук только если реально что-то сняли
-        if (currentHealth < prev)
+        int taken = prev - currentHealth;
+
+        // ВАЖНО: всё остальное только если реально что-то сняли
+        if (taken > 0)
         {
             PlayHitSound();
+            ShowDamagePopup(taken);
         }
 
         if (currentHealth <= 0) Die();
 
-        return prev - currentHealth;
+        return taken;
     }
 
     public void Heal(int amount)
@@ -130,6 +140,17 @@ public class PlayerHealth : MonoBehaviour
             // PlayOneShot, чтобы не сбивать другие звуки игрока
             audioSource.PlayOneShot(hitSfx, 1f);
         }
+    }
+
+    private void ShowDamagePopup(int amount)
+    {
+        if (damageTextPrefab == null) return;
+
+        Vector3 spawnPos = transform.position + damageTextOffset;
+
+        // Просто создаём в мире, как и для врагов
+        DamageTextPopup popup = Instantiate(damageTextPrefab, spawnPos, Quaternion.identity);
+        popup.Setup(amount);
     }
 
 #if UNITY_EDITOR

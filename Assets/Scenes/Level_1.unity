@@ -1338,6 +1338,8 @@ MonoBehaviour:
   disableMovementOnDeath: 1
   audioSource: {fileID: 201944549}
   hitSfx: {fileID: 8300000, guid: 3131086b11ad7934aa42c2b5e96b0752, type: 3}
+  damageTextPrefab: {fileID: -2055527107768962862, guid: fd0d4f8c32e4f7e4e9228e91be42549b, type: 3}
+  damageTextOffset: {x: 0, y: 1.2, z: 0}
   isDead: 0
 --- !u!114 &201944544
 MonoBehaviour:
@@ -1475,13 +1477,13 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 3131086b11ad7934aa42c2b5e96b0752, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 0.806
+  m_Volume: 0.14
   m_Pitch: 1
   Loop: 0
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
-  Priority: 124
+  Priority: 45
   DopplerLevel: 1
   MinDistance: 1
   MaxDistance: 500
@@ -5937,7 +5939,7 @@ MonoBehaviour:
     endAlpha: 0
     origin: 2
   activeColor: {r: 1, g: 1, b: 1, a: 1}
-  inactiveColor: {r: 1, g: 1, b: 1, a: 0.5}
+  inactiveColor: {r: 0.3, g: 0.3, b: 0.3, a: 0.84313726}
 --- !u!1 &1945590204
 GameObject:
   m_ObjectHideFlags: 0

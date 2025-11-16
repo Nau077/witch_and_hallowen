@@ -20,6 +20,10 @@ public class PlayerHealth : MonoBehaviour
     [Header("Death")]
     public bool disableMovementOnDeath = true;
 
+    [Header("Audio")]
+    public AudioSource audioSource;   // AudioSource на ведьме
+    public AudioClip hitSfx;          // звук попадания по ведьме
+
     [Header("Debug / State")]
     public bool isDead = false;
 
@@ -29,7 +33,7 @@ public class PlayerHealth : MonoBehaviour
     public bool IsDead => isDead;
     public int CurrentHealth => currentHealth;
 
-    // НОВОЕ: процент хп для UI
+    // Процент хп для UI
     public float Normalized => maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
 
     private void Awake()
@@ -59,6 +63,12 @@ public class PlayerHealth : MonoBehaviour
         int prev = currentHealth;
         currentHealth = Mathf.Max(0, currentHealth - amount);
         UpdateBar();
+
+        // ВАЖНО: звук только если реально что-то сняли
+        if (currentHealth < prev)
+        {
+            PlayHitSound();
+        }
 
         if (currentHealth <= 0) Die();
 
@@ -110,6 +120,15 @@ public class PlayerHealth : MonoBehaviour
         {
             shooter.CancelAllImmediate(keepAnimatorDisabled: true);
             shooter.enabled = false;
+        }
+    }
+
+    private void PlayHitSound()
+    {
+        if (audioSource != null && hitSfx != null)
+        {
+            // PlayOneShot, чтобы не сбивать другие звуки игрока
+            audioSource.PlayOneShot(hitSfx, 1f);
         }
     }
 

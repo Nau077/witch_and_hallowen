@@ -1338,7 +1338,7 @@ MonoBehaviour:
   disableMovementOnDeath: 1
   audioSource: {fileID: 201944549}
   hitSfx: {fileID: 8300000, guid: 3131086b11ad7934aa42c2b5e96b0752, type: 3}
-  damageTextPrefab: {fileID: -2055527107768962862, guid: fd0d4f8c32e4f7e4e9228e91be42549b, type: 3}
+  damageTextPrefab: {fileID: -2055527107768962862, guid: 4a4a27d208310754e9a88b244d26e3d0, type: 3}
   damageTextOffset: {x: 0, y: 1.2, z: 0}
   isDead: 0
 --- !u!114 &201944544

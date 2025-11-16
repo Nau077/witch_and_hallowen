@@ -25,10 +25,13 @@ public class PlayerHealth : MonoBehaviour
     public AudioClip hitSfx;          // звук попадания по ведьме
 
     [Header("Damage Text")]
-    [Tooltip("Префаб DamageTextPopup (тот же, что у врагов, или его копия).")]
+    [Tooltip("Префаб DamageTextPopup / PlayerDamageText (с TextMeshPro-Text UI).")]
     public DamageTextPopup damageTextPrefab;
 
-    [Tooltip("Смещение текста относительно позиции игрока (в мировых координатах).")]
+    [Tooltip("Canvas / Transform, в котором живёт весь UI (HealthBar, SkillBar и т.д.).")]
+    public Transform damageTextParent;
+
+    [Tooltip("Смещение над головой в мировых координатах.")]
     public Vector3 damageTextOffset = new Vector3(0f, 1.2f, 0f);
 
     [Header("Debug / State")]
@@ -73,7 +76,6 @@ public class PlayerHealth : MonoBehaviour
 
         int taken = prev - currentHealth;
 
-        // ВАЖНО: всё остальное только если реально что-то сняли
         if (taken > 0)
         {
             PlayHitSound();
@@ -137,7 +139,6 @@ public class PlayerHealth : MonoBehaviour
     {
         if (audioSource != null && hitSfx != null)
         {
-            // PlayOneShot, чтобы не сбивать другие звуки игрока
             audioSource.PlayOneShot(hitSfx, 1f);
         }
     }
@@ -145,11 +146,53 @@ public class PlayerHealth : MonoBehaviour
     private void ShowDamagePopup(int amount)
     {
         if (damageTextPrefab == null) return;
+        if (damageTextParent == null)
+        {
+            Debug.LogWarning("PlayerHealth: damageTextParent (Canvas) is not assigned");
+            return;
+        }
 
-        Vector3 spawnPos = transform.position + damageTextOffset;
+        // 1. мировая точка над головой
+        Vector3 worldPos = transform.position + damageTextOffset;
 
-        // Просто создаём в мире, как и для врагов
-        DamageTextPopup popup = Instantiate(damageTextPrefab, spawnPos, Quaternion.identity);
+        // 2. main camera
+        Camera cam = Camera.main;
+        if (!cam) cam = Camera.current;
+        if (!cam) return;
+
+        // 3. экранные координаты
+        Vector3 screenPos = cam.WorldToScreenPoint(worldPos);
+
+        // 4. конвертируем в координаты Canvas (anchoredPosition)
+        RectTransform canvasRect = damageTextParent as RectTransform;
+        if (canvasRect == null)
+        {
+            Debug.LogWarning("PlayerHealth: damageTextParent is not RectTransform (Canvas)");
+            return;
+        }
+
+        Vector2 localPoint;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            canvasRect,
+            screenPos,
+            cam,
+            out localPoint
+        );
+
+        // 5. создаём попап как ребёнка Canvas
+        DamageTextPopup popup = Instantiate(damageTextPrefab, canvasRect);
+
+        RectTransform rect = popup.GetComponent<RectTransform>();
+        if (rect != null)
+        {
+            rect.anchoredPosition = localPoint;
+        }
+        else
+        {
+            // запасной вариант – на всякий случай
+            popup.transform.position = screenPos;
+        }
+
         popup.Setup(amount);
     }
 

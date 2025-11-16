@@ -1339,6 +1339,7 @@ MonoBehaviour:
   audioSource: {fileID: 201944549}
   hitSfx: {fileID: 8300000, guid: 3131086b11ad7934aa42c2b5e96b0752, type: 3}
   damageTextPrefab: {fileID: -2055527107768962862, guid: 4a4a27d208310754e9a88b244d26e3d0, type: 3}
+  damageTextParent: {fileID: 2143260458}
   damageTextOffset: {x: 0, y: 1.2, z: 0}
   isDead: 0
 --- !u!114 &201944544
@@ -1477,13 +1478,13 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 3131086b11ad7934aa42c2b5e96b0752, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 0.14
+  m_Volume: 0.249
   m_Pitch: 1
   Loop: 0
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
-  Priority: 45
+  Priority: 63
   DopplerLevel: 1
   MinDistance: 1
   MaxDistance: 500
@@ -1895,8 +1896,9 @@ MonoBehaviour:
   enemyPrefabs:
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
   - {fileID: 5553669972159275953, guid: 6c85a8b7040f0f646b2f713c9520cb15, type: 3}
+  - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
   spawnMode: 2
-  initialCount: 2
+  initialCount: 4
   spawnInterval: 0
   container: {fileID: 0}
   xInset: 0.05

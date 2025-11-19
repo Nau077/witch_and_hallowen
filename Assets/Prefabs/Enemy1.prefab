@@ -397,7 +397,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyWalker
   player: {fileID: 0}
   attackSprite: {fileID: -5007276879233255147, guid: 3e1877fd24e435c4680c56fe7b304dfd, type: 3}
-  idleSprite: {fileID: 2257999382807605110, guid: 04cad7a3d812c774da5269c239f95713, type: 3}
+  idleSprite: {fileID: -6328051917553211350, guid: 3e1877fd24e435c4680c56fe7b304dfd, type: 3}
   moveSpeed: 6
   decideEvery: 1
   snapToGrid: 1

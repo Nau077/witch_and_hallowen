@@ -1,10 +1,11 @@
 using UnityEngine;
 using TMPro;
 using System.Text;
+using System.Collections.Generic;
 
 public class InterLevelUI : MonoBehaviour
 {
-    [Tooltip("Текст, где показываем I -> II -> ( III ) -> IV.")]
+    [Tooltip("Текст, где показываем 0 -> I -> ( II ) -> III.")]
     public TextMeshProUGUI progressText;
 
     private void Awake()
@@ -14,39 +15,53 @@ public class InterLevelUI : MonoBehaviour
     }
 
     /// <summary>
-    /// Обновить строку прогрессии по текущему этапу и общему количеству.
+    /// currentStage: 0..totalForestStages
+    /// 0 = база, 1..N = этажи леса
+    /// totalForestStages = количество этажей леса (без базы).
     /// </summary>
-    public void SetProgress(int currentStage, int totalStages)
+    public void SetProgress(int currentStage, int totalForestStages)
     {
         if (progressText == null) return;
 
-        progressText.text = BuildRomanProgressLine(currentStage, totalStages);
+        progressText.text = BuildProgressLine(currentStage, totalForestStages);
     }
 
-    private string BuildRomanProgressLine(int currentStage, int totalStages)
+    private string BuildProgressLine(int currentStage, int totalForestStages)
     {
         string[] romans = { "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X" };
 
-        totalStages = Mathf.Clamp(totalStages, 1, romans.Length);
-        currentStage = Mathf.Clamp(currentStage, 1, totalStages);
+        // totalForestStages = сколько этажей леса мы реально показываем
+        totalForestStages = Mathf.Clamp(totalForestStages, 1, romans.Length);
+        // currentStage от 0 (база) до totalForestStages (последний этаж леса)
+        currentStage = Mathf.Clamp(currentStage, 0, totalForestStages);
 
-        var sb = new StringBuilder();
+        var parts = new List<string>();
 
-        for (int i = 1; i <= totalStages; i++)
+        // --- БАЗА (0) ---
+        if (currentStage == 0)
+            parts.Add("( 0 )");
+        else
+            parts.Add("0");
+
+        // --- ЭТАЖИ ЛЕСА (I..N) ---
+        for (int forestStage = 1; forestStage <= totalForestStages; forestStage++)
         {
-            if (i > 1)
+            string label = romans[forestStage - 1];
+
+            if (forestStage == currentStage)
+                parts.Add($"( {label} )");
+            else
+                parts.Add(label);
+        }
+
+        // Склеиваем "0 -> I -> II -> III"
+        var sb = new StringBuilder();
+        for (int i = 0; i < parts.Count; i++)
+        {
+            if (i > 0)
                 sb.Append("  ->  ");
 
-            string r = romans[i - 1];
-
-            if (i == currentStage)
-            {
-                sb.Append("( ").Append(r).Append(" )");
-            }
-            else
-            {
-                sb.Append(r);
-            }
+            sb.Append(parts[i]);
         }
 
         return sb.ToString();

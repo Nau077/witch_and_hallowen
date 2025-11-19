@@ -39,6 +39,9 @@ public class PlayerHealth : MonoBehaviour
 
     private Rigidbody2D rb;
     private PlayerMovement movement;
+    private PlayerSkillShooter shooter;
+
+    private RigidbodyType2D defaultBodyType;
 
     public bool IsDead => isDead;
     public int CurrentHealth => currentHealth;
@@ -50,6 +53,10 @@ public class PlayerHealth : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         movement = GetComponent<PlayerMovement>();
+        shooter = GetComponent<PlayerSkillShooter>();
+
+        if (rb != null)
+            defaultBodyType = rb.bodyType;
 
         if (sr == null) sr = GetComponentInChildren<SpriteRenderer>(true);
         if (anim == null && sr != null) anim = sr.GetComponent<Animator>();
@@ -59,6 +66,10 @@ public class PlayerHealth : MonoBehaviour
 
         currentHealth = maxHealth;
         UpdateBar();
+
+        // визуал "живая ведьма" на старте
+        if (aliveSprite != null && sr != null)
+            sr.sprite = aliveSprite;
     }
 
     private void Start()
@@ -107,12 +118,20 @@ public class PlayerHealth : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
+
         ApplyDeathVisual();
+
+        // Запускаем кат-сцену смерти
+        StartCoroutine(DeathSequence());
     }
 
     private void ApplyDeathVisual()
     {
-        if (anim) { anim.enabled = false; anim.Update(0f); }
+        if (anim)
+        {
+            anim.enabled = false;
+            anim.Update(0f);
+        }
 
         if (deadSprite != null && sr != null)
             sr.sprite = deadSprite;
@@ -127,12 +146,95 @@ public class PlayerHealth : MonoBehaviour
         if (disableMovementOnDeath && movement != null)
             movement.enabled = false;
 
-        var shooter = GetComponent<PlayerSkillShooter>();
         if (shooter != null)
         {
             shooter.CancelAllImmediate(keepAnimatorDisabled: true);
             shooter.enabled = false;
         }
+    }
+
+    /// <summary>
+    /// Кат-сцена смерти игрока.
+    /// </summary>
+    private System.Collections.IEnumerator DeathSequence()
+    {
+        // --- GRAYSCALE FADE ---
+        var camFx = Camera.main ? Camera.main.GetComponent<GrayscaleEffect>() : null;
+
+        if (camFx)
+        {
+            float t = 0f;
+            while (t < 1f)
+            {
+                camFx.intensity = Mathf.Lerp(0f, 1f, t);
+                t += Time.deltaTime;
+                yield return null;
+            }
+            camFx.intensity = 1f;
+        }
+
+        // подождать 1 секунду
+        yield return new WaitForSeconds(1f);
+
+        // показать попап
+        if (WitchIsDeadPopup.Instance)
+            WitchIsDeadPopup.Instance.Show("Witch is dead");
+
+        // подождать ещё немного
+        yield return new WaitForSeconds(1.2f);
+
+        // выключить попап
+        if (WitchIsDeadPopup.Instance)
+            WitchIsDeadPopup.Instance.HideImmediate();
+
+        // вернуть цвет
+        if (camFx)
+            camFx.intensity = 0f;
+
+        // вернуть игрока на базу
+        if (RunLevelManager.Instance != null)
+        {
+            RunLevelManager.Instance.ReturnToBaseAfterDeath();
+        }
+        else if (GameFlow.Instance != null)
+        {
+            GameFlow.Instance.OnPlayerDied();
+        }
+    }
+
+    /// <summary>
+    /// Полный респавн ведьмы (для возврата на базу).
+    /// Вызывается из RunLevelManager.
+    /// </summary>
+    public void RespawnFull()
+    {
+        isDead = false;
+        currentHealth = maxHealth;
+        UpdateBar();
+
+        // Восстановить физику
+        if (rb != null)
+        {
+            rb.bodyType = defaultBodyType;
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+        }
+
+        // Восстановить движение
+        if (disableMovementOnDeath && movement != null)
+            movement.enabled = true;
+
+        // Вернуть анимации
+        if (anim)
+            anim.enabled = true;
+
+        // Вернуть живой спрайт
+        if (aliveSprite != null && sr != null)
+            sr.sprite = aliveSprite;
+
+        // Включить стрельбу
+        if (shooter != null)
+            shooter.enabled = true;
     }
 
     private void PlayHitSound()
@@ -152,18 +254,14 @@ public class PlayerHealth : MonoBehaviour
             return;
         }
 
-        // 1. мировая точка над головой
         Vector3 worldPos = transform.position + damageTextOffset;
 
-        // 2. main camera
         Camera cam = Camera.main;
         if (!cam) cam = Camera.current;
         if (!cam) return;
 
-        // 3. экранные координаты
         Vector3 screenPos = cam.WorldToScreenPoint(worldPos);
 
-        // 4. конвертируем в координаты Canvas (anchoredPosition)
         RectTransform canvasRect = damageTextParent as RectTransform;
         if (canvasRect == null)
         {
@@ -179,7 +277,6 @@ public class PlayerHealth : MonoBehaviour
             out localPoint
         );
 
-        // 5. создаём попап как ребёнка Canvas
         DamageTextPopup popup = Instantiate(damageTextPrefab, canvasRect);
 
         RectTransform rect = popup.GetComponent<RectTransform>();
@@ -189,7 +286,6 @@ public class PlayerHealth : MonoBehaviour
         }
         else
         {
-            // запасной вариант – на всякий случай
             popup.transform.position = screenPos;
         }
 

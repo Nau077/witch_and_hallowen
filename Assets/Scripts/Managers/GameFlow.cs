@@ -124,11 +124,18 @@ public class GameFlow : MonoBehaviour
     // Вызывается, когда игрок умер
     public void OnPlayerDied()
     {
-        // Вариант 1: рестарт всей игры с Level_1
+        // Если мы в забеге и есть RunLevelManager — отправляем на базу (нулевой этаж)
+        if (RunLevelManager.Instance != null)
+        {
+            RunLevelManager.Instance.ReturnToBaseAfterDeath();
+            return;
+        }
+
+        // Fallback: старое поведение (если вдруг сцена без RunLevelManager)
         currentLevelIndex = 0;
         LoadCurrentLevel();
 
-        // Вариант 2 (если хочешь рестарт именно текущего уровня):
+        // Если ты хочешь рестарт именно текущего уровня без сброса индекса:
         // LoadCurrentLevel();
     }
 

@@ -5,13 +5,16 @@ public class RunLevelManager : MonoBehaviour
     public static RunLevelManager Instance { get; private set; }
 
     [Header("Stages (logical levels)")]
-    [Tooltip("Общее количество логических уровней (этажей леса). Обычно = числу спавнеров.")]
+    [Tooltip("Общее количество логических уровней леса (без базы). Обычно = числу спавнеров.")]
     public int maxStages = 8;
 
-    [Tooltip("Текущий логический уровень (1..maxStages). Первый этаж леса = 1.")]
-    [SerializeField] private int currentStage = 1;
+    [Tooltip("Текущий логический уровень (0..maxStages).\n0 = база, 1 = первый этаж леса.")]
+    [SerializeField] private int currentStage = 0;
     public int CurrentStage => currentStage;
 
+    /// <summary>
+    /// Количество этажей леса (без базы).
+    /// </summary>
     public int TotalStages
     {
         get
@@ -25,13 +28,15 @@ public class RunLevelManager : MonoBehaviour
     [Header("Player refs")]
     public PlayerHealth playerHealth;
     public Transform playerTransform;
+    [Tooltip("Точка появления игрока на базе (и при начале этажа).")]
     public Transform playerStartPoint;
 
     [Header("Spawners by stage")]
+    [Tooltip("Спавнеры для этажей леса. Индекс 0 = этаж 1, индекс 1 = этаж 2 и т.д.")]
     public EnemyTopSpawner[] stageSpawners;
 
     [Header("UI")]
-    [Tooltip("HUD с линией прогрессии (I -> II -> ( III ) -> IV).")]
+    [Tooltip("HUD с линией прогрессии (0 -> I -> ( II ) -> III).")]
     public InterLevelUI interLevelUI;
 
     [Tooltip("Попап после победы: содержит счёт / сундук / кнопку 'Войти в лес глубже'.")]
@@ -55,10 +60,12 @@ public class RunLevelManager : MonoBehaviour
         InitializeRun();
     }
 
-    /// <summary>Начинаем забег с 1-го этажа леса.</summary>
+    /// <summary>
+    /// Начинаем забег с базы (этаж 0).
+    /// </summary>
     public void InitializeRun()
     {
-        currentStage = 1;
+        currentStage = 0;
 
         if (stagePopup != null)
             stagePopup.HideImmediate();
@@ -66,9 +73,11 @@ public class RunLevelManager : MonoBehaviour
         ResetVictoryController();
 
         DeactivateAllSpawners();
-        ActivateSpawnerForStage(currentStage);
         ResetPlayerPosition();
         UpdateHudProgress();
+
+        // --- ВАЖНО: уведомляем ShopKeeperManager ---
+        ShopKeeperManager.Instance?.OnStageChanged(0);
     }
 
     private void ResetVictoryController()
@@ -84,7 +93,7 @@ public class RunLevelManager : MonoBehaviour
     {
         if (interLevelUI != null)
         {
-            Debug.Log($"[RunLevelManager] UpdateHudProgress → stage {currentStage}/{TotalStages}");
+            Debug.Log($"[RunLevelManager] UpdateHudProgress → stage {currentStage}/{TotalStages} (0 = база)");
             interLevelUI.SetProgress(currentStage, TotalStages);
         }
         else
@@ -112,8 +121,18 @@ public class RunLevelManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Активируем спавнер только для этажей леса (1..TotalStages).
+    /// Для базы (0) спавнеры не включаем.
+    /// </summary>
     private void ActivateSpawnerForStage(int stage)
     {
+        if (stage <= 0)
+        {
+            Debug.Log("[RunLevelManager] Stage = 0 (база), спавнер не включаем.");
+            return;
+        }
+
         if (stageSpawners == null || stageSpawners.Length == 0)
         {
             Debug.LogWarning("[RunLevelManager] stageSpawners не настроены.");
@@ -134,18 +153,26 @@ public class RunLevelManager : MonoBehaviour
             return;
         }
 
-        Debug.Log("[RunLevelManager] Активируем спавнер для stage = " + stage + " → " + sp.name);
+        Debug.Log("[RunLevelManager] Активируем спавнер для stage = " + stage);
         sp.gameObject.SetActive(true);
     }
 
     /// <summary>
-    /// Вызывается LevelVictoryController после победы,
-    /// когда текст "VICTORY SOULS CAPTURED" уже отыграл.
+    /// Вызывается LevelVictoryController после победы.
     /// </summary>
     public void OnStageCleared()
     {
         int totalStages = TotalStages;
-        Debug.Log($"[RunLevelManager] OnStageCleared. currentStage={currentStage}, totalStages={totalStages}, popupNull={stagePopup == null}");
+        Debug.Log($"[RunLevelManager] OnStageCleared. currentStage={currentStage}, totalStages={totalStages}");
+
+        if (currentStage <= 0)
+        {
+            Debug.LogWarning("[RunLevelManager] Победа вызвана на базе — игнор.");
+            return;
+        }
+
+        // --- уведомляем ShopKeeperManager (если включим логику "появиться после победы") ---
+        ShopKeeperManager.Instance?.OnStageCleared(currentStage);
 
         if (stagePopup != null)
         {
@@ -154,16 +181,18 @@ public class RunLevelManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("[RunLevelManager] stagePopup не назначен. Переходим сразу на следующий уровень.");
+            Debug.LogWarning("[RunLevelManager] stagePopup не назначен → сразу GoDeeper()");
             GoDeeper();
         }
     }
 
-    /// <summary>Переход на следующий логический уровень (кнопка 'Войти в лес глубже...').</summary>
+    /// <summary>
+    /// Переход на следующий логический уровень.
+    /// </summary>
     public void GoDeeper()
     {
         int totalStages = TotalStages;
-        Debug.Log($"[RunLevelManager] GoDeeper. currentStage={currentStage}, totalStages={totalStages}");
+        Debug.Log($"[RunLevelManager] GoDeeper. currentStage={currentStage}/{totalStages}");
 
         if (currentStage < totalStages)
         {
@@ -173,20 +202,48 @@ public class RunLevelManager : MonoBehaviour
                 stagePopup.Hide();
 
             ResetVictoryController();
-
             ResetPlayerPosition();
             DeactivateAllSpawners();
             ActivateSpawnerForStage(currentStage);
             UpdateHudProgress();
+
+            // --- уведомляем менеджер ---
+            ShopKeeperManager.Instance?.OnStageChanged(currentStage);
         }
         else
         {
-            Debug.Log("[RunLevelManager] Все уровни пройдены. Перезапуск забега.");
+            Debug.Log("[RunLevelManager] Все уровни пройдены → старт заново (с базы).");
+
             if (stagePopup != null)
                 stagePopup.Hide();
 
             InitializeRun();
         }
+    }
+
+    /// <summary>
+    /// Игрок умер → возвращаем на базу.
+    /// </summary>
+    public void ReturnToBaseAfterDeath()
+    {
+        Debug.Log("[RunLevelManager] ReturnToBaseAfterDeath → stage = 0");
+
+        currentStage = 0;
+
+        if (stagePopup != null)
+            stagePopup.HideImmediate();
+
+        ResetVictoryController();
+        DeactivateAllSpawners();
+
+        if (playerHealth != null)
+            playerHealth.RespawnFull();
+
+        ResetPlayerPosition();
+        UpdateHudProgress();
+
+        // --- уведомляем менеджер ---
+        ShopKeeperManager.Instance?.OnStageChanged(0);
     }
 
     public void ReturnToMenu()
@@ -197,8 +254,7 @@ public class RunLevelManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("[RunLevelManager] ReturnToMenu: нет GameFlow.Instance. " +
-                             "Если нужно, добавь прямую загрузку сцены меню здесь.");
+            Debug.LogWarning("[RunLevelManager] ReturnToMenu: нет GameFlow.Instance.");
         }
     }
 }

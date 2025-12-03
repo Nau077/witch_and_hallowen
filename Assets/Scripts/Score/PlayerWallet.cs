@@ -1,4 +1,3 @@
-// PlayerWallet.cs
 using UnityEngine;
 using TMPro;
 
@@ -7,7 +6,7 @@ public class PlayerWallet : MonoBehaviour
     public static PlayerWallet Instance { get; private set; }
 
     [Min(0)] public int coins = 0;
-    [SerializeField] TMP_Text coinsText; // опционально Ч UI
+    [SerializeField] TMP_Text coinsText; // текст с монетками
 
     void Awake()
     {
@@ -32,7 +31,7 @@ public class PlayerWallet : MonoBehaviour
         RefreshUI();
     }
 
-    void RefreshUI()
+    public void RefreshUI()
     {
         if (coinsText) coinsText.text = coins.ToString();
     }

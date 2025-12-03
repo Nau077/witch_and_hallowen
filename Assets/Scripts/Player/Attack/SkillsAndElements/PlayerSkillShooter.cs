@@ -315,11 +315,19 @@ public class PlayerSkillShooter : MonoBehaviour
             }
         }
 
+        int usedSlotIndex = loadout.ActiveIndex;
+
         loadout.TrySpendOneCharge();
         loadout.StartCooldownNow();
 
         if (!slot.def.infiniteCharges && slot.charges <= 0)
+        {
+            // 1) Убираем скилл из слота → он исчезнет из SkillBarUI
+            loadout.ClearSkillAtIndex(usedSlotIndex);
+
+            // 2) Переключаемся на следующий доступный
             loadout.SwitchToNextAvailable();
+        }
 
         PlayThrowThenIdle();
         if (chargeUI) chargeUI.SetCount(0);

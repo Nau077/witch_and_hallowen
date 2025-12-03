@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using System; // <-- ДОБАВЬ это пространство имён
+using System;
 
 [Serializable]
 public class SkillSlot
@@ -10,6 +10,7 @@ public class SkillSlot
 
     public bool HasCharges => def == null ? false : (def.infiniteCharges || charges > 0);
     public bool IsOnCooldown => def != null && Time.time < cooldownUntil;
+
     public float CooldownNormalized
     {
         get
@@ -23,19 +24,30 @@ public class SkillSlot
 
 public class SkillLoadout : MonoBehaviour
 {
+    public static SkillLoadout Instance { get; private set; }
+
     public const int SlotsCount = 5;
 
     public SkillSlot[] slots = new SkillSlot[SlotsCount];
 
     [SerializeField] private int activeIndex = 0;
     public int ActiveIndex => activeIndex;
-    public SkillSlot Active => (slots != null && activeIndex >= 0 && activeIndex < slots.Length) ? slots[activeIndex] : null;
+    public SkillSlot Active =>
+        (slots != null && activeIndex >= 0 && activeIndex < slots.Length)
+            ? slots[activeIndex]
+            : null;
 
-    // >>> НОВОЕ: событие старта кулдауна (slotIndex, duration)
     public event Action<int, float> OnCooldownStarted;
 
     void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+
         if (slots == null || slots.Length != SlotsCount)
             slots = new SkillSlot[SlotsCount];
 
@@ -96,7 +108,11 @@ public class SkillLoadout : MonoBehaviour
             if (IsSlotUsable(i))
             {
                 var s = slots[i];
-                if (s.def.infiniteCharges || s.charges > 0) { activeIndex = i; return; }
+                if (s.def.infiniteCharges || s.charges > 0)
+                {
+                    activeIndex = i;
+                    return;
+                }
             }
         }
         int any = FindNextUsableFrom(activeIndex, true);
@@ -116,10 +132,10 @@ public class SkillLoadout : MonoBehaviour
     {
         var s = Active;
         if (s == null || s.def == null) return;
-        if (!s.def.infiniteCharges && s.charges > 0) s.charges--;
+        if (!s.def.infiniteCharges && s.charges > 0)
+            s.charges--;
     }
 
-    // >>> ОБНОВЛЕНО: два метода запуска кулдауна + вызов события
     public void StartCooldownNow()
     {
         StartCooldownFor(activeIndex);
@@ -135,7 +151,6 @@ public class SkillLoadout : MonoBehaviour
         if (cd > 0f)
         {
             s.cooldownUntil = Time.time + cd;
-            // уведомим всех UI (в т.ч. ChargeDotsUI)
             OnCooldownStarted?.Invoke(index, cd);
         }
     }
@@ -144,5 +159,68 @@ public class SkillLoadout : MonoBehaviour
     {
         activeIndex = Mathf.Clamp(index, -1, (slots?.Length ?? 1) - 1);
         EnsureValidActive();
+    }
+
+    // ====== НОВОЕ: добавление зарядов в инвентарь ======
+
+    public bool AddChargesToSkill(SkillDefinition def, int amount)
+    {
+        if (def == null || amount <= 0) return false;
+        int n = slots?.Length ?? 0;
+        if (n == 0) return false;
+
+        // 1) скилл уже есть в одном из слотов
+        for (int i = 0; i < n; i++)
+        {
+            var s = slots[i];
+            if (s != null && s.def == def)
+            {
+                if (!s.def.infiniteCharges)
+                    s.charges += amount;
+                return true;
+            }
+        }
+
+        // 2) ищем пустой слот
+        for (int i = 0; i < n; i++)
+        {
+            if (slots[i] == null || slots[i].def == null)
+            {
+                if (slots[i] == null)
+                    slots[i] = new SkillSlot();
+
+                slots[i].def = def;
+                slots[i].cooldownUntil = 0f;
+                if (!def.infiniteCharges)
+                    slots[i].charges = amount;
+                else
+                    slots[i].charges = 0;
+
+                EnsureValidActive();
+                return true;
+            }
+        }
+
+        Debug.LogWarning("[SkillLoadout] Нет свободного слота для " + def.displayName);
+        return false;
+    }
+
+    /// <summary>
+    /// Очистить слот — скилл исчезает с панели.
+    /// </summary>
+    public void ClearSkillAtIndex(int index)
+    {
+        if (slots == null || index < 0 || index >= slots.Length) return;
+
+        var s = slots[index];
+        if (s != null)
+        {
+            s.def = null;
+            s.charges = 0;
+            s.cooldownUntil = 0f;
+        }
+
+        if (activeIndex == index)
+            EnsureValidActive();
     }
 }

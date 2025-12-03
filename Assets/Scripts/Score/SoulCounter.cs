@@ -124,7 +124,6 @@ public class SoulCounter : MonoBehaviour
     // === ТОЛЬКО при смерти игрока ===
     public void ResetRunGold_OnDeathOrRestart()
     {
-        // Если открыт экран победы — игнорируем случайный сброс
         if (victoryLock)
         {
             Debug.LogWarning("[SoulCounter] Run gold reset ignored during Victory (lock active).");
@@ -138,7 +137,6 @@ public class SoulCounter : MonoBehaviour
         UpdateUI(updateKills: false, updateGold: true);
     }
 
-    // === Экран смерти может забирать золото прошлого забега ===
     public int GetLastRunGoldAndClear(bool clear = false)
     {
         int last = PlayerPrefs.GetInt(LAST_RUN_GOLD_KEY, 0);
@@ -150,7 +148,6 @@ public class SoulCounter : MonoBehaviour
         return last;
     }
 
-    // Полный сброс прогресса убийств (метапрогресс)
     public void ResetKillsLifetime()
     {
         killsLifetime = 0;
@@ -163,6 +160,12 @@ public class SoulCounter : MonoBehaviour
     {
         if (updateKills && killsText) killsText.text = killsLifetime.ToString();
         if (updateGold && goldText) goldText.text = cursedGoldRun.ToString();
+    }
+
+    // <<< НОВОЕ: публичное обновление UI для кошелька душ >>>
+    public void RefreshUI()
+    {
+        UpdateUI(updateKills: true, updateGold: true);
     }
 
     // ---------- PUBLIC API ДЛЯ ЭКРАНА ПОБЕДЫ ----------
@@ -192,7 +195,6 @@ public class SoulCounter : MonoBehaviour
         }
     }
 
-    // Геттеры
     public int Kills => killsLifetime;
     public int RunGold => cursedGoldRun;
 
@@ -206,8 +208,6 @@ public class SoulCounter : MonoBehaviour
             StopCoroutine(killsAnimRoutine);
 
         killsAnimRoutine = StartCoroutine(AnimateIntRoutine(from, to, killsText));
-
-        // scale-прыжок счётчика душ
         AnimateTextPunch(killsText, ref killsScaleRoutine, killsBaseScale);
     }
 
@@ -219,8 +219,6 @@ public class SoulCounter : MonoBehaviour
             StopCoroutine(goldAnimRoutine);
 
         goldAnimRoutine = StartCoroutine(AnimateIntRoutine(from, to, goldText));
-
-        // scale-прыжок счётчика золота
         AnimateTextPunch(goldText, ref goldScaleRoutine, goldBaseScale);
     }
 
@@ -233,7 +231,7 @@ public class SoulCounter : MonoBehaviour
             yield break;
 
         int step = (to > from) ? 1 : -1;
-        const float stepDelay = 0.03f; // скорость перебора
+        const float stepDelay = 0.03f;
 
         while (current != to)
         {
@@ -242,8 +240,6 @@ public class SoulCounter : MonoBehaviour
             yield return new WaitForSeconds(stepDelay);
         }
     }
-
-    // ---------- ANIMATION HELPERS (scale-прыжок) ----------
 
     private void AnimateTextPunch(TMP_Text text, ref Coroutine routine, Vector3 baseScale)
     {
@@ -262,17 +258,15 @@ public class SoulCounter : MonoBehaviour
         float halfTime = counterPunchTime * 0.5f;
         float t = 0f;
 
-        // Увеличиваем
         while (t < halfTime)
         {
-            t += Time.unscaledDeltaTime; // чтобы не зависеть от Time.timeScale
+            t += Time.unscaledDeltaTime;
             float k = Mathf.Clamp01(t / halfTime);
             float s = Mathf.Lerp(1f, counterPunchScale, k);
             rect.localScale = baseScale * s;
             yield return null;
         }
 
-        // Возвращаем к базовому
         t = 0f;
         while (t < halfTime)
         {
@@ -285,8 +279,6 @@ public class SoulCounter : MonoBehaviour
 
         rect.localScale = baseScale;
     }
-
-    // ---------- AUDIO HELPERS ----------
 
     private void PlayKillSound()
     {

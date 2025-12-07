@@ -46,6 +46,12 @@ public class SoulCounter : MonoBehaviour
     [Tooltip("Время на полный цикл (увеличить и вернуть).")]
     public float counterPunchTime = 0.16f;
 
+     // Публичный хелпер для других скриптов (кошельки и т.п.)
+    public void RefreshUI()
+    {
+        UpdateUI(updateKills: true, updateGold: true);
+    }
+
     private Coroutine killsScaleRoutine;
     private Coroutine goldScaleRoutine;
 
@@ -160,12 +166,6 @@ public class SoulCounter : MonoBehaviour
     {
         if (updateKills && killsText) killsText.text = killsLifetime.ToString();
         if (updateGold && goldText) goldText.text = cursedGoldRun.ToString();
-    }
-
-    // <<< НОВОЕ: публичное обновление UI для кошелька душ >>>
-    public void RefreshUI()
-    {
-        UpdateUI(updateKills: true, updateGold: true);
     }
 
     // ---------- PUBLIC API ДЛЯ ЭКРАНА ПОБЕДЫ ----------

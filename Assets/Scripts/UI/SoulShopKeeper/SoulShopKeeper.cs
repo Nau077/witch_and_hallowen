@@ -8,6 +8,14 @@ public class SoulShopKeeper : MonoBehaviour
 
     private void OnMouseDown()
     {
+        // Сначала скажем шутеру, что этот клик был «служебный»
+        var shooter = FindObjectOfType<PlayerSkillShooter>();
+        if (shooter != null)
+        {
+            shooter.SkipNextClickFromUI();
+        }
+
+        // Потом уже открываем попап
         if (popup != null)
         {
             popup.Show();

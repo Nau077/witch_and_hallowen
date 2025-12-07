@@ -1,8 +1,9 @@
 using UnityEngine;
 
 /// <summary>
-/// Фасад для работы с душами как с "кошельком".
-/// Использует SoulCounter.cursedGoldRun.
+/// Кошелёк для ДУШ (souls).
+/// Использует SoulCounter.cursedGoldRun как источник правды.
+/// Вешаем, например, на объект SoulScore.
 /// </summary>
 public class PlayerSoulsWallet : MonoBehaviour
 {
@@ -18,12 +19,13 @@ public class PlayerSoulsWallet : MonoBehaviour
         Instance = this;
     }
 
+    /// <summary>Текущее количество душ в ран-забеге.</summary>
     public int CurrentSouls
     {
         get
         {
             if (SoulCounter.Instance == null) return 0;
-            return SoulCounter.Instance.cursedGoldRun;
+            return SoulCounter.Instance.cursedGoldRun;   // <-- ЭТО souls
         }
     }
 
@@ -36,8 +38,9 @@ public class PlayerSoulsWallet : MonoBehaviour
         if (SoulCounter.Instance != null)
         {
             SoulCounter.Instance.cursedGoldRun -= amount;
-            SoulCounter.Instance.RefreshUI();
+            SoulCounter.Instance.RefreshUI();   // обновляем текст душ
         }
+
         return true;
     }
 

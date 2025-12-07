@@ -9,7 +9,10 @@ public class ShopItemDefinition : ScriptableObject
     public Sprite icon;
 
     [Header("Price")]
+    [Tooltip("Чем платим за товар: Coins (монеты) или Souls (души).")]
     public ShopCurrency currency = ShopCurrency.Souls;
+
+    [Tooltip("Стоимость товара в выбранной валюте.")]
     public int price = 10;
 
     [Header("Skill effect")]

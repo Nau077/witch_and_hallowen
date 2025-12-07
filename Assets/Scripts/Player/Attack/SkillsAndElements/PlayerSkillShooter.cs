@@ -149,6 +149,16 @@ public class PlayerSkillShooter : MonoBehaviour
 
     void HandleInput()
     {
+        // 1) Если курсор сейчас над UI — не стреляем
+        if (EventSystem.current != null &&
+            EventSystem.current.IsPointerOverGameObject())
+        {
+            // просто игнорируем нажатия мыши в этом кадре
+            if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonUp(0))
+                return;
+        }
+
+        // 2) Обычная логика
         if (Input.GetMouseButtonDown(0))
         {
             if (_skipNextClickFromUI)
@@ -166,6 +176,7 @@ public class PlayerSkillShooter : MonoBehaviour
             ReleaseIfCharging();
         }
     }
+
 
     void HandleWheel()
     {

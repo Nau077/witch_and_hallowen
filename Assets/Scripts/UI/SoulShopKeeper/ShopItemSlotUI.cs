@@ -52,9 +52,8 @@ public class ShopItemSlotUI : MonoBehaviour
 
         if (priceText != null)
         {
-            // просто для ясности
-            string currencyLabel = _def.currency == ShopCurrency.Coins ? "coins" : "souls";
-            priceText.text = $"{_def.price} {currencyLabel}";
+            string currencySymbol = _def.currency == ShopCurrency.Coins ? "🪙" : "💀";
+            priceText.text = $"{_def.price} {currencySymbol}";
         }
 
         bool requirementsMet = true;
@@ -82,84 +81,47 @@ public class ShopItemSlotUI : MonoBehaviour
 
         bool paid = false;
 
-        switch (_def.currency)
+        // -------- COINS --------
+        if (_def.currency == ShopCurrency.Coins)
         {
-            // ====== ПОКУПКА ЗА COINS (монеты) ======
-            case ShopCurrency.Coins:
+            int coinsNow = PlayerWallet.Instance ? PlayerWallet.Instance.coins : -1;
+            Debug.Log($"[SHOP] Покупка '{_def.displayName}' за COINS. Price={_def.price}, coinsNow={coinsNow}");
+
+            if (PlayerWallet.Instance != null)
+                paid = PlayerWallet.Instance.TrySpend(_def.price);
+        }
+        // -------- SOULS (killsLifetime) --------
+        else // ShopCurrency.Souls
+        {
+            var sc = SoulCounter.Instance;
+            if (sc != null)
+            {
+                // Тратим именно killsLifetime — то, что показывается под черепом.
+                int soulsNow = sc.killsLifetime;
+                Debug.Log($"[SHOP] Покупка '{_def.displayName}' за SOULS. Price={_def.price}, soulsNow={soulsNow}");
+
+                if (soulsNow >= _def.price)
                 {
-                    int coinsNow = PlayerWallet.Instance ? PlayerWallet.Instance.coins : -1;
-                    Debug.Log($"[SHOP] Покупка '{_def.displayName}' за COINS. " +
-                              $"price={_def.price}, coinsNow={coinsNow}");
+                    sc.killsLifetime = soulsNow - _def.price;
+                    sc.RefreshUI();
+                    paid = true;
 
-                    if (PlayerWallet.Instance == null)
-                    {
-                        Debug.LogError("[SHOP] PlayerWallet.Instance == null, не могу списать coins.");
-                        paid = false;
-                    }
-                    else
-                    {
-                        paid = PlayerWallet.Instance.TrySpend(_def.price);
-                        Debug.Log($"[SHOP] TrySpend COINS -> {paid}, coinsAfter={PlayerWallet.Instance.coins}");
-                    }
-
-                    break;
+                    Debug.Log($"[SHOP] Покупка за SOULS успешна. Осталось souls={sc.killsLifetime}");
                 }
-
-            // ====== ПОКУПКА ЗА SOULS (души) ======
-            case ShopCurrency.Souls:
+                else
                 {
-                    int soulsNow = PlayerSoulsWallet.Instance != null
-                        ? PlayerSoulsWallet.Instance.CurrentSouls
-                        : (SoulCounter.Instance != null ? SoulCounter.Instance.cursedGoldRun : -1);
-
-                    Debug.Log($"[SHOP] Покупка '{_def.displayName}' за SOULS. " +
-                              $"price={_def.price}, soulsNow={soulsNow}");
-
-                    if (PlayerSoulsWallet.Instance != null)
-                    {
-                        paid = PlayerSoulsWallet.Instance.TrySpend(_def.price);
-                        Debug.Log($"[SHOP] PlayerSoulsWallet.TrySpend({_def.price}) -> {paid}, " +
-                                  $"soulsAfter={PlayerSoulsWallet.Instance.CurrentSouls}");
-                    }
-                    else if (SoulCounter.Instance != null)
-                    {
-                        // Fallback напрямую через SoulCounter, если по какой-то причине
-                        // кошелёк душ не инициализировался.
-                        var sc = SoulCounter.Instance;
-                        if (sc.cursedGoldRun >= _def.price)
-                        {
-                            sc.cursedGoldRun -= _def.price;
-                            sc.RefreshUI();
-                            paid = true;
-                            Debug.Log($"[SHOP] Fallback: списали SOULS через SoulCounter. " +
-                                      $"soulsAfter={sc.cursedGoldRun}");
-                        }
-                        else
-                        {
-                            paid = false;
-                            Debug.Log($"[SHOP] Fallback: недостаточно SOULS в SoulCounter. " +
-                                      $"have={sc.cursedGoldRun}, need={_def.price}");
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogError("[SHOP] Нет PlayerSoulsWallet и нет SoulCounter. " +
-                                       "Не могу списать SOULS.");
-                        paid = false;
-                    }
-
-                    break;
+                    Debug.Log($"[SHOP] Недостаточно SOULS: надо {_def.price}, есть {soulsNow}");
                 }
+            }
+            else
+            {
+                Debug.LogWarning("[SHOP] SoulCounter.Instance == null — не можем списать SOULS");
+            }
         }
 
         if (!paid)
-        {
-            Debug.Log($"[SHOP] Недостаточно {(_def.currency == ShopCurrency.Coins ? "COINS" : "SOULS")} " +
-                      $"для покупки '{_def.displayName}'.");
             return;
-        }
 
-        // ---------- ПРИМЕНЯЕМ ЭФФЕКТ ----------
         ApplyEffect();
 
         _purchased = true;
@@ -183,7 +145,7 @@ public class ShopItemSlotUI : MonoBehaviour
                 PlayerSkills.Instance.AddCharges(_def.skillId, _def.addCharges);
         }
 
-        // 2) Заряды в инвентарь (панель скиллов)
+        // 2) Заряды прямо в инвентарь (панель скиллов)
         if (_def.addCharges > 0 && _def.skillDef != null && SkillLoadout.Instance != null)
         {
             SkillLoadout.Instance.AddChargesToSkill(_def.skillDef, _def.addCharges);

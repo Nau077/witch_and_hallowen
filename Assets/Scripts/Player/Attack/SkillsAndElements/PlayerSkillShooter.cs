@@ -40,6 +40,8 @@ public class PlayerSkillShooter : MonoBehaviour
     public PlayerMana playerMana;
     public ManaBarUI manaBarUI;
 
+    public RunLevelManager runLevelManager;
+
     [Header("Enemy Zone")]
     public SpriteRenderer enemyZone;
     public float zoneTopPadding = 0.05f;
@@ -75,8 +77,6 @@ public class PlayerSkillShooter : MonoBehaviour
 
         if (!playerMana)
             playerMana = GetComponent<PlayerMana>();
-        if (!playerMana)
-            playerMana = FindObjectOfType<PlayerMana>();
 
         if (bodyRenderer == null)
         {
@@ -106,7 +106,9 @@ public class PlayerSkillShooter : MonoBehaviour
 
     void Start()
     {
+        runLevelManager = RunLevelManager.Instance;
         if (chargeUI) chargeUI.Clear();
+
     }
 
     void Update()
@@ -149,6 +151,10 @@ public class PlayerSkillShooter : MonoBehaviour
 
     void HandleInput()
     {
+        if (!runLevelManager.CanProcessGameplayInput())
+        {
+            return;
+        }
         // 1) Если курсор сейчас над UI — не стреляем
         if (EventSystem.current != null &&
             EventSystem.current.IsPointerOverGameObject())
@@ -180,6 +186,10 @@ public class PlayerSkillShooter : MonoBehaviour
 
     void HandleWheel()
     {
+        if (!runLevelManager.CanProcessGameplayInput())
+        {
+            return;
+        }
         if (loadout == null) return;
         float scroll = Input.mouseScrollDelta.y;
         if (Mathf.Abs(scroll) < 0.01f) return;

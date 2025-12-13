@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Unity.VisualScripting;
 
 public class SoulShopKeeperPopup : MonoBehaviour
 {
@@ -28,41 +29,37 @@ public class SoulShopKeeperPopup : MonoBehaviour
     [Tooltip("Товары за души (по порядку заполнят soulSlots).")]
     public ShopItemDefinition[] soulItems = new ShopItemDefinition[10];
 
+    private RunLevelManager runLevelManager;
+
     public bool enableCoinSection = true;
     public bool enableSoulSection = true;
 
     private void Awake()
     {
         if (popupRoot == null)
-            popupRoot = gameObject;
+            Debug.LogError("PopupRoot is not assigned!");
 
-        HideImmediate();
-
-        if (goToForestButton != null)
-            goToForestButton.onClick.AddListener(OnClickGoToForest);
-
-        if (closeButton != null)
-            closeButton.onClick.AddListener(OnClickClose);
+            popupRoot.SetActive(false);
     }
 
-    private void OnEnable()
+    private void Start()
     {
-        BuildShop();
+        // В Start уже безопаснее кэшировать, но всё равно будем перепроверять при использовании.
+        runLevelManager = RunLevelManager.Instance;
     }
 
     public void Show()
     {
-        if (popupRoot != null)
-        {
-            popupRoot.SetActive(true);
-            BuildShop();
-        }
+        popupRoot.SetActive(true);
+
+        RunLevelManager.Instance?.SetInputLocked(true);
+        BuildShop();
     }
 
     public void Hide()
     {
-        if (popupRoot != null)
-            popupRoot.SetActive(false);
+        RunLevelManager.Instance?.SetInputLocked(false);
+        popupRoot.SetActive(false);
     }
 
     public void HideImmediate() => Hide();
@@ -146,5 +143,11 @@ public class SoulShopKeeperPopup : MonoBehaviour
             foreach (var s in soulSlots)
                 if (s != null) s.RefreshVisual();
         }
+    }
+
+    private void OnDestroy()
+    {
+        if (RunLevelManager.Instance != null)
+            RunLevelManager.Instance.SetInputLocked(false);
     }
 }

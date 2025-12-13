@@ -42,6 +42,8 @@ public class RunLevelManager : MonoBehaviour
     [Tooltip("Попап после победы: содержит счёт / сундук / кнопку 'Войти в лес глубже'.")]
     public StageTransitionPopup stagePopup;
 
+    public static bool inputLocked;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -58,6 +60,16 @@ public class RunLevelManager : MonoBehaviour
     {
         Debug.Log("[RunLevelManager] Start → InitializeRun()");
         InitializeRun();
+    }
+
+    public bool CanProcessGameplayInput()
+    {
+        if (!inputLocked) { return true; } else { return false; }
+    }
+
+    public void SetInputLocked(bool val)
+    {
+        inputLocked = val;
     }
 
     /// <summary>

@@ -4475,6 +4475,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RunLevelManager
   maxStages: 8
   currentStage: 1
+  music: {fileID: 2026905446}
   playerHealth: {fileID: 201944542}
   playerTransform: {fileID: 201944537}
   playerStartPoint: {fileID: 1694546886}
@@ -9209,6 +9210,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2026905445}
   - component: {fileID: 2026905444}
+  - component: {fileID: 2026905446}
   m_Layer: 0
   m_Name: BattleMusic
   m_TagString: Untagged
@@ -9227,7 +9229,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 8300000, guid: e8c5d275ae792bd468c1faae88c12134, type: 3}
+  m_Resource: {fileID: 0}
   m_PlayOnAwake: 1
   m_Volume: 0.53
   m_Pitch: 1
@@ -9328,6 +9330,23 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2026905446
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2026905443}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 495edae5c0d7b7c42a8e3eed7a91f11d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StageMusicController
+  baseMusic: {fileID: 8300000, guid: 697ed697bb690c34bbcd5c9c69b9d8ac, type: 3}
+  battleMusic: {fileID: 8300000, guid: e8c5d275ae792bd468c1faae88c12134, type: 3}
+  stage5Music: {fileID: 0}
+  fadeDuration: 1.5
+  targetVolume: 0.5
 --- !u!224 &2087206162 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1124566145701538185, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}

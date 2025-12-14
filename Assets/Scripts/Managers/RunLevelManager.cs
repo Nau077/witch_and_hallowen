@@ -15,6 +15,10 @@ public class RunLevelManager : MonoBehaviour
     /// <summary>
     /// Количество этажей леса (без базы).
     /// </summary>
+    /// 
+    [Header("Audio")]
+    public StageMusicController music;
+
     public int TotalStages
     {
         get
@@ -87,6 +91,8 @@ public class RunLevelManager : MonoBehaviour
         DeactivateAllSpawners();
         ResetPlayerPosition();
         UpdateHudProgress();
+
+        music?.SetStage(currentStage);
 
         // --- ВАЖНО: уведомляем ShopKeeperManager ---
         ShopKeeperManager.Instance?.OnStageChanged(0);
@@ -210,6 +216,8 @@ public class RunLevelManager : MonoBehaviour
         {
             currentStage++;
 
+            music?.SetStage(currentStage);
+
             if (stagePopup != null)
                 stagePopup.Hide();
 
@@ -241,6 +249,8 @@ public class RunLevelManager : MonoBehaviour
         Debug.Log("[RunLevelManager] ReturnToBaseAfterDeath → stage = 0");
 
         currentStage = 0;
+
+        music?.SetStage(currentStage);
 
         if (stagePopup != null)
             stagePopup.HideImmediate();

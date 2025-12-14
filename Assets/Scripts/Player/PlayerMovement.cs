@@ -66,6 +66,19 @@ public class PlayerMovement : MonoBehaviour
     {
         if (isStunned) return;
 
+        // NEW: блокируем движение, когда RunLevelManager запретил ввод (например, открыт попап)
+        if (RunLevelManager.Instance != null && !RunLevelManager.Instance.CanProcessGameplayInput())
+        {
+            moveInput = 0f;
+
+            if (anim && anim.enabled) anim.SetBool("isRunning", false);
+
+            // можно ещё полностью остановить физику по X, чтобы не "доезжал"
+            if (rb) rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
+
+            return;
+        }
+
         if (hp != null && hp.IsDead)
         {
             if (anim && anim.enabled) anim.enabled = false;
@@ -97,6 +110,9 @@ public class PlayerMovement : MonoBehaviour
     {
         if (isStunned) return;
         if (hp != null && hp.IsDead) return;
+
+        if (RunLevelManager.Instance != null && !RunLevelManager.Instance.CanProcessGameplayInput())
+            return;
 
         // === скорость с учётом замаха ===
         float speedFactor = 1f;

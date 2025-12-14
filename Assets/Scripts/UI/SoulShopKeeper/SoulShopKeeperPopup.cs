@@ -37,15 +37,23 @@ public class SoulShopKeeperPopup : MonoBehaviour
     private void Awake()
     {
         if (popupRoot == null)
-            Debug.LogError("PopupRoot is not assigned!");
+        {
+            Debug.LogError("[SoulShopKeeperPopup] PopupRoot is not assigned!");
+            return;
+        }
 
-            popupRoot.SetActive(false);
+        popupRoot.SetActive(false);
     }
 
     private void Start()
     {
-        // В Start уже безопаснее кэшировать, но всё равно будем перепроверять при использовании.
         runLevelManager = RunLevelManager.Instance;
+
+        if (goToForestButton != null)
+            goToForestButton.onClick.AddListener(OnClickGoToForest);
+
+        if (closeButton != null)
+            closeButton.onClick.AddListener(OnClickClose);
     }
 
     public void Show()

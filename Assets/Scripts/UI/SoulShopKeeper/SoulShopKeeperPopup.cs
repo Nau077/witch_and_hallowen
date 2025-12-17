@@ -58,6 +58,11 @@ public class SoulShopKeeperPopup : MonoBehaviour
 
     public void Show()
     {
+        if (popupRoot.active) {
+            Hide();
+            return;
+        }
+
         popupRoot.SetActive(true);
 
         RunLevelManager.Instance?.SetInputLocked(true);

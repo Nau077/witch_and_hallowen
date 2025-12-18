@@ -52,8 +52,7 @@ public class ShopItemSlotUI : MonoBehaviour
 
         if (priceText != null)
         {
-            string currencySymbol = _def.currency == ShopCurrency.Coins ? "🪙" : "💀";
-            priceText.text = $"{_def.price} {currencySymbol}";
+            priceText.text = $"{_def.price}";
         }
 
         bool requirementsMet = true;

@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1c8d02c0fb9d32147ac04192a02ffc5e, type: 3}
-  m_Name: SI_IceShard_Scharges
+  m_Name: SI_Health_charges 1
   m_EditorClassIdentifier: Assembly-CSharp::ShopItemDefinition
-  itemId: ice_shard_5charges
-  displayName: +5 Ice Charges
-  icon: {fileID: 8612461263451032666, guid: ba11df581543b0045ba10e145207bad3, type: 3}
+  itemId: health points_charges
+  displayName: +5 Health points
+  icon: {fileID: 3782637567973053226, guid: 0f490d568767fa044b52e7c6cc5ead8b, type: 3}
   currency: 0
   price: 20
   skillDef: {fileID: 11400000, guid: c346e92dc04059d4bbc9a72386c91a79, type: 2}

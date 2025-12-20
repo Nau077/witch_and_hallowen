@@ -9,17 +9,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 719782ba5159cee4dad1ebe41bc3a375, type: 3}
-  m_Name: SKILL_Fireball
+  m_Script: {fileID: 11500000, guid: b7f63957faed2dd47a02d50eb09a4404, type: 3}
+  m_Name: SKILL_FIEBALLNew
   m_EditorClassIdentifier: Assembly-CSharp::SkillDefinition
-  displayName: Fireball
+  skillId: 1
+  displayName: 
   icon: {fileID: -33682183, guid: 0f490d568767fa044b52e7c6cc5ead8b, type: 3}
   element: 0
   projectilePrefab: {fileID: 1307152648960653708, guid: 9208ec402c3e7074cb98db0980c096a5, type: 3}
   damage: 10
   cooldown: 0.6
   xpPerUse: 1
-  manaCostPerShot: 5
+  manaCostPerShot: 10
   infiniteCharges: 1
   startCharges: 0
   coinCostPerCharge: 1

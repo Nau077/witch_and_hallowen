@@ -9,19 +9,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 719782ba5159cee4dad1ebe41bc3a375, type: 3}
+  m_Script: {fileID: 11500000, guid: b7f63957faed2dd47a02d50eb09a4404, type: 3}
   m_Name: SKILL_Ice
   m_EditorClassIdentifier: Assembly-CSharp::SkillDefinition
-  displayName: Ice Shard
-  icon: {fileID: 307799592, guid: 0f490d568767fa044b52e7c6cc5ead8b, type: 3}
+  skillId: 0
+  displayName: 
+  icon: {fileID: 0}
   element: 0
-  projectilePrefab: {fileID: 1307152648960653708, guid: 31cb199c84ca44943a5d7db6e3d1d2fa, type: 3}
-  damage: 30
+  projectilePrefab: {fileID: 0}
+  damage: 10
   cooldown: 0.6
   xpPerUse: 1
-  manaCostPerShot: 15
+  manaCostPerShot: 0
   infiniteCharges: 0
-  startCharges: 6
+  startCharges: 0
   coinCostPerCharge: 1
   tag: 0
   freezeSeconds: 0

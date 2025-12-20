@@ -1529,11 +1529,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkillLoadout
   slots:
-  - def: {fileID: 11400000, guid: ef8186b943d0f1d4baedec5035d5adb1, type: 2}
+  - def: {fileID: 11400000, guid: f505c74331bac294a9c8535d30c4b4c9, type: 2}
     charges: 0
     cooldownUntil: 0
-  - def: {fileID: 11400000, guid: c346e92dc04059d4bbc9a72386c91a79, type: 2}
-    charges: 10
+  - def: {fileID: 0}
+    charges: 0
     cooldownUntil: 0
   - def: {fileID: 0}
     charges: 0

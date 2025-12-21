@@ -7246,7 +7246,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 431.3, y: 74.46802}
+  m_AnchoredPosition: {x: 431.3, y: 70.7}
   m_SizeDelta: {x: 200, y: 16}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1248794623
@@ -10077,6 +10077,10 @@ MonoBehaviour:
   stage5Music: {fileID: 0}
   fadeDuration: 1.5
   targetVolume: 0.5
+  warmupOnAwake: 1
+  warmupFrames: 3
+  forceLoadAudioData: 1
+  queueStageWhileWarming: 1
 --- !u!224 &2087206162 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1124566145701538185, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}

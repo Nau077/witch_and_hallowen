@@ -1,23 +1,42 @@
-using UnityEngine;
+п»їusing UnityEngine;
 using TMPro;
 using System.Text;
 using System.Collections.Generic;
 
 public class InterLevelUI : MonoBehaviour
 {
-    [Tooltip("Текст, где показываем 0 -> I -> ( II ) -> III.")]
+    [Tooltip("Г’ГҐГЄГ±ГІ, ГЈГ¤ГҐ ГЇГ®ГЄГ Г§Г»ГўГ ГҐГ¬ 0 -> I -> ( II ) -> III.")]
     public TextMeshProUGUI progressText;
 
     private void Awake()
     {
         if (progressText == null)
             progressText = GetComponent<TextMeshProUGUI>();
+
+        if (progressText == null) return;
+
+        // 1пёЏвѓЈ Р¦РµРЅС‚СЂРёСЂРѕРІР°РЅРёРµ С‚РµРєСЃС‚Р° Р’РќРЈРўР Р РѕР±Р»Р°СЃС‚Рё
+        progressText.alignment = TextAlignmentOptions.Center;
+
+        // 2пёЏвѓЈ РћС‚РєР»СЋС‡Р°РµРј РІСЃС‘, С‡С‚Рѕ РјРѕР¶РµС‚ Р»РѕРјР°С‚СЊ РіРµРѕРјРµС‚СЂРёСЋ
+        progressText.enableAutoSizing = false;
+        progressText.wordSpacing = 0;
+        progressText.characterSpacing = 0;
+
+        // 3пёЏвѓЈ Р¦РµРЅС‚СЂРёСЂСѓРµРј СЃР°Рј RectTransform
+        RectTransform rt = progressText.rectTransform;
+
+        rt.anchorMin = new Vector2(0f, 0f);
+        rt.anchorMax = new Vector2(1f, 1f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+
+        rt.anchoredPosition = Vector2.zero;
     }
 
     /// <summary>
     /// currentStage: 0..totalForestStages
-    /// 0 = база, 1..N = этажи леса
-    /// totalForestStages = количество этажей леса (без базы).
+    /// 0 = ГЎГ Г§Г , 1..N = ГЅГІГ Г¦ГЁ Г«ГҐГ±Г 
+    /// totalForestStages = ГЄГ®Г«ГЁГ·ГҐГ±ГІГўГ® ГЅГІГ Г¦ГҐГ© Г«ГҐГ±Г  (ГЎГҐГ§ ГЎГ Г§Г»).
     /// </summary>
     public void SetProgress(int currentStage, int totalForestStages)
     {
@@ -30,20 +49,20 @@ public class InterLevelUI : MonoBehaviour
     {
         string[] romans = { "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X" };
 
-        // totalForestStages = сколько этажей леса мы реально показываем
+        // totalForestStages = Г±ГЄГ®Г«ГјГЄГ® ГЅГІГ Г¦ГҐГ© Г«ГҐГ±Г  Г¬Г» Г°ГҐГ Г«ГјГ­Г® ГЇГ®ГЄГ Г§Г»ГўГ ГҐГ¬
         totalForestStages = Mathf.Clamp(totalForestStages, 1, romans.Length);
-        // currentStage от 0 (база) до totalForestStages (последний этаж леса)
+        // currentStage Г®ГІ 0 (ГЎГ Г§Г ) Г¤Г® totalForestStages (ГЇГ®Г±Г«ГҐГ¤Г­ГЁГ© ГЅГІГ Г¦ Г«ГҐГ±Г )
         currentStage = Mathf.Clamp(currentStage, 0, totalForestStages);
 
         var parts = new List<string>();
 
-        // --- БАЗА (0) ---
+        // --- ГЃГЂГ‡ГЂ (0) ---
         if (currentStage == 0)
             parts.Add("( 0 )");
         else
             parts.Add("0");
 
-        // --- ЭТАЖИ ЛЕСА (I..N) ---
+        // --- ГќГ’ГЂГ†Г€ Г‹Г…Г‘ГЂ (I..N) ---
         for (int forestStage = 1; forestStage <= totalForestStages; forestStage++)
         {
             string label = romans[forestStage - 1];
@@ -54,7 +73,7 @@ public class InterLevelUI : MonoBehaviour
                 parts.Add(label);
         }
 
-        // Склеиваем "0 -> I -> II -> III"
+        // Г‘ГЄГ«ГҐГЁГўГ ГҐГ¬ "0 -> I -> II -> III"
         var sb = new StringBuilder();
         for (int i = 0; i < parts.Count; i++)
         {

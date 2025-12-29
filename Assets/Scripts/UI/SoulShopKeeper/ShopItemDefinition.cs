@@ -1,4 +1,13 @@
-using UnityEngine;
+п»їusing UnityEngine;
+
+public enum ShopItemEffectType
+{
+    None = 0,
+
+    // РџРµСЂРјР°РЅРµРЅС‚РЅС‹Рµ РїРѕРєСѓРїРєРё Р·Р° РґСѓС€Рё
+    IncreaseMaxHealth = 10,   // +50 max hp, РґРѕ 4 СЂР°Р·, С†РµРЅР° СЂР°СЃС‚С‘С‚
+    ResetSoulPerks = 11       // СЃР±СЂРѕСЃ РїРµСЂРєРѕРІ + РІРѕР·РІСЂР°С‚ РїРѕС‚СЂР°С‡РµРЅРЅС‹С… РґСѓС€
+}
 
 [CreateAssetMenu(fileName = "ShopItem", menuName = "Shop/Shop Item")]
 public class ShopItemDefinition : ScriptableObject
@@ -9,31 +18,31 @@ public class ShopItemDefinition : ScriptableObject
     public Sprite icon;
 
     [Header("Price")]
-    [Tooltip("Чем платим за товар: Coins (монеты) или Souls (души).")]
+    [Tooltip("Р§РµРј РїР»Р°С‚РёРј Р·Р° С‚РѕРІР°СЂ: Coins (РјРѕРЅРµС‚С‹) РёР»Рё Souls (РґСѓС€Рё).")]
     public ShopCurrency currency = ShopCurrency.Souls;
 
-    [Tooltip("Стоимость товара в выбранной валюте.")]
+    [Tooltip("Р‘Р°Р·РѕРІР°СЏ СЃС‚РѕРёРјРѕСЃС‚СЊ (РґР»СЏ РѕР±С‹С‡РЅС‹С… С‚РѕРІР°СЂРѕРІ). Р”Р»СЏ РїРµСЂРєРѕРІ (IncreaseMaxHealth) С†РµРЅР° Р±РµСЂС‘С‚СЃСЏ РґРёРЅР°РјРёС‡РµСЃРєРё.")]
     public int price = 10;
 
-    [Header("Skill effect")]
-    [Tooltip("Конкретный SkillDefinition, в который добавляем заряды в инвентарь.")]
+    [Header("Effect Type")]
+    [Tooltip("РўРёРї СЌС„С„РµРєС‚Р°. Р”Р»СЏ РѕР±С‹С‡РЅС‹С… РїСЂРµРґРјРµС‚РѕРІ РѕСЃС‚Р°РІСЊ None.")]
+    public ShopItemEffectType effectType = ShopItemEffectType.None;
+
+    // -------------------------
+    // РЎС‚Р°СЂРѕРµ: СЃРєРёР»Р»С‹/Р·Р°СЂСЏРґС‹
+    // -------------------------
+    [Header("Skill effect (optional)")]
     public SkillDefinition skillDef;
 
-    [Tooltip("ID скила для системы прогресса.")]
     public SkillId skillId = SkillId.None;
 
-    [Tooltip("Если true — разлочить скилл и выставить ему уровень.")]
     public bool unlockSkill = false;
     public int unlockLevel = 1;
 
-    [Tooltip("Если > 0, установить минимум такой уровень.")]
     public int upgradeToLevel = 0;
-
-    [Tooltip("Сколько зарядов добавить в инвентарь (SkillLoadout).")]
     public int addCharges = 0;
 
     [Header("Availability conditions")]
-    [Tooltip("Скилл, который должен быть разлочен, чтобы товар стал активен.")]
     public SkillId requiredSkill = SkillId.None;
     public int requiredSkillLevel = 1;
 }

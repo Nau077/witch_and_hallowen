@@ -1,7 +1,5 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
-using Unity.VisualScripting;
 
 public class SoulShopKeeperPopup : MonoBehaviour
 {
@@ -29,7 +27,8 @@ public class SoulShopKeeperPopup : MonoBehaviour
     [Tooltip("Товары за души (по порядку заполнят soulSlots).")]
     public ShopItemDefinition[] soulItems = new ShopItemDefinition[10];
 
-    private RunLevelManager runLevelManager;
+    [Header("Right perks panel (optional)")]
+    public SoulPerksPanelUI perksPanelUI;
 
     public bool enableCoinSection = true;
     public bool enableSoulSection = true;
@@ -47,8 +46,6 @@ public class SoulShopKeeperPopup : MonoBehaviour
 
     private void Start()
     {
-        runLevelManager = RunLevelManager.Instance;
-
         if (goToForestButton != null)
             goToForestButton.onClick.AddListener(OnClickGoToForest);
 
@@ -58,7 +55,8 @@ public class SoulShopKeeperPopup : MonoBehaviour
 
     public void Show()
     {
-        if (popupRoot.active) {
+        if (popupRoot.active)
+        {
             Hide();
             return;
         }
@@ -67,6 +65,10 @@ public class SoulShopKeeperPopup : MonoBehaviour
 
         RunLevelManager.Instance?.SetInputLocked(true);
         BuildShop();
+
+        // обновим правую панель
+        if (perksPanelUI != null)
+            perksPanelUI.Refresh();
     }
 
     public void Hide()
@@ -80,9 +82,8 @@ public class SoulShopKeeperPopup : MonoBehaviour
     public void OnClickGoToForest()
     {
         if (RunLevelManager.Instance != null)
-        {
             RunLevelManager.Instance.GoDeeper();
-        }
+
         Hide();
     }
 
@@ -94,6 +95,9 @@ public class SoulShopKeeperPopup : MonoBehaviour
     public void OnShopItemPurchased(ShopItemDefinition purchasedDef)
     {
         RefreshAllSlots();
+
+        if (perksPanelUI != null)
+            perksPanelUI.Refresh();
     }
 
     private void BuildShop()

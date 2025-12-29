@@ -17,11 +17,12 @@ MonoBehaviour:
   icon: {fileID: 3782637567973053226, guid: 0f490d568767fa044b52e7c6cc5ead8b, type: 3}
   currency: 0
   price: 20
+  effectType: 0
   skillDef: {fileID: 11400000, guid: c346e92dc04059d4bbc9a72386c91a79, type: 2}
   skillId: 2
-  unlockSkill: 0
+  unlockSkill: 1
   unlockLevel: 1
   upgradeToLevel: 0
   addCharges: 5
-  requiredSkill: 0
+  requiredSkill: 2
   requiredSkillLevel: 1

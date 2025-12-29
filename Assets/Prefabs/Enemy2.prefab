@@ -443,7 +443,7 @@ MonoBehaviour:
   spatialize: 0
   outputMixerGroup: {fileID: 0}
   hitParticlesPrefab: {fileID: 7984036513694368032, guid: 6d45aba05e75f5745bce26e6e69069ba, type: 3}
-  cursedGoldOnDeath: 10
+  cursedGoldOnDeath: 6
   canBeFrozen: 1
   freezeVfxPrefab: {fileID: 5442192347887330783, guid: b55271d71f4a32741af236e172a8e68b, type: 3}
   freezeVfxOffset: {x: 0, y: 0.3}

@@ -12,14 +12,12 @@ public class ShopItemSlotUI : MonoBehaviour
     public CanvasGroup canvasGroup;
 
     private ShopItemDefinition _def;
-    private bool _purchased;
     private SoulShopKeeperPopup _ownerPopup;
 
     public void Setup(SoulShopKeeperPopup owner, ShopItemDefinition def)
     {
         _ownerPopup = owner;
         _def = def;
-        _purchased = false;
 
         RefreshVisual();
         HookButton();
@@ -50,13 +48,11 @@ public class ShopItemSlotUI : MonoBehaviour
         if (nameText != null)
             nameText.text = _def.displayName;
 
+        int shownPrice = GetCurrentPrice();
         if (priceText != null)
-        {
-            priceText.text = $"{_def.price}";
-        }
+            priceText.text = $"{shownPrice}";
 
         bool requirementsMet = true;
-
         if (PlayerSkills.Instance != null)
         {
             requirementsMet = PlayerSkills.Instance.MeetsRequirement(
@@ -65,7 +61,7 @@ public class ShopItemSlotUI : MonoBehaviour
             );
         }
 
-        bool canInteract = requirementsMet && !_purchased;
+        bool canInteract = requirementsMet && CanPurchaseNow();
 
         if (buyButton != null)
             buyButton.interactable = canInteract;
@@ -74,62 +70,112 @@ public class ShopItemSlotUI : MonoBehaviour
             canvasGroup.alpha = canInteract ? 1f : 0.35f;
     }
 
-    private void OnClickBuy()
+    private int GetCurrentPrice()
     {
-        if (_def == null || _purchased) return;
+        if (_def == null) return 0;
 
-        bool paid = false;
+        // Динамическая цена для перка HP
+        if (_def.effectType == ShopItemEffectType.IncreaseMaxHealth)
+        {
+            var perks = SoulPerksManager.Instance;
+            if (perks != null)
+                return perks.GetHealthUpgradePrice();
+        }
 
-        // -------- COINS --------
+        return _def.price;
+    }
+
+    private bool CanPurchaseNow()
+    {
+        if (_def == null) return false;
+
+        // Перманентные перки за души
+        if (_def.currency == ShopCurrency.Souls)
+        {
+            var perks = SoulPerksManager.Instance;
+            var sc = SoulCounter.Instance;
+
+            if (sc == null) return false;
+
+            if (_def.effectType == ShopItemEffectType.IncreaseMaxHealth)
+            {
+                return perks != null && perks.CanBuyHealthUpgrade();
+            }
+
+            if (_def.effectType == ShopItemEffectType.ResetSoulPerks)
+            {
+                // Можно нажимать только если есть что сбрасывать
+                return perks != null && perks.HasAnythingToReset();
+            }
+
+            // Обычные товары за души (если оставишь такие)
+            return sc.killsLifetime >= _def.price;
+        }
+
+        // Coins
         if (_def.currency == ShopCurrency.Coins)
         {
-            int coinsNow = PlayerWallet.Instance ? PlayerWallet.Instance.coins : -1;
-            Debug.Log($"[SHOP] Покупка '{_def.displayName}' за COINS. Price={_def.price}, coinsNow={coinsNow}");
-
-            if (PlayerWallet.Instance != null)
-                paid = PlayerWallet.Instance.TrySpend(_def.price);
+            return PlayerWallet.Instance != null && PlayerWallet.Instance.CanSpend(_def.price);
         }
-        // -------- SOULS (killsLifetime) --------
-        else // ShopCurrency.Souls
+
+        return false;
+    }
+
+    private void OnClickBuy()
+    {
+        if (_def == null) return;
+
+        bool paidOrDone = false;
+
+        // --- SOUL PERKS ---
+        if (_def.currency == ShopCurrency.Souls)
         {
-            var sc = SoulCounter.Instance;
-            if (sc != null)
+            var perks = SoulPerksManager.Instance;
+
+            if (_def.effectType == ShopItemEffectType.IncreaseMaxHealth)
             {
-                // Тратим именно killsLifetime — то, что показывается под черепом.
-                int soulsNow = sc.killsLifetime;
-                Debug.Log($"[SHOP] Покупка '{_def.displayName}' за SOULS. Price={_def.price}, soulsNow={soulsNow}");
-
-                if (soulsNow >= _def.price)
-                {
-                    sc.killsLifetime = soulsNow - _def.price;
-                    sc.RefreshUI();
-                    paid = true;
-
-                    Debug.Log($"[SHOP] Покупка за SOULS успешна. Осталось souls={sc.killsLifetime}");
-                }
-                else
-                {
-                    Debug.Log($"[SHOP] Недостаточно SOULS: надо {_def.price}, есть {soulsNow}");
-                }
+                if (perks != null)
+                    paidOrDone = perks.TryBuyHealthUpgrade();
+            }
+            else if (_def.effectType == ShopItemEffectType.ResetSoulPerks)
+            {
+                if (perks != null)
+                    paidOrDone = perks.ResetAllPerksWithRefund();
             }
             else
             {
-                Debug.LogWarning("[SHOP] SoulCounter.Instance == null — не можем списать SOULS");
+                // обычная покупка за души (killsLifetime)
+                var sc = SoulCounter.Instance;
+                if (sc != null && sc.killsLifetime >= _def.price)
+                {
+                    sc.killsLifetime -= _def.price;
+                    sc.RefreshUI();
+                    paidOrDone = true;
+
+                    ApplyEffect_RegularShopItem();
+                }
+            }
+        }
+        // --- COINS ---
+        else if (_def.currency == ShopCurrency.Coins)
+        {
+            if (PlayerWallet.Instance != null)
+            {
+                paidOrDone = PlayerWallet.Instance.TrySpend(_def.price);
+                if (paidOrDone)
+                    ApplyEffect_RegularShopItem();
             }
         }
 
-        if (!paid)
+        if (!paidOrDone)
             return;
 
-        ApplyEffect();
-
-        _purchased = true;
+        // Обновляем UI магазина + правую панель
         RefreshVisual();
-
         _ownerPopup?.OnShopItemPurchased(_def);
     }
 
-    private void ApplyEffect()
+    private void ApplyEffect_RegularShopItem()
     {
         // 1) Прогресс/разблокировка скиллов
         if (PlayerSkills.Instance != null && _def.skillId != SkillId.None)

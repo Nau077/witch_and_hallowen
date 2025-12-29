@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b7f63957faed2dd47a02d50eb09a4404, type: 3}
   m_Name: SKILL_Ice
   m_EditorClassIdentifier: Assembly-CSharp::SkillDefinition
-  skillId: 0
+  skillId: 2
   displayName: 
-  icon: {fileID: 0}
-  element: 0
-  projectilePrefab: {fileID: 0}
+  icon: {fileID: 8612461263451032666, guid: ba11df581543b0045ba10e145207bad3, type: 3}
+  element: 1
+  projectilePrefab: {fileID: 1307152648960653708, guid: 31cb199c84ca44943a5d7db6e3d1d2fa, type: 3}
   damage: 10
   cooldown: 0.6
   xpPerUse: 1

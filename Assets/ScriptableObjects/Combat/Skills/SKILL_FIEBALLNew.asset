@@ -20,7 +20,7 @@ MonoBehaviour:
   damage: 10
   cooldown: 0.6
   xpPerUse: 1
-  manaCostPerShot: 10
+  manaCostPerShot: 5
   infiniteCharges: 1
   startCharges: 0
   coinCostPerCharge: 1

@@ -49,6 +49,9 @@ public class PlayerHealth : MonoBehaviour
     // Процент хп для UI
     public float Normalized => maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
 
+    [SerializeField] private int baseMaxHealth;
+    [SerializeField] private int permanentMaxHealthBonus;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -290,6 +293,13 @@ public class PlayerHealth : MonoBehaviour
         }
 
         popup.Setup(amount);
+    }
+
+    public void ApplyPermanentMaxHpBonus(int bonus)
+    {
+        maxHealth = baseMaxHealth + Mathf.Max(0, bonus);
+        currentHealth = Mathf.Min(currentHealth, maxHealth);
+        // если у тебя есть UI-обновление — дерни его тут
     }
 
 #if UNITY_EDITOR

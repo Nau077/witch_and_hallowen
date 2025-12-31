@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SkillDefinition
   skillId: 2
   displayName: 
-  icon: {fileID: 8612461263451032666, guid: ba11df581543b0045ba10e145207bad3, type: 3}
+  icon: {fileID: 307799592, guid: 0f490d568767fa044b52e7c6cc5ead8b, type: 3}
   element: 1
   projectilePrefab: {fileID: 1307152648960653708, guid: 31cb199c84ca44943a5d7db6e3d1d2fa, type: 3}
   damage: 10
   cooldown: 0.6
   xpPerUse: 1
-  manaCostPerShot: 0
+  manaCostPerShot: 20
   infiniteCharges: 0
   startCharges: 0
   coinCostPerCharge: 1

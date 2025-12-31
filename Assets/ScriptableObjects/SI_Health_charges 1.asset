@@ -18,8 +18,8 @@ MonoBehaviour:
   currency: 0
   price: 20
   effectType: 0
-  skillDef: {fileID: 11400000, guid: c346e92dc04059d4bbc9a72386c91a79, type: 2}
-  skillId: 2
+  skillDef: {fileID: 0}
+  skillId: 0
   unlockSkill: 1
   unlockLevel: 1
   upgradeToLevel: 0

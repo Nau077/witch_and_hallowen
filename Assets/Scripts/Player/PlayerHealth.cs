@@ -68,6 +68,8 @@ public class PlayerHealth : MonoBehaviour
         if (anim) anim.enabled = true;
 
         currentHealth = maxHealth;
+        if (baseMaxHealth <= 0)
+            baseMaxHealth = maxHealth;
         UpdateBar();
 
         // визуал "живая ведьма" на старте
@@ -297,9 +299,18 @@ public class PlayerHealth : MonoBehaviour
 
     public void ApplyPermanentMaxHpBonus(int bonus)
     {
-        maxHealth = baseMaxHealth + Mathf.Max(0, bonus);
-        currentHealth = Mathf.Min(currentHealth, maxHealth);
-        // если у тебя есть UI-обновление — дерни его тут
+        int oldMax = maxHealth;
+
+        permanentMaxHealthBonus = Mathf.Max(0, bonus);
+        maxHealth = baseMaxHealth + permanentMaxHealthBonus;
+
+        // Если maxHealth вырос — лечим до фулла (как ты хочешь)
+        if (maxHealth > oldMax)
+            currentHealth = maxHealth;
+        else
+            currentHealth = Mathf.Min(currentHealth, maxHealth);
+
+        UpdateBar();
     }
 
 #if UNITY_EDITOR

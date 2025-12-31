@@ -22,8 +22,15 @@ public class SoulPerksPanelUI : MonoBehaviour
 
     private void OnEnable()
     {
+        //   Refresh();
+        Invoke(nameof(Refresh), 0f);
+    }
+
+    private void Start()
+    {
         Refresh();
     }
+
 
     public void Refresh()
     {
@@ -33,8 +40,9 @@ public class SoulPerksPanelUI : MonoBehaviour
         if (perks == null) return;
 
         int hpLevel = perks.HpLevel; // 0..4
+        int totalHearts = 1 + hpLevel; // 1 базовое + купленные
 
-        for (int i = 0; i < hpLevel; i++)
+        for (int i = 0; i < totalHearts; i++)
         {
             SpawnIcon(hpStickSprite);
         }

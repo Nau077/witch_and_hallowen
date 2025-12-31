@@ -20,6 +20,8 @@ public class SoulPerksManager : MonoBehaviour
 
     public int HpLevel { get; private set; }       // 0..4
     public int SoulsSpent { get; private set; }    // суммарно потрачено на перки
+    [Header("Perk: Reset")]
+    public int resetPrice = 100;
 
     private void Awake()
     {
@@ -103,11 +105,21 @@ public class SoulPerksManager : MonoBehaviour
             return false;
 
         var sc = SoulCounter.Instance;
-        if (sc != null)
-        {
-            sc.killsLifetime += SoulsSpent;
-            sc.RefreshUI();
-        }
+        if (sc == null) return false;
+
+        // Нужны деньги на кнопку Reset
+        if (sc.killsLifetime < resetPrice)
+            return false;
+
+        // Сколько вернуть: потрачено минус цена reset (не меньше 0)
+        int refund = Mathf.Max(0, SoulsSpent - resetPrice);
+
+        // Списание reset
+        sc.killsLifetime -= resetPrice;
+
+        // Возврат
+        sc.killsLifetime += refund;
+        sc.RefreshUI();
 
         HpLevel = 0;
         SoulsSpent = 0;

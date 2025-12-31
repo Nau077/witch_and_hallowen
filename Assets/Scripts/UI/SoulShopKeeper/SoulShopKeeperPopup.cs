@@ -94,10 +94,18 @@ public class SoulShopKeeperPopup : MonoBehaviour
 
     public void OnShopItemPurchased(ShopItemDefinition purchasedDef)
     {
+        Debug.Log($"[SoulShopKeeperPopup] OnShopItemPurchased: {(purchasedDef ? purchasedDef.name : "null")}");
         RefreshAllSlots();
 
         if (perksPanelUI != null)
+        {
+            Debug.Log("[SoulShopKeeperPopup] perksPanelUI.Refresh()");
             perksPanelUI.Refresh();
+        }
+        else
+        {
+            Debug.LogWarning("[SoulShopKeeperPopup] perksPanelUI is NULL (not assigned in Inspector)");
+        }
     }
 
     private void BuildShop()

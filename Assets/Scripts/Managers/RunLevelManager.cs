@@ -5,17 +5,11 @@ public class RunLevelManager : MonoBehaviour
     public static RunLevelManager Instance { get; private set; }
 
     [Header("Stages (logical levels)")]
-    [Tooltip("Общее количество логических уровней леса (без базы). Обычно = числу спавнеров.")]
     public int maxStages = 8;
 
-    [Tooltip("Текущий логический уровень (0..maxStages).\n0 = база, 1 = первый этаж леса.")]
     [SerializeField] private int currentStage = 0;
     public int CurrentStage => currentStage;
 
-    /// <summary>
-    /// Количество этажей леса (без базы).
-    /// </summary>
-    /// 
     [Header("Audio")]
     public StageMusicController music;
 
@@ -32,21 +26,19 @@ public class RunLevelManager : MonoBehaviour
     [Header("Player refs")]
     public PlayerHealth playerHealth;
     public Transform playerTransform;
-    [Tooltip("Точка появления игрока на базе (и при начале этажа).")]
     public Transform playerStartPoint;
 
     [Header("Spawners by stage")]
-    [Tooltip("Спавнеры для этажей леса. Индекс 0 = этаж 1, индекс 1 = этаж 2 и т.д.")]
     public EnemyTopSpawner[] stageSpawners;
 
     [Header("UI")]
-    [Tooltip("HUD с линией прогрессии (0 -> I -> ( II ) -> III).")]
     public InterLevelUI interLevelUI;
-
-    [Tooltip("Попап после победы: содержит счёт / сундук / кнопку 'Войти в лес глубже'.")]
     public StageTransitionPopup stagePopup;
 
     public static bool inputLocked;
+
+    [Header("Player Mana (optional assign)")]
+    public PlayerMana playerMana;
 
     private void Awake()
     {
@@ -57,7 +49,11 @@ public class RunLevelManager : MonoBehaviour
         }
 
         Instance = this;
-        Debug.Log("[RunLevelManager] Awake. Instance установлен.");
+
+        // <-- ВАЖНО: подхватываем ману даже если не назначили в инспекторе
+        EnsurePlayerMana();
+
+        Debug.Log($"[RunLevelManager] Awake. Instance установлен. playerMana={(playerMana ? playerMana.name : "NULL")}");
     }
 
     private void Start()
@@ -66,9 +62,39 @@ public class RunLevelManager : MonoBehaviour
         InitializeRun();
     }
 
+    private void EnsurePlayerMana()
+    {
+        if (playerMana != null) return;
+
+        // 1) пробуем с playerHealth
+        if (playerHealth != null)
+            playerMana = playerHealth.GetComponent<PlayerMana>();
+
+        // 2) пробуем с playerTransform
+        if (playerMana == null && playerTransform != null)
+            playerMana = playerTransform.GetComponent<PlayerMana>();
+
+        // 3) крайний случай: ищем в сцене
+        if (playerMana == null)
+            playerMana = FindObjectOfType<PlayerMana>(true);
+    }
+
+    private void FillManaToMaxSafe(string reason)
+    {
+        EnsurePlayerMana();
+        if (playerMana == null)
+        {
+            Debug.LogWarning($"[RunLevelManager] FillManaToMaxSafe skipped ({reason}) — playerMana is NULL");
+            return;
+        }
+
+        playerMana.FillToMax();
+        Debug.Log($"[RunLevelManager] Mana filled to max ({reason}). currentMana={playerMana.currentMana}/{playerMana.maxMana}");
+    }
+
     public bool CanProcessGameplayInput()
     {
-        if (!inputLocked) { return true; } else { return false; }
+        return !inputLocked;
     }
 
     public void SetInputLocked(bool val)
@@ -76,9 +102,6 @@ public class RunLevelManager : MonoBehaviour
         inputLocked = val;
     }
 
-    /// <summary>
-    /// Начинаем забег с базы (этаж 0).
-    /// </summary>
     public void InitializeRun()
     {
         currentStage = 0;
@@ -94,7 +117,9 @@ public class RunLevelManager : MonoBehaviour
 
         music?.SetStage(currentStage);
 
-        // --- ВАЖНО: уведомляем ShopKeeperManager ---
+        // На базе тоже можно фуллить (не мешает, зато дебаг проще)
+        FillManaToMaxSafe("InitializeRun (base)");
+
         ShopKeeperManager.Instance?.OnStageChanged(0);
     }
 
@@ -102,9 +127,7 @@ public class RunLevelManager : MonoBehaviour
     {
         var vc = FindObjectOfType<LevelVictoryController>();
         if (vc != null)
-        {
             vc.ResetForNewStage();
-        }
     }
 
     private void UpdateHudProgress()
@@ -123,26 +146,16 @@ public class RunLevelManager : MonoBehaviour
     private void ResetPlayerPosition()
     {
         if (playerTransform != null && playerStartPoint != null)
-        {
             playerTransform.position = playerStartPoint.position;
-        }
     }
 
     private void DeactivateAllSpawners()
     {
         if (stageSpawners == null) return;
-
         foreach (var sp in stageSpawners)
-        {
-            if (sp != null)
-                sp.gameObject.SetActive(false);
-        }
+            if (sp != null) sp.gameObject.SetActive(false);
     }
 
-    /// <summary>
-    /// Активируем спавнер только для этажей леса (1..TotalStages).
-    /// Для базы (0) спавнеры не включаем.
-    /// </summary>
     private void ActivateSpawnerForStage(int stage)
     {
         if (stage <= 0)
@@ -175,9 +188,6 @@ public class RunLevelManager : MonoBehaviour
         sp.gameObject.SetActive(true);
     }
 
-    /// <summary>
-    /// Вызывается LevelVictoryController после победы.
-    /// </summary>
     public void OnStageCleared()
     {
         int totalStages = TotalStages;
@@ -189,7 +199,6 @@ public class RunLevelManager : MonoBehaviour
             return;
         }
 
-        // --- уведомляем ShopKeeperManager (если включим логику "появиться после победы") ---
         ShopKeeperManager.Instance?.OnStageCleared(currentStage);
 
         if (stagePopup != null)
@@ -204,9 +213,6 @@ public class RunLevelManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Переход на следующий логический уровень.
-    /// </summary>
     public void GoDeeper()
     {
         int totalStages = TotalStages;
@@ -227,7 +233,9 @@ public class RunLevelManager : MonoBehaviour
             ActivateSpawnerForStage(currentStage);
             UpdateHudProgress();
 
-            // --- уведомляем менеджер ---
+            // <-- ВАЖНО: фуллим после входа на новый stage (а не до)
+            FillManaToMaxSafe($"Enter stage {currentStage}");
+
             ShopKeeperManager.Instance?.OnStageChanged(currentStage);
         }
         else
@@ -241,9 +249,6 @@ public class RunLevelManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Игрок умер → возвращаем на базу.
-    /// </summary>
     public void ReturnToBaseAfterDeath()
     {
         Debug.Log("[RunLevelManager] ReturnToBaseAfterDeath → stage = 0");
@@ -264,19 +269,15 @@ public class RunLevelManager : MonoBehaviour
         ResetPlayerPosition();
         UpdateHudProgress();
 
-        // --- уведомляем менеджер ---
+        // На базе тоже фуллим, чтобы после смерти всё было предсказуемо
+        FillManaToMaxSafe("ReturnToBaseAfterDeath");
+
         ShopKeeperManager.Instance?.OnStageChanged(0);
     }
 
     public void ReturnToMenu()
     {
-        if (GameFlow.Instance != null)
-        {
-            GameFlow.Instance.LoadMainMenu();
-        }
-        else
-        {
-            Debug.LogWarning("[RunLevelManager] ReturnToMenu: нет GameFlow.Instance.");
-        }
+        if (GameFlow.Instance != null) GameFlow.Instance.LoadMainMenu();
+        else Debug.LogWarning("[RunLevelManager] ReturnToMenu: нет GameFlow.Instance.");
     }
 }

@@ -4780,7 +4780,7 @@ MonoBehaviour:
   cursedGoldRun: 0
   defaultGoldPerKill: 10
   killsText: {fileID: 983212230}
-  goldText: {fileID: 1074724114}
+  goldText: {fileID: 0}
   audioSource: {fileID: 743115437}
   killSfx: {fileID: 0}
   goldSfx: {fileID: 8300000, guid: 2a99623b82605204a9236ad54287e615, type: 3}
@@ -5079,6 +5079,7 @@ MonoBehaviour:
   - {fileID: 751247381}
   interLevelUI: {fileID: 1118943245}
   stagePopup: {fileID: 1782959089}
+  playerMana: {fileID: 0}
 --- !u!4 &765279634
 Transform:
   m_ObjectHideFlags: 0
@@ -5796,7 +5797,7 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
-  perksPanelUI: {fileID: 0}
+  perksPanelUI: {fileID: 1029167812}
   enableCoinSection: 1
   enableSoulSection: 1
 --- !u!114 &932788304
@@ -6676,6 +6677,8 @@ MonoBehaviour:
   content: {fileID: 1029167811}
   iconPrefab: {fileID: 7410972412674622390, guid: be03e409c2f5218448661187775a7523, type: 3}
   hpStickSprite: {fileID: 7910273412404247695, guid: 8091c7e48a78b444eb6bb8b6b85231cb, type: 3}
+  topPadding: 8
+  forcePaddingEachRefresh: 1
 --- !u!114 &1029167813
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8724,7 +8727,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 429.03, y: -1}
+  m_AnchoredPosition: {x: 418.7, y: -2}
   m_SizeDelta: {x: -1151.44, y: -93.445}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1510070785
@@ -11250,8 +11253,8 @@ RectTransform:
   - {fileID: 1635589298}
   - {fileID: 1782959090}
   - {fileID: 932788302}
-  - {fileID: 1330846071}
   - {fileID: 1510070784}
+  - {fileID: 1330846071}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}

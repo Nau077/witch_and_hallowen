@@ -1,14 +1,13 @@
-using UnityEngine;
+п»їusing UnityEngine;
 
 [DisallowMultipleComponent]
 public class PlayerMana : MonoBehaviour
 {
     [Header("Mana")]
-    [Min(1)] public int maxMana = 50;           // максимум
-    [Min(0)] public int currentMana = 50;       // текущее (отображение/для инспектора)
-    [Min(0f)] public float regenPerSecond = 2f; // скорость регена (ед/сек)
+    [Min(1)] public int maxMana = 50;
+    [Min(0)] public int currentMana = 50;
+    [Min(0f)] public float regenPerSecond = 2f;
 
-    // внутренняя точная мана (с дробной частью)
     private float _manaExact;
 
     private void Awake()
@@ -41,11 +40,19 @@ public class PlayerMana : MonoBehaviour
 
     public void Add(int amount)
     {
+        if (amount <= 0) return;
         _manaExact = Mathf.Min(maxMana, _manaExact + amount);
         currentMana = Mathf.FloorToInt(_manaExact);
     }
 
-    // для UI
+    /// <summary>РџРѕРґРЅСЏС‚СЊ РјР°РЅСѓ РґРѕ 100% (РґР»СЏ РїРµСЂРµС…РѕРґР° РЅР° РЅРѕРІС‹Р№ СѓСЂРѕРІРµРЅСЊ).</summary>
+    public void FillToMax()
+    {
+        _manaExact = maxMana;
+        currentMana = maxMana;
+    }
+
+    // РґР»СЏ UI
     public float Normalized => maxMana > 0 ? currentMana / (float)maxMana : 0f;
     public float NormalizedExact => maxMana > 0 ? _manaExact / maxMana : 0f;
 }

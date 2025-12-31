@@ -2,50 +2,73 @@
 using UnityEngine.UI;
 using System.Collections.Generic;
 
-/// <summary>
-/// Рисует справа иконки перманентных перков (пока — только HP палочки 0..4).
-/// </summary>
 public class SoulPerksPanelUI : MonoBehaviour
 {
     [Header("UI")]
-    [Tooltip("Контейнер, куда спавним палочки (должен иметь VerticalLayoutGroup).")]
     public Transform content;
-
-    [Tooltip("Префаб одной иконки (Image). Можно просто GameObject с Image.")]
     public GameObject iconPrefab;
 
     [Header("Icons")]
-    [Tooltip("Спрайт красной вертикальной палочки для HP.")]
     public Sprite hpStickSprite;
 
+    [Header("Layout")]
+    [Tooltip("Фиксированный верхний отступ в контейнере сердечек.")]
+    public int topPadding = 8;
+
+    [Tooltip("Если true — принудительно выставляет padding на каждом Refresh (лечит сброс в 0).")]
+    public bool forcePaddingEachRefresh = true;
+
+    private VerticalLayoutGroup vlg;
     private readonly List<GameObject> spawned = new();
+
+    private void Awake()
+    {
+        if (content != null)
+            vlg = content.GetComponent<VerticalLayoutGroup>();
+    }
 
     private void OnEnable()
     {
-        //   Refresh();
-        Invoke(nameof(Refresh), 0f);
-    }
+        if (SoulPerksManager.Instance != null)
+            SoulPerksManager.Instance.OnPerksChanged += Refresh;
 
-    private void Start()
-    {
         Refresh();
     }
 
+    private void OnDisable()
+    {
+        if (SoulPerksManager.Instance != null)
+            SoulPerksManager.Instance.OnPerksChanged -= Refresh;
+    }
 
     public void Refresh()
     {
+        if (forcePaddingEachRefresh)
+            EnsurePadding();
+
         Clear();
 
         var perks = SoulPerksManager.Instance;
-        if (perks == null) return;
+        if (perks == null) { ForceLayoutNow(); return; }
 
-        int hpLevel = perks.HpLevel; // 0..4
-        int totalHearts = 1 + hpLevel; // 1 базовое + купленные
+        int totalHearts = 1 + perks.HpLevel;
 
         for (int i = 0; i < totalHearts; i++)
-        {
             SpawnIcon(hpStickSprite);
-        }
+
+        ForceLayoutNow();
+    }
+
+    private void EnsurePadding()
+    {
+        if (vlg == null && content != null)
+            vlg = content.GetComponent<VerticalLayoutGroup>();
+
+        if (vlg == null) return;
+
+        var p = vlg.padding;
+        p.top = topPadding;
+        vlg.padding = p;
     }
 
     private void SpawnIcon(Sprite spr)
@@ -60,16 +83,27 @@ public class SoulPerksPanelUI : MonoBehaviour
         {
             img.sprite = spr;
             img.preserveAspect = true;
+            img.enabled = (spr != null);
         }
     }
 
     private void Clear()
     {
         for (int i = 0; i < spawned.Count; i++)
-        {
-            if (spawned[i] != null)
-                Destroy(spawned[i]);
-        }
+            if (spawned[i] != null) Destroy(spawned[i]);
+
         spawned.Clear();
+    }
+
+    private void ForceLayoutNow()
+    {
+        if (!content) return;
+
+        var rt = content as RectTransform;
+        if (!rt) return;
+
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
+        Canvas.ForceUpdateCanvases();
     }
 }

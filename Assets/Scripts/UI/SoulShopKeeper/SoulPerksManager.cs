@@ -1,17 +1,17 @@
 ﻿using UnityEngine;
+using System;
 
-/// <summary>
-/// Хранит перманентные покупки за души (souls = SoulCounter.killsLifetime).
-/// Сохраняет в PlayerPrefs.
-/// </summary>
 [DefaultExecutionOrder(-200)]
 public class SoulPerksManager : MonoBehaviour
 {
     public static SoulPerksManager Instance { get; private set; }
 
+    // Событие для UI и других систем
+    public event Action OnPerksChanged;
+
     // --- PlayerPrefs keys ---
-    private const string KEY_HP_LEVEL = "perk_hp_level";          // 0..4
-    private const string KEY_SOULS_SPENT = "perk_souls_spent";    // сколько душ потрачено на перки (для refund)
+    private const string KEY_HP_LEVEL = "perk_hp_level";       // 0..hpMaxPurchases
+    private const string KEY_SOULS_SPENT = "perk_souls_spent"; // суммарно потрачено на перки
 
     [Header("Perk: Max HP")]
     public int hpStep = 50;
@@ -19,7 +19,8 @@ public class SoulPerksManager : MonoBehaviour
     public int hpBasePrice = 50;
 
     public int HpLevel { get; private set; }       // 0..4
-    public int SoulsSpent { get; private set; }    // суммарно потрачено на перки
+    public int SoulsSpent { get; private set; }    // суммарно потрачено
+
     [Header("Perk: Reset")]
     public int resetPrice = 100;
 
@@ -34,8 +35,13 @@ public class SoulPerksManager : MonoBehaviour
 
     private void Start()
     {
-        // На старте применим к игроку, если есть
         ApplyToPlayerIfPossible();
+        NotifyChanged();
+    }
+
+    private void NotifyChanged()
+    {
+        OnPerksChanged?.Invoke();
     }
 
     public void Load()
@@ -53,7 +59,7 @@ public class SoulPerksManager : MonoBehaviour
 
     public int GetHealthUpgradePrice()
     {
-        // 1-я покупка: 50, 2-я: 100, 3-я: 150, 4-я: 200
+        // 50/100/150/200
         int nextIndex = HpLevel; // 0..3
         return hpBasePrice * (nextIndex + 1);
     }
@@ -71,9 +77,6 @@ public class SoulPerksManager : MonoBehaviour
         return HpLevel > 0 || SoulsSpent > 0;
     }
 
-    /// <summary>
-    /// Покупка +50 max hp (перманентно) за души, до 4 раз, цена растёт.
-    /// </summary>
     public bool TryBuyHealthUpgrade()
     {
         if (HpLevel >= hpMaxPurchases) return false;
@@ -84,21 +87,21 @@ public class SoulPerksManager : MonoBehaviour
         int price = GetHealthUpgradePrice();
         if (sc.killsLifetime < price) return false;
 
+        // списали души
         sc.killsLifetime -= price;
         sc.RefreshUI();
 
+        // сохранили прогресс перков
         SoulsSpent += price;
         HpLevel++;
 
         Save();
         ApplyToPlayerIfPossible();
+        NotifyChanged();
 
         return true;
     }
 
-    /// <summary>
-    /// Сброс всех soul-perks + возврат потраченных душ.
-    /// </summary>
     public bool ResetAllPerksWithRefund()
     {
         if (!HasAnythingToReset())
@@ -107,17 +110,14 @@ public class SoulPerksManager : MonoBehaviour
         var sc = SoulCounter.Instance;
         if (sc == null) return false;
 
-        // Нужны деньги на кнопку Reset
+        // цена ресета = 100 душ
         if (sc.killsLifetime < resetPrice)
             return false;
 
-        // Сколько вернуть: потрачено минус цена reset (не меньше 0)
+        // вернём (SoulsSpent - resetPrice), но не меньше 0
         int refund = Mathf.Max(0, SoulsSpent - resetPrice);
 
-        // Списание reset
         sc.killsLifetime -= resetPrice;
-
-        // Возврат
         sc.killsLifetime += refund;
         sc.RefreshUI();
 
@@ -126,6 +126,7 @@ public class SoulPerksManager : MonoBehaviour
 
         Save();
         ApplyToPlayerIfPossible();
+        NotifyChanged();
 
         return true;
     }
@@ -135,15 +136,11 @@ public class SoulPerksManager : MonoBehaviour
         return HpLevel * hpStep;
     }
 
-    /// <summary>
-    /// Применяет бонус к здоровью игрока. Требует, чтобы PlayerHealth имел метод ApplyPermanentMaxHpBonus(int).
-    /// </summary>
     public void ApplyToPlayerIfPossible()
     {
         var rlm = RunLevelManager.Instance;
         if (rlm == null || rlm.playerHealth == null) return;
 
-        // ВАЖНО: этот метод мы добавим в PlayerHealth (ниже)
         rlm.playerHealth.ApplyPermanentMaxHpBonus(GetPermanentMaxHpBonus());
     }
 }

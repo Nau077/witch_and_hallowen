@@ -299,16 +299,17 @@ public class PlayerHealth : MonoBehaviour
 
     public void ApplyPermanentMaxHpBonus(int bonus)
     {
-        int oldMax = maxHealth;
+        // baseMaxHealth у тебя уже есть и ты его инициализируешь в Awake:
+        // if (baseMaxHealth <= 0) baseMaxHealth = maxHealth;
 
         permanentMaxHealthBonus = Mathf.Max(0, bonus);
-        maxHealth = baseMaxHealth + permanentMaxHealthBonus;
 
-        // Если maxHealth вырос — лечим до фулла (как ты хочешь)
-        if (maxHealth > oldMax)
-            currentHealth = maxHealth;
-        else
-            currentHealth = Mathf.Min(currentHealth, maxHealth);
+        int newMax = Mathf.Max(1, baseMaxHealth + permanentMaxHealthBonus);
+
+        maxHealth = newMax;
+
+        // По твоему требованию: при покупке/сбросе здоровье поднимаем до максимума
+        currentHealth = maxHealth;
 
         UpdateBar();
     }

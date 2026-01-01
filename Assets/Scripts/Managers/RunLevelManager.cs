@@ -35,6 +35,10 @@ public class RunLevelManager : MonoBehaviour
     public InterLevelUI interLevelUI;
     public StageTransitionPopup stagePopup;
 
+    [Header("Shop popup")]
+    [Tooltip("Перетащи сюда SoulShopKeeperPopup из Canvas. Если пусто — найдём в сцене.")]
+    public SoulShopKeeperPopup shopPopup;
+
     public static bool inputLocked;
 
     [Header("Player Mana (optional assign)")]
@@ -49,16 +53,16 @@ public class RunLevelManager : MonoBehaviour
         }
 
         Instance = this;
-
-        // <-- ВАЖНО: подхватываем ману даже если не назначили в инспекторе
         EnsurePlayerMana();
 
-        Debug.Log($"[RunLevelManager] Awake. Instance установлен. playerMana={(playerMana ? playerMana.name : "NULL")}");
+        if (shopPopup == null)
+            shopPopup = FindObjectOfType<SoulShopKeeperPopup>(true);
+
+        Debug.Log($"[RunLevelManager] Awake. shopPopup={(shopPopup ? shopPopup.name : "NULL")}");
     }
 
     private void Start()
     {
-        Debug.Log("[RunLevelManager] Start → InitializeRun()");
         InitializeRun();
     }
 
@@ -66,15 +70,12 @@ public class RunLevelManager : MonoBehaviour
     {
         if (playerMana != null) return;
 
-        // 1) пробуем с playerHealth
         if (playerHealth != null)
             playerMana = playerHealth.GetComponent<PlayerMana>();
 
-        // 2) пробуем с playerTransform
         if (playerMana == null && playerTransform != null)
             playerMana = playerTransform.GetComponent<PlayerMana>();
 
-        // 3) крайний случай: ищем в сцене
         if (playerMana == null)
             playerMana = FindObjectOfType<PlayerMana>(true);
     }
@@ -89,58 +90,47 @@ public class RunLevelManager : MonoBehaviour
         }
 
         playerMana.FillToMax();
-        Debug.Log($"[RunLevelManager] Mana filled to max ({reason}). currentMana={playerMana.currentMana}/{playerMana.maxMana}");
     }
 
-    public bool CanProcessGameplayInput()
-    {
-        return !inputLocked;
-    }
-
-    public void SetInputLocked(bool val)
-    {
-        inputLocked = val;
-    }
+    public bool CanProcessGameplayInput() => !inputLocked;
+    public void SetInputLocked(bool val) => inputLocked = val;
 
     public void InitializeRun()
     {
         currentStage = 0;
 
-        if (stagePopup != null)
-            stagePopup.HideImmediate();
+        stagePopup?.HideImmediate();
+        shopPopup?.HideImmediate();
 
         ResetVictoryController();
-
         DeactivateAllSpawners();
         ResetPlayerPosition();
         UpdateHudProgress();
 
         music?.SetStage(currentStage);
+        FillManaToMaxSafe("InitializeRun");
 
-        // На базе тоже можно фуллить (не мешает, зато дебаг проще)
-        FillManaToMaxSafe("InitializeRun (base)");
+        // Новый ран = новое расписание магазина
+        if (ShopKeeperManager.Instance != null)
+        {
+            ShopKeeperManager.Instance.GenerateRunSchedule(TotalStages);
+            ShopKeeperManager.Instance.OnStageChanged(0);
+        }
 
-        ShopKeeperManager.Instance?.OnStageChanged(0);
+        // Иконки магазина над стрелками — только тут и после смерти
+        interLevelUI?.ApplyShopSchedule(TotalStages);
     }
 
     private void ResetVictoryController()
     {
         var vc = FindObjectOfType<LevelVictoryController>();
-        if (vc != null)
-            vc.ResetForNewStage();
+        if (vc != null) vc.ResetForNewStage();
     }
 
     private void UpdateHudProgress()
     {
         if (interLevelUI != null)
-        {
-            Debug.Log($"[RunLevelManager] UpdateHudProgress → stage {currentStage}/{TotalStages} (0 = база)");
             interLevelUI.SetProgress(currentStage, TotalStages);
-        }
-        else
-        {
-            Debug.LogWarning("[RunLevelManager] interLevelUI не назначен.");
-        }
     }
 
     private void ResetPlayerPosition()
@@ -158,65 +148,59 @@ public class RunLevelManager : MonoBehaviour
 
     private void ActivateSpawnerForStage(int stage)
     {
-        if (stage <= 0)
-        {
-            Debug.Log("[RunLevelManager] Stage = 0 (база), спавнер не включаем.");
-            return;
-        }
+        if (stage <= 0) return;
 
-        if (stageSpawners == null || stageSpawners.Length == 0)
-        {
-            Debug.LogWarning("[RunLevelManager] stageSpawners не настроены.");
-            return;
-        }
+        if (stageSpawners == null || stageSpawners.Length == 0) return;
 
         int index = stage - 1;
-        if (index < 0 || index >= stageSpawners.Length)
-        {
-            Debug.LogWarning("[RunLevelManager] Нет спавнера для stage = " + stage);
-            return;
-        }
+        if (index < 0 || index >= stageSpawners.Length) return;
 
         var sp = stageSpawners[index];
-        if (sp == null)
-        {
-            Debug.LogWarning("[RunLevelManager] Пустой спавнер для stage = " + stage);
-            return;
-        }
+        if (sp == null) return;
 
-        Debug.Log("[RunLevelManager] Активируем спавнер для stage = " + stage);
         sp.gameObject.SetActive(true);
     }
 
     public void OnStageCleared()
     {
         int totalStages = TotalStages;
-        Debug.Log($"[RunLevelManager] OnStageCleared. currentStage={currentStage}, totalStages={totalStages}");
+        if (currentStage <= 0) return;
 
-        if (currentStage <= 0)
+        bool hasNext = currentStage < totalStages;
+
+        // Сообщим менеджеру (если нужно)
+        ShopKeeperManager.Instance?.OnStageCleared(currentStage);
+
+        // Проверяем расписание: есть ли магазин после победы на этом stage
+        ShopCurrencyMode mode = ShopCurrencyMode.None;
+        if (ShopKeeperManager.Instance != null)
+            mode = ShopKeeperManager.Instance.GetShopModeForStage(currentStage);
+
+        if (mode != ShopCurrencyMode.None && shopPopup != null)
         {
-            Debug.LogWarning("[RunLevelManager] Победа вызвана на базе — игнор.");
+            // если показываем магазин — stagePopup не нужен
+            stagePopup?.HideImmediate();
+
+            bool allowCoins = true;
+            bool allowSouls = (mode == ShopCurrencyMode.CoinsAndSouls);
+
+            shopPopup.OpenAsStageClearShop(allowCoins, allowSouls);
             return;
         }
 
-        ShopKeeperManager.Instance?.OnStageCleared(currentStage);
-
+        // Иначе обычный попап перехода
         if (stagePopup != null)
-        {
-            bool hasNext = currentStage < totalStages;
             stagePopup.Show(currentStage, totalStages, hasNext);
-        }
         else
-        {
-            Debug.LogWarning("[RunLevelManager] stagePopup не назначен → сразу GoDeeper()");
             GoDeeper();
-        }
     }
 
     public void GoDeeper()
     {
         int totalStages = TotalStages;
-        Debug.Log($"[RunLevelManager] GoDeeper. currentStage={currentStage}/{totalStages}");
+
+        // на всякий: прячем магазин
+        shopPopup?.HideImmediate();
 
         if (currentStage < totalStages)
         {
@@ -224,8 +208,7 @@ public class RunLevelManager : MonoBehaviour
 
             music?.SetStage(currentStage);
 
-            if (stagePopup != null)
-                stagePopup.Hide();
+            stagePopup?.Hide();
 
             ResetVictoryController();
             ResetPlayerPosition();
@@ -233,51 +216,47 @@ public class RunLevelManager : MonoBehaviour
             ActivateSpawnerForStage(currentStage);
             UpdateHudProgress();
 
-            // <-- ВАЖНО: фуллим после входа на новый stage (а не до)
             FillManaToMaxSafe($"Enter stage {currentStage}");
 
             ShopKeeperManager.Instance?.OnStageChanged(currentStage);
         }
         else
         {
-            Debug.Log("[RunLevelManager] Все уровни пройдены → старт заново (с базы).");
-
-            if (stagePopup != null)
-                stagePopup.Hide();
-
+            // прошли всё — снова база
             InitializeRun();
         }
     }
 
     public void ReturnToBaseAfterDeath()
     {
-        Debug.Log("[RunLevelManager] ReturnToBaseAfterDeath → stage = 0");
-
         currentStage = 0;
 
         music?.SetStage(currentStage);
 
-        if (stagePopup != null)
-            stagePopup.HideImmediate();
+        stagePopup?.HideImmediate();
+        shopPopup?.HideImmediate();
 
         ResetVictoryController();
         DeactivateAllSpawners();
 
-        if (playerHealth != null)
-            playerHealth.RespawnFull();
+        playerHealth?.RespawnFull();
 
         ResetPlayerPosition();
         UpdateHudProgress();
-
-        // На базе тоже фуллим, чтобы после смерти всё было предсказуемо
         FillManaToMaxSafe("ReturnToBaseAfterDeath");
 
-        ShopKeeperManager.Instance?.OnStageChanged(0);
+        // смерть = новый ран
+        if (ShopKeeperManager.Instance != null)
+        {
+            ShopKeeperManager.Instance.GenerateRunSchedule(TotalStages);
+            ShopKeeperManager.Instance.OnStageChanged(0);
+        }
+
+        interLevelUI?.ApplyShopSchedule(TotalStages);
     }
 
     public void ReturnToMenu()
     {
         if (GameFlow.Instance != null) GameFlow.Instance.LoadMainMenu();
-        else Debug.LogWarning("[RunLevelManager] ReturnToMenu: нет GameFlow.Instance.");
     }
 }

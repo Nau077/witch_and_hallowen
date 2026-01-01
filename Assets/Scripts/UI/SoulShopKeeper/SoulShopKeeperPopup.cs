@@ -7,8 +7,9 @@ public class SoulShopKeeperPopup : MonoBehaviour
     public GameObject popupRoot;
 
     [Header("Buttons")]
-    public Button goToForestButton;
-    public Button closeButton;
+    public Button goToForestButton;   // база
+    public Button goDeeperButton;     // после победы (НОВАЯ)
+    public Button closeButton;        // база (можно оставить)
 
     [Header("Shop sections")]
     public GameObject coinsSectionRoot;
@@ -21,17 +22,23 @@ public class SoulShopKeeperPopup : MonoBehaviour
     public ShopItemSlotUI[] soulSlots = new ShopItemSlotUI[10];
 
     [Header("Shop config")]
-    [Tooltip("Товары за монеты (по порядку заполнят coinSlots).")]
     public ShopItemDefinition[] coinItems = new ShopItemDefinition[10];
-
-    [Tooltip("Товары за души (по порядку заполнят soulSlots).")]
     public ShopItemDefinition[] soulItems = new ShopItemDefinition[10];
 
     [Header("Right perks panel (optional)")]
     public SoulPerksPanelUI perksPanelUI;
 
+    [Header("Runtime toggles")]
     public bool enableCoinSection = true;
     public bool enableSoulSection = true;
+
+    private enum OpenMode
+    {
+        Base,
+        StageClearShop
+    }
+
+    private OpenMode _mode = OpenMode.Base;
 
     private void Awake()
     {
@@ -47,15 +54,72 @@ public class SoulShopKeeperPopup : MonoBehaviour
     private void Start()
     {
         if (goToForestButton != null)
-            goToForestButton.onClick.AddListener(OnClickGoToForest);
+            goToForestButton.onClick.AddListener(OnClickGoToForest_Base);
+
+        if (goDeeperButton != null)
+            goDeeperButton.onClick.AddListener(OnClickGoDeeper_StageClear);
 
         if (closeButton != null)
             closeButton.onClick.AddListener(OnClickClose);
     }
 
-    public void Show()
+    // ---------- PUBLIC API ----------
+
+    /// <summary>
+    /// Открыть магазин как базовый (stage 0): показываем GO TO THE FOREST и CLOSE,
+    /// скрываем GO DEEPER.
+    /// </summary>
+    public void OpenAsBaseShop()
     {
-        if (popupRoot.active)
+        _mode = OpenMode.Base;
+
+        SetCurrencyAvailability(true, true);
+
+        if (goToForestButton != null) goToForestButton.gameObject.SetActive(true);
+        if (closeButton != null) closeButton.gameObject.SetActive(true);
+        if (goDeeperButton != null) goDeeperButton.gameObject.SetActive(false);
+
+        Show(forceOpen: true);
+    }
+
+    /// <summary>
+    /// Открыть магазин после победы на этапе:
+    /// - показываем только GO DEEPER
+    /// - скрываем GO TO THE FOREST и CLOSE
+    /// </summary>
+    public void OpenAsStageClearShop(bool allowCoins, bool allowSouls)
+    {
+        _mode = OpenMode.StageClearShop;
+
+        SetCurrencyAvailability(allowCoins, allowSouls);
+
+        if (goToForestButton != null) goToForestButton.gameObject.SetActive(false);
+        if (closeButton != null) closeButton.gameObject.SetActive(false);
+        if (goDeeperButton != null) goDeeperButton.gameObject.SetActive(true);
+
+        Show(forceOpen: true);
+    }
+
+    public void SetCurrencyAvailability(bool allowCoins, bool allowSouls)
+    {
+        enableCoinSection = allowCoins;
+        enableSoulSection = allowSouls;
+
+        if (coinsSectionRoot != null) coinsSectionRoot.SetActive(enableCoinSection);
+        if (soulsSectionRoot != null) soulsSectionRoot.SetActive(enableSoulSection);
+
+        if (popupRoot != null && popupRoot.activeSelf)
+        {
+            BuildShop();
+            perksPanelUI?.Refresh();
+        }
+    }
+
+    public void Show(bool forceOpen = false)
+    {
+        if (popupRoot == null) return;
+
+        if (!forceOpen && popupRoot.activeSelf)
         {
             Hide();
             return;
@@ -64,48 +128,44 @@ public class SoulShopKeeperPopup : MonoBehaviour
         popupRoot.SetActive(true);
 
         RunLevelManager.Instance?.SetInputLocked(true);
-        BuildShop();
 
-        // обновим правую панель
-        if (perksPanelUI != null)
-            perksPanelUI.Refresh();
+        BuildShop();
+        perksPanelUI?.Refresh();
     }
 
     public void Hide()
     {
         RunLevelManager.Instance?.SetInputLocked(false);
-        popupRoot.SetActive(false);
+        if (popupRoot != null) popupRoot.SetActive(false);
     }
 
     public void HideImmediate() => Hide();
 
-    public void OnClickGoToForest()
-    {
-        if (RunLevelManager.Instance != null)
-            RunLevelManager.Instance.GoDeeper();
+    // ---------- BUTTON HANDLERS ----------
 
+    private void OnClickGoToForest_Base()
+    {
+        RunLevelManager.Instance?.GoDeeper();
         Hide();
     }
 
-    public void OnClickClose()
+    private void OnClickGoDeeper_StageClear()
+    {
+        RunLevelManager.Instance?.GoDeeper();
+        Hide();
+    }
+
+    private void OnClickClose()
     {
         Hide();
     }
+
+    // ---------- SHOP BUILD ----------
 
     public void OnShopItemPurchased(ShopItemDefinition purchasedDef)
     {
-        Debug.Log($"[SoulShopKeeperPopup] OnShopItemPurchased: {(purchasedDef ? purchasedDef.name : "null")}");
         RefreshAllSlots();
-
-        if (perksPanelUI != null)
-        {
-            Debug.Log("[SoulShopKeeperPopup] perksPanelUI.Refresh()");
-            perksPanelUI.Refresh();
-        }
-        else
-        {
-            Debug.LogWarning("[SoulShopKeeperPopup] perksPanelUI is NULL (not assigned in Inspector)");
-        }
+        perksPanelUI?.Refresh();
     }
 
     private void BuildShop()
@@ -123,15 +183,24 @@ public class SoulShopKeeperPopup : MonoBehaviour
                 var slot = coinSlots[i];
                 if (slot == null) continue;
 
-                ShopItemDefinition def = (coinItems != null && i < coinItems.Length)
-                    ? coinItems[i]
-                    : null;
+                ShopItemDefinition def = (coinItems != null && i < coinItems.Length) ? coinItems[i] : null;
 
                 if (def == null)
+                {
                     slot.gameObject.SetActive(false);
+                }
                 else
+                {
+                    slot.gameObject.SetActive(true);
                     slot.Setup(this, def);
+                }
             }
+        }
+        else
+        {
+            if (coinSlots != null)
+                foreach (var slot in coinSlots)
+                    if (slot != null) slot.gameObject.SetActive(false);
         }
 
         if (enableSoulSection && soulSlots != null)
@@ -141,15 +210,24 @@ public class SoulShopKeeperPopup : MonoBehaviour
                 var slot = soulSlots[i];
                 if (slot == null) continue;
 
-                ShopItemDefinition def = (soulItems != null && i < soulItems.Length)
-                    ? soulItems[i]
-                    : null;
+                ShopItemDefinition def = (soulItems != null && i < soulItems.Length) ? soulItems[i] : null;
 
                 if (def == null)
+                {
                     slot.gameObject.SetActive(false);
+                }
                 else
+                {
+                    slot.gameObject.SetActive(true);
                     slot.Setup(this, def);
+                }
             }
+        }
+        else
+        {
+            if (soulSlots != null)
+                foreach (var slot in soulSlots)
+                    if (slot != null) slot.gameObject.SetActive(false);
         }
 
         RefreshAllSlots();
@@ -158,21 +236,16 @@ public class SoulShopKeeperPopup : MonoBehaviour
     private void RefreshAllSlots()
     {
         if (coinSlots != null)
-        {
             foreach (var s in coinSlots)
                 if (s != null) s.RefreshVisual();
-        }
 
         if (soulSlots != null)
-        {
             foreach (var s in soulSlots)
                 if (s != null) s.RefreshVisual();
-        }
     }
 
     private void OnDestroy()
     {
-        if (RunLevelManager.Instance != null)
-            RunLevelManager.Instance.SetInputLocked(false);
+        RunLevelManager.Instance?.SetInputLocked(false);
     }
 }

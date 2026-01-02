@@ -13,13 +13,15 @@ public class SoulPerksPanelUI : MonoBehaviour
 
     [Header("Layout")]
     [Tooltip("Фиксированный верхний отступ в контейнере сердечек.")]
-    public int topPadding = 8;
+    public int topPadding = 36;
 
-    [Tooltip("Если true — принудительно выставляет padding на каждом Refresh (лечит сброс в 0).")]
-    public bool forcePaddingEachRefresh = true;
+    [Tooltip("Если true — выставляет padding при включении/refresh (без ForceUpdateCanvases).")]
+    public bool ensurePadding = true;
 
     private VerticalLayoutGroup vlg;
-    private readonly List<GameObject> spawned = new();
+
+    // пулл (НЕ Destroy/Instantiate каждый раз)
+    private readonly List<GameObject> pool = new();
 
     private void Awake()
     {
@@ -43,23 +45,42 @@ public class SoulPerksPanelUI : MonoBehaviour
 
     public void Refresh()
     {
-        if (forcePaddingEachRefresh)
-            EnsurePadding();
-
-        Clear();
+        if (ensurePadding)
+            EnsurePaddingOnce();
 
         var perks = SoulPerksManager.Instance;
-        if (perks == null) { ForceLayoutNow(); return; }
+        int totalHearts = (perks == null) ? 0 : (1 + perks.HpLevel);
 
-        int totalHearts = 1 + perks.HpLevel;
+        EnsurePoolSize(totalHearts);
 
+        // включаем нужные
         for (int i = 0; i < totalHearts; i++)
-            SpawnIcon(hpStickSprite);
+        {
+            var go = pool[i];
+            if (!go.activeSelf) go.SetActive(true);
 
-        ForceLayoutNow();
+            var img = go.GetComponent<Image>();
+            if (img != null)
+            {
+                img.sprite = hpStickSprite;
+                img.preserveAspect = true;
+                img.enabled = (hpStickSprite != null);
+            }
+        }
+
+        // выключаем лишние
+        for (int i = totalHearts; i < pool.Count; i++)
+        {
+            var go = pool[i];
+            if (go != null && go.activeSelf) go.SetActive(false);
+        }
+
+        // ВАЖНО:
+        // НИКАКИХ Canvas.ForceUpdateCanvases и LayoutRebuilder.ForceRebuildLayoutImmediate
+        // Unity сам пересчитает layout на следующем кадре.
     }
 
-    private void EnsurePadding()
+    private void EnsurePaddingOnce()
     {
         if (vlg == null && content != null)
             vlg = content.GetComponent<VerticalLayoutGroup>();
@@ -67,43 +88,23 @@ public class SoulPerksPanelUI : MonoBehaviour
         if (vlg == null) return;
 
         var p = vlg.padding;
-        p.top = topPadding;
-        vlg.padding = p;
-    }
-
-    private void SpawnIcon(Sprite spr)
-    {
-        if (content == null || iconPrefab == null) return;
-
-        var go = Instantiate(iconPrefab, content);
-        spawned.Add(go);
-
-        var img = go.GetComponent<Image>();
-        if (img != null)
+        if (p.top != topPadding)
         {
-            img.sprite = spr;
-            img.preserveAspect = true;
-            img.enabled = (spr != null);
+            p.top = topPadding;
+            vlg.padding = p;
         }
     }
 
-    private void Clear()
+    private void EnsurePoolSize(int need)
     {
-        for (int i = 0; i < spawned.Count; i++)
-            if (spawned[i] != null) Destroy(spawned[i]);
+        if (content == null || iconPrefab == null) return;
+        if (need <= pool.Count) return;
 
-        spawned.Clear();
-    }
-
-    private void ForceLayoutNow()
-    {
-        if (!content) return;
-
-        var rt = content as RectTransform;
-        if (!rt) return;
-
-        Canvas.ForceUpdateCanvases();
-        LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
-        Canvas.ForceUpdateCanvases();
+        int toAdd = need - pool.Count;
+        for (int i = 0; i < toAdd; i++)
+        {
+            var go = Instantiate(iconPrefab, content);
+            pool.Add(go);
+        }
     }
 }

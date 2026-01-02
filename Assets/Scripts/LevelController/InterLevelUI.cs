@@ -2,6 +2,8 @@
 using TMPro;
 using UnityEngine.UI;
 using System.Diagnostics; // Stopwatch
+using System.Collections;
+using System.Collections.Generic;
 
 public class InterLevelUI : MonoBehaviour
 {
@@ -19,6 +21,50 @@ public class InterLevelUI : MonoBehaviour
     [Header("Shop marker sprites")]
     public Sprite coinsMarkerSprite;
     public Sprite coinsAndSoulsMarkerSprite;
+
+    // ------------------------------------------------------------
+    // ✅ Intro POP (все маркеры при входе на stage 1)
+    // ------------------------------------------------------------
+    [Header("Intro POP (stage 1)")]
+    [Tooltip("Включить POP всех маркеров при входе на stage 1.")]
+    public bool introPopEnabled = true;
+
+    [Tooltip("Если true — POP запускается через WaitForEndOfFrame (обычно делает анимацию видимой).")]
+    public bool introPopUseEndOfFrame = true;
+
+    [Tooltip("Доп. задержка перед стартом POP (сек). 0.05-0.15 часто помогает увидеть анимацию.")]
+    [Range(0f, 0.5f)] public float introPopDelay = 0.06f;
+
+    [Tooltip("Во сколько раз увеличиваем маркер в пике (например 1.8 = на 80% больше).")]
+    [Range(1f, 4f)] public float introPopScale = 2.2f;
+
+    [Tooltip("Время схлопывания к 1 (сек).")]
+    [Range(0.03f, 1f)] public float introPopDownDuration = 0.22f;
+
+    [Tooltip("Доп. 'подпрыгивание' — второй маленький POP после основного (прикольнее и заметнее).")]
+    public bool introPopSecondaryBounce = true;
+
+    [Tooltip("Сила второго подпрыгивания (например 1.15).")]
+    [Range(1f, 2f)] public float introPopBounceScale = 1.18f;
+
+    [Tooltip("Длительность второго подпрыгивания.")]
+    [Range(0.03f, 0.6f)] public float introPopBounceDuration = 0.10f;
+
+    [Tooltip("Использовать unscaled time (не зависит от timeScale).")]
+    public bool introPopUseUnscaledTime = true;
+
+    // ------------------------------------------------------------
+    // Обычный POP (если вдруг нужен по месту)
+    // ------------------------------------------------------------
+    [Header("Marker POP animation (per marker)")]
+    [Tooltip("Во сколько раз увеличиваем маркер при появлении.")]
+    [Range(1f, 3f)] public float markerPopScale = 1.6f;
+
+    [Tooltip("Сколько секунд маркер схлопывается к 1.")]
+    [Range(0.03f, 0.4f)] public float markerPopDownDuration = 0.14f;
+
+    [Tooltip("Использовать unscaled time (не зависит от timeScale).")]
+    public bool markerPopUseUnscaledTime = true;
 
     [Header("Debug")]
     public bool debugLogs = true;
@@ -38,6 +84,14 @@ public class InterLevelUI : MonoBehaviour
 
     Vector2 _lastProgressRectSize = Vector2.zero;
     int _id;
+
+    // чтобы POP не повторялся бесконечно
+    private readonly HashSet<int> _poppedStages = new(); // stage index (1..N), где маркер уже попался
+    private readonly Dictionary<int, Coroutine> _popRoutines = new(); // stage -> coroutine
+
+    // ✅ POP всех маркеров ровно один раз при входе на stage 1
+    private bool _didIntroPopOnStage1 = false;
+    private Coroutine _introPopRoutine;
 
     void Awake()
     {
@@ -92,11 +146,54 @@ public class InterLevelUI : MonoBehaviour
         EnsureRow();
         UpdateRowSizeIfNeeded();
 
+        // ✅ Stage 0 -> маркеров НЕТ + сброс флагов
+        if (currentStage <= 0)
+        {
+            SetMarkersVisible(false);
+            _didIntroPopOnStage1 = false;
+
+            if (_introPopRoutine != null)
+            {
+                StopCoroutine(_introPopRoutine);
+                _introPopRoutine = null;
+            }
+        }
+        else
+        {
+            SetMarkersVisible(true);
+
+            // 1) рисуем маркеры как обычно (позиции/размеры не трогаем)
+            ApplyShopSchedule(totalStages, animateNewlyShown: false);
+
+            // 2) если мы ВПЕРВЫЕ вошли на stage 1 — попаем ВСЕ активные маркеры
+            if (introPopEnabled && currentStage == 1 && !_didIntroPopOnStage1)
+            {
+                _didIntroPopOnStage1 = true;
+
+                if (_introPopRoutine != null)
+                    StopCoroutine(_introPopRoutine);
+
+                _introPopRoutine = StartCoroutine(IntroPopAllMarkersRoutine(totalStages));
+            }
+        }
+
         sw.Stop();
         LogTimingIfNeeded("SetProgress", sw);
     }
 
+    // ------------------------------------------------------------------
+    // ✅ Совместимость со старым кодом: RunLevelManager может вызывать старую сигнатуру
+    // ------------------------------------------------------------------
     public void ApplyShopSchedule(int totalStages)
+    {
+        ApplyShopSchedule(totalStages, animateNewlyShown: false);
+    }
+
+    /// <summary>
+    /// Рисуем ВСЕ маркеры магазинов для стадий 1..totalStages.
+    /// (Stage 0 — никогда)
+    /// </summary>
+    public void ApplyShopSchedule(int totalStages, bool animateNewlyShown)
     {
         if (progressText == null) return;
 
@@ -122,18 +219,31 @@ public class InterLevelUI : MonoBehaviour
             var img = _shopMarkers[stage];
             if (img == null) continue;
 
-            if (img.gameObject.activeSelf != show)
-                img.gameObject.SetActive(show);
+            // позиция на стрелке stage -> stage+1
+            int arrowIndex = Mathf.Clamp(stage + 1, 1, totalStages);
+            Vector2 pos = GetCachedArrowPos(arrowIndex);
+            img.rectTransform.anchoredPosition = pos;
 
-            if (!show) continue;
+            if (!show)
+            {
+                if (img.gameObject.activeSelf) img.gameObject.SetActive(false);
+                continue;
+            }
+
+            bool wasInactive = !img.gameObject.activeSelf;
+            if (wasInactive) img.gameObject.SetActive(true);
 
             img.sprite = (mode == ShopCurrencyMode.CoinsOnly) ? coinsMarkerSprite : coinsAndSoulsMarkerSprite;
 
-            // магазин после stage N -> на стрелке N->N+1 => arrowIndex = N+1
-            int arrowIndex = Mathf.Clamp(stage + 1, 1, totalStages);
+            // scale по умолчанию
+            img.rectTransform.localScale = Vector3.one;
 
-            Vector2 pos = GetCachedArrowPos(arrowIndex);
-            img.rectTransform.anchoredPosition = pos;
+            // (оставил на будущее, но сейчас ты этим не пользуешься)
+            if (animateNewlyShown && wasInactive && !_poppedStages.Contains(stage))
+            {
+                _poppedStages.Add(stage);
+                StartMarkerPop(stage, img.rectTransform);
+            }
         }
 
         sw.Stop();
@@ -160,13 +270,11 @@ public class InterLevelUI : MonoBehaviour
 
         if (_markersRow == null)
         {
-            // создаём НЕ под TMP, а рядом (в родителе)
             Transform parent = _progressRect.parent;
             var go = new GameObject("ShopMarkersRow", typeof(RectTransform));
             go.transform.SetParent(parent, false);
             _markersRow = go.GetComponent<RectTransform>();
 
-            // копируем трансформ у текста
             _markersRow.anchorMin = _progressRect.anchorMin;
             _markersRow.anchorMax = _progressRect.anchorMax;
             _markersRow.pivot = _progressRect.pivot;
@@ -176,11 +284,16 @@ public class InterLevelUI : MonoBehaviour
         }
     }
 
+    void SetMarkersVisible(bool visible)
+    {
+        if (_markersRow != null && _markersRow.gameObject.activeSelf != visible)
+            _markersRow.gameObject.SetActive(visible);
+    }
+
     void UpdateRowSizeIfNeeded()
     {
         if (_markersRow == null || _progressRect == null) return;
 
-        // если прогрессText растянут (stretch) — rect.size меняется
         Vector2 sz = _progressRect.rect.size;
         if (sz == _lastProgressRectSize) return;
 
@@ -195,7 +308,6 @@ public class InterLevelUI : MonoBehaviour
         if (_shopMarkers != null && _shopMarkers.Length == count)
             return;
 
-        // пересоздаём только если изменилось число стадий
         if (_markersRow != null)
         {
             for (int i = _markersRow.childCount - 1; i >= 0; i--)
@@ -212,7 +324,6 @@ public class InterLevelUI : MonoBehaviour
             var rt = go.GetComponent<RectTransform>();
             rt.sizeDelta = markerSize;
 
-            // важное: якоримся в центр строки (как у текста)
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
@@ -222,6 +333,20 @@ public class InterLevelUI : MonoBehaviour
             img.gameObject.SetActive(false);
 
             _shopMarkers[i] = img;
+        }
+
+        // пересборка -> сброс POP состояния
+        _poppedStages.Clear();
+        foreach (var kv in _popRoutines)
+            if (kv.Value != null) StopCoroutine(kv.Value);
+        _popRoutines.Clear();
+
+        // и вступительный поп тоже сбросим (на случай пересоздания)
+        _didIntroPopOnStage1 = false;
+        if (_introPopRoutine != null)
+        {
+            StopCoroutine(_introPopRoutine);
+            _introPopRoutine = null;
         }
     }
 
@@ -265,8 +390,6 @@ public class InterLevelUI : MonoBehaviour
             if (i < ti.characterCount) ch = ti.characterInfo[i];
         }
 
-        // TMP координаты — в локальном пространстве текста.
-        // Мы копируем размер/позицию в row, поэтому это совпадает.
         float x = (ch.bottomLeft.x + ch.topRight.x) * 0.5f + markerXOffset;
         float y = (ch.bottomLeft.y + ch.topRight.y) * 0.5f + markerYOffset;
 
@@ -342,5 +465,113 @@ public class InterLevelUI : MonoBehaviour
         {
             UnityEngine.Debug.Log($"[InterLevelUI] {method} {ms:0.00} ms");
         }
+    }
+
+    // ---------------- POP animation ----------------
+
+    // ✅ Вступительный POP: запускаем НА СЛЕДУЮЩИЙ КАДР и/или с задержкой
+    private IEnumerator IntroPopAllMarkersRoutine(int totalStages)
+    {
+        if (introPopUseEndOfFrame)
+            yield return new WaitForEndOfFrame();
+        else
+            yield return null;
+
+        if (introPopDelay > 0f)
+        {
+            if (introPopUseUnscaledTime)
+            {
+                float t = 0f;
+                while (t < introPopDelay)
+                {
+                    t += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+            }
+            else
+            {
+                yield return new WaitForSeconds(introPopDelay);
+            }
+        }
+
+        // На всякий случай: ещё раз обновим позиции (НЕ обязательно, но безопасно)
+        // и гарантируем, что scale стартует с 1, перед POP.
+        ApplyShopSchedule(totalStages, animateNewlyShown: false);
+
+        // Поупаем все активные маркеры (только те, что реально включены)
+        if (_shopMarkers == null) yield break;
+
+        for (int stage = 1; stage <= totalStages; stage++)
+        {
+            var img = _shopMarkers[stage];
+            if (img == null) continue;
+            if (!img.gameObject.activeSelf) continue;
+
+            StartIntroPop(stage, img.rectTransform);
+        }
+    }
+
+    private void StartMarkerPop(int stage, RectTransform rt)
+    {
+        if (rt == null) return;
+
+        if (_popRoutines.TryGetValue(stage, out var c) && c != null)
+            StopCoroutine(c);
+
+        _popRoutines[stage] = StartCoroutine(MarkerPopRoutine(stage, rt, markerPopScale, markerPopDownDuration, markerPopUseUnscaledTime));
+    }
+
+    private void StartIntroPop(int stage, RectTransform rt)
+    {
+        if (rt == null) return;
+
+        if (_popRoutines.TryGetValue(stage, out var c) && c != null)
+            StopCoroutine(c);
+
+        _popRoutines[stage] = StartCoroutine(IntroPopRoutine(stage, rt));
+    }
+
+    private IEnumerator IntroPopRoutine(int stage, RectTransform rt)
+    {
+        if (rt == null) yield break;
+
+        // Основной POP
+        yield return MarkerPopRoutine(stage, rt, introPopScale, introPopDownDuration, introPopUseUnscaledTime);
+
+        // Второй небольшой bounce (по желанию)
+        if (introPopSecondaryBounce && rt != null)
+        {
+            yield return MarkerPopRoutine(stage, rt, introPopBounceScale, introPopBounceDuration, introPopUseUnscaledTime);
+        }
+    }
+
+    private IEnumerator MarkerPopRoutine(int stage, RectTransform rt, float scale, float duration, bool useUnscaled)
+    {
+        if (rt == null) yield break;
+
+        Vector3 start = Vector3.one * Mathf.Max(1f, scale);
+        Vector3 end = Vector3.one;
+
+        // важно: НЕ трогаем anchoredPosition/sizeDelta — только scale
+        rt.localScale = start;
+
+        float dur = Mathf.Max(0.001f, duration);
+        float time = 0f;
+
+        while (time < dur && rt != null)
+        {
+            float dt = useUnscaled ? Time.unscaledDeltaTime : Time.deltaTime;
+            time += dt;
+
+            float k = Mathf.Clamp01(time / dur);
+            k = Mathf.Pow(k, 0.35f); // резче к концу
+
+            rt.localScale = Vector3.LerpUnclamped(start, end, k);
+            yield return null;
+        }
+
+        if (rt != null) rt.localScale = Vector3.one;
+
+        _popRoutines.Remove(stage);
     }
 }

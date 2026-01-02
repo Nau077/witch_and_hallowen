@@ -27,7 +27,10 @@ public class EnemyTopSpawner : MonoBehaviour
     [Tooltip("Используется только для режимов Random / RoundRobin. В ExactSequence игнорируется.")]
     public int initialCount = 3;
 
+    [Tooltip("Если > 0 — будет спавнить новых врагов раз в N секунд.")]
     public float spawnInterval = 0f;
+
+    [Tooltip("Куда складывать заспавненных врагов. Если не задано — будет использован transform спавнера.")]
     public Transform container;
 
     [Header("Placement Tweaks")]
@@ -48,43 +51,85 @@ public class EnemyTopSpawner : MonoBehaviour
     // для ExactSequence
     private int _sequenceIndex = 0;
 
+    private Coroutine _spawnLoop;
+
     private void Awake()
     {
+        // ✅ безопасный дефолт
         if (container == null) container = transform;
     }
 
-    private IEnumerator Start()
+    private void OnEnable()
     {
-        // --- стартовый спавн ---
+        // ✅ при реактивации тоже
+        if (container == null) container = transform;
+
+        // ✅ сброс индексов, чтобы RoundRobin/Sequence не ломались после смерти
+        _nextIndex = 0;
+        _sequenceIndex = 0;
+
+        // ✅ чистим старых врагов этого спавнера (иначе мусор после смерти)
+        ResetState();
+
+        // ✅ стартовый спавн каждый раз при включении
+        SpawnInitial();
+
+        // ✅ периодический спавн
+        if (spawnInterval > 0f)
+        {
+            _spawnLoop = StartCoroutine(SpawnLoop());
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (_spawnLoop != null)
+        {
+            StopCoroutine(_spawnLoop);
+            _spawnLoop = null;
+        }
+    }
+
+    /// <summary>
+    /// Удаляем всех заспавненных детей из container.
+    /// </summary>
+    public void ResetState()
+    {
+        if (container == null) container = transform;
+
+        // ВАЖНО: backward loop
+        for (int i = container.childCount - 1; i >= 0; i--)
+        {
+            var child = container.GetChild(i);
+            if (child != null)
+                Destroy(child.gameObject);
+        }
+    }
+
+    private void SpawnInitial()
+    {
         if (spawnMode == SpawnMode.ExactSequence)
         {
-            // Спавним ровно по списку Enemy Prefabs
             if (enemyPrefabs != null)
             {
                 int len = enemyPrefabs.Length;
                 for (int i = 0; i < len; i++)
-                {
                     SpawnOne();
-                }
             }
         }
         else
         {
-            // Старое поведение: initialCount штук
             for (int i = 0; i < initialCount; i++)
-            {
                 SpawnOne();
-            }
         }
+    }
 
-        // --- периодический спавн (если нужен) ---
-        if (spawnInterval > 0f)
+    private IEnumerator SpawnLoop()
+    {
+        while (true)
         {
-            while (true)
-            {
-                yield return new WaitForSeconds(spawnInterval);
-                SpawnOne();
-            }
+            yield return new WaitForSeconds(spawnInterval);
+            SpawnOne();
         }
     }
 
@@ -101,12 +146,8 @@ public class EnemyTopSpawner : MonoBehaviour
             {
                 case SpawnMode.ExactSequence:
                     {
-                        // Спавним врагов строго по очереди из массива и один раз
                         if (_sequenceIndex >= enemyPrefabs.Length)
-                        {
-                            // Список закончился – больше никого не спавним
                             return null;
-                        }
 
                         var prefab = enemyPrefabs[_sequenceIndex];
                         _sequenceIndex++;
@@ -135,19 +176,20 @@ public class EnemyTopSpawner : MonoBehaviour
             }
         }
 
-        // запасной вариант – одиночное поле
         return enemyPrefab;
     }
 
     public GameObject SpawnOne()
     {
+        if (container == null) container = transform;
+
         GameObject prefabToSpawn = GetNextEnemyPrefab();
         if (prefabToSpawn == null) return null;
 
         var go = Instantiate(prefabToSpawn, Vector3.zero, Quaternion.identity, container);
         var walker = go.GetComponent<EnemyWalker>();
 
-        // пробрасываем игрока
+        // ✅ пробрасываем игрока (важно для атаки)
         var playerGO = GameObject.FindGameObjectWithTag("Player");
         if (walker && playerGO) walker.player = playerGO.transform;
 
@@ -162,7 +204,7 @@ public class EnemyTopSpawner : MonoBehaviour
             y = walker.topLimit - cellsBelowTop * cellSize + spawnYOffset;
             y = Mathf.Clamp(y, walker.bottomLimit + 0.001f, walker.topLimit - 0.001f);
 
-            // десинхрон логики
+            // ✅ десинхрон логики (это влияет на то, когда он начнет “думать” и атаковать)
             float firstDecisionDelay = Random.Range(firstDecisionDelayRange.x, firstDecisionDelayRange.y);
             float firstAttackDelay = Random.Range(firstAttackDelayRange.x, firstAttackDelayRange.y);
 
@@ -179,8 +221,9 @@ public class EnemyTopSpawner : MonoBehaviour
         }
         else
         {
-            x = 0f;
-            y = 0f;
+            // если EnemyWalker нет — хотя бы не в нуле
+            x = transform.position.x;
+            y = transform.position.y;
         }
 
         go.transform.position = new Vector3(x, y, 0f);

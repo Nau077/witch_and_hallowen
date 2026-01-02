@@ -8,8 +8,8 @@ public class SoulShopKeeperPopup : MonoBehaviour
 
     [Header("Buttons")]
     public Button goToForestButton;   // база
-    public Button goDeeperButton;     // после победы (НОВАЯ)
-    public Button closeButton;        // база (можно оставить)
+    public Button goDeeperButton;     // после победы
+    public Button closeButton;        // база
 
     [Header("Shop sections")]
     public GameObject coinsSectionRoot;
@@ -38,7 +38,7 @@ public class SoulShopKeeperPopup : MonoBehaviour
         StageClearShop
     }
 
-    private OpenMode _mode = OpenMode.Base;
+    [SerializeField] private OpenMode _mode = OpenMode.Base;
 
     private void Awake()
     {
@@ -47,6 +47,10 @@ public class SoulShopKeeperPopup : MonoBehaviour
             Debug.LogError("[SoulShopKeeperPopup] PopupRoot is not assigned!");
             return;
         }
+
+        // дефолт всегда база
+        _mode = OpenMode.Base;
+        ApplyModeUI();
 
         popupRoot.SetActive(false);
     }
@@ -61,43 +65,37 @@ public class SoulShopKeeperPopup : MonoBehaviour
 
         if (closeButton != null)
             closeButton.onClick.AddListener(OnClickClose);
+
+        ApplyModeUI();
     }
 
     // ---------- PUBLIC API ----------
 
-    /// <summary>
-    /// Открыть магазин как базовый (stage 0): показываем GO TO THE FOREST и CLOSE,
-    /// скрываем GO DEEPER.
-    /// </summary>
     public void OpenAsBaseShop()
     {
         _mode = OpenMode.Base;
-
-        SetCurrencyAvailability(true, true);
-
-        if (goToForestButton != null) goToForestButton.gameObject.SetActive(true);
-        if (closeButton != null) closeButton.gameObject.SetActive(true);
-        if (goDeeperButton != null) goDeeperButton.gameObject.SetActive(false);
-
+        SetCurrencyAvailability(allowCoins: true, allowSouls: true);
         Show(forceOpen: true);
     }
 
-    /// <summary>
-    /// Открыть магазин после победы на этапе:
-    /// - показываем только GO DEEPER
-    /// - скрываем GO TO THE FOREST и CLOSE
-    /// </summary>
     public void OpenAsStageClearShop(bool allowCoins, bool allowSouls)
     {
         _mode = OpenMode.StageClearShop;
-
         SetCurrencyAvailability(allowCoins, allowSouls);
-
-        if (goToForestButton != null) goToForestButton.gameObject.SetActive(false);
-        if (closeButton != null) closeButton.gameObject.SetActive(false);
-        if (goDeeperButton != null) goDeeperButton.gameObject.SetActive(true);
-
         Show(forceOpen: true);
+    }
+
+    public void ForceBaseMode()
+    {
+        _mode = OpenMode.Base;
+        SetCurrencyAvailability(allowCoins: true, allowSouls: true);
+        ApplyModeUI();
+
+        if (popupRoot != null && popupRoot.activeSelf)
+        {
+            BuildShop();
+            perksPanelUI?.Refresh();
+        }
     }
 
     public void SetCurrencyAvailability(bool allowCoins, bool allowSouls)
@@ -124,6 +122,23 @@ public class SoulShopKeeperPopup : MonoBehaviour
             Hide();
             return;
         }
+
+        // ✅ ЖЕЛЕЗНЫЙ ФИКС:
+        // Если мы на базе (stage 0) — всегда принудительно Base-mode,
+        // даже если кто-то раньше залип в StageClearShop или вызвал Show() напрямую.
+        var run = RunLevelManager.Instance;
+        if (run != null)
+        {
+            int stage = GetRunStageSafe(run);
+            if (stage <= 0)
+            {
+                _mode = OpenMode.Base;
+                enableCoinSection = true;
+                enableSoulSection = true;
+            }
+        }
+
+        ApplyModeUI();
 
         popupRoot.SetActive(true);
 
@@ -158,6 +173,20 @@ public class SoulShopKeeperPopup : MonoBehaviour
     private void OnClickClose()
     {
         Hide();
+    }
+
+    // ---------- MODE UI ----------
+
+    private void ApplyModeUI()
+    {
+        if (goToForestButton != null)
+            goToForestButton.gameObject.SetActive(_mode == OpenMode.Base);
+
+        if (closeButton != null)
+            closeButton.gameObject.SetActive(_mode == OpenMode.Base);
+
+        if (goDeeperButton != null)
+            goDeeperButton.gameObject.SetActive(_mode == OpenMode.StageClearShop);
     }
 
     // ---------- SHOP BUILD ----------
@@ -247,5 +276,14 @@ public class SoulShopKeeperPopup : MonoBehaviour
     private void OnDestroy()
     {
         RunLevelManager.Instance?.SetInputLocked(false);
+    }
+
+    // ---------- helpers ----------
+
+    private int GetRunStageSafe(RunLevelManager run)
+    {
+        // ✅ ПЕРЕИМЕНУЙ ЭТО МЕСТО, ЕСЛИ У ТЕБЯ ДРУГОЕ ПОЛЕ/СВОЙСТВО
+        // Например: return run.currentStageIndex;
+        return run.CurrentStage;
     }
 }

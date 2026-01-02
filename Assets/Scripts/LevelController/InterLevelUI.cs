@@ -1,84 +1,116 @@
 ﻿using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+using System.Diagnostics; // Stopwatch
 
 public class InterLevelUI : MonoBehaviour
 {
-    [Header("Progress text (0 -> I -> II ...)")]
+    [Header("Refs")]
     public TMP_Text progressText;
+
+    [Tooltip("Если не задано — создаст ShopMarkersRow рядом с progressText (в родителе).")]
+    public RectTransform markersRowOverride;
 
     [Header("Marker visuals")]
     public Vector2 markerSize = new Vector2(16, 16);
-
-    [Tooltip("Смещение маркеров по Y (меньше = ниже). Например -14 опустит ниже.")]
     public float markerYOffset = -14f;
-
-    [Tooltip("Смещение маркеров по X для тонкой подстройки.")]
     public float markerXOffset = 0f;
 
     [Header("Shop marker sprites")]
     public Sprite coinsMarkerSprite;
     public Sprite coinsAndSoulsMarkerSprite;
 
-    private RectTransform _progressRect;
-    private RectTransform _markersRow;
-    private Image[] _shopMarkers;
+    [Header("Debug")]
+    public bool debugLogs = true;
+    public bool debugLogTimings = true;
+    public float logIfMethodTookMsMoreThan = 2f;
 
-    // stageArrowIndex -> charIndex in TMP text for arrow marker
-    // stageArrowIndex = 1 means arrow "0 -> I"
-    // stageArrowIndex = 2 means arrow "I -> II" etc.
-    private int[] _arrowCharIndexForStage;
-    private Vector2[] _arrowPosCache; // cached anchored positions in local space of progressText
+    RectTransform _progressRect;
+    RectTransform _markersRow;
+    Image[] _shopMarkers;
 
-    private int _cachedTotalStages = -1;
-    private int _cachedCurrentStage = -999;
-    private string _cachedText = null;
+    int[] _arrowCharIndexForStage; // arrowIndex -> charIndex of '>'
+    Vector2[] _arrowPosCache;      // arrowIndex -> anchored position
+
+    int _cachedTotalStages = -1;
+    int _cachedCurrentStage = -999;
+    string _cachedText = null;
+
+    Vector2 _lastProgressRectSize = Vector2.zero;
+    int _id;
+
+    void Awake()
+    {
+        _id = GetInstanceID();
+        EnsureRefs();
+
+        if (debugLogs)
+            UnityEngine.Debug.Log($"[InterLevelUI] Awake id={_id} scene={gameObject.scene.name}");
+    }
+
+    void OnEnable()
+    {
+        if (debugLogs)
+            UnityEngine.Debug.Log($"[InterLevelUI] OnEnable id={_id} timeScale={Time.timeScale}");
+    }
+
+    void OnDisable()
+    {
+        if (debugLogs)
+            UnityEngine.Debug.Log($"[InterLevelUI] OnDisable id={_id} timeScale={Time.timeScale}");
+    }
 
     public void SetProgress(int currentStage, int totalStages)
     {
-        EnsureRefs();
         if (progressText == null) return;
 
-        // Не делаем лишних перестроений
-        if (_cachedTotalStages == totalStages && _cachedCurrentStage == currentStage && _cachedText == progressText.text)
-            return;
+        var sw = Stopwatch.StartNew();
 
-        _cachedTotalStages = totalStages;
-        _cachedCurrentStage = currentStage;
+        EnsureRefs();
 
         string txt = BuildRomanProgressAndCacheArrowMap(totalStages, currentStage);
 
-        // Если текст не изменился — всё равно нам нужно обновить кэш позиций (например, шрифт/масштаб мог поменяться),
-        // но обычно это будет редко.
+        // если реально ничего не менялось — НЕ трогаем TMP
+        if (_cachedText == txt && _cachedTotalStages == totalStages && _cachedCurrentStage == currentStage)
+        {
+            if (debugLogs)
+                UnityEngine.Debug.Log($"[InterLevelUI] SetProgress SKIP (no changes) stage={currentStage}/{totalStages}");
+            return;
+        }
+
+        _cachedTotalStages = totalStages;
+        _cachedCurrentStage = currentStage;
+        _cachedText = txt;
+
         progressText.text = txt;
 
-        // ВАЖНО: ForceMeshUpdate вызываем ТОЛЬКО тут (а не в ApplyShopSchedule), чтобы не было лагов/мерцаний.
+        // ForceMeshUpdate — только когда текст поменялся
         progressText.ForceMeshUpdate(true, true);
-        _cachedText = txt;
 
         CacheArrowPositions(totalStages);
 
-        // Маркеры могут уже существовать — просто обновим их позиции при следующем ApplyShopSchedule
+        EnsureRow();
+        UpdateRowSizeIfNeeded();
+
+        sw.Stop();
+        LogTimingIfNeeded("SetProgress", sw);
     }
 
-    /// <summary>
-    /// Показ маркеров магазина.
-    /// - на базе (stage 0) не показываем
-    /// - магазин "после победы на stage N" показываем над стрелкой N->N+1, т.е. над arrowIndex = N+1
-    /// </summary>
     public void ApplyShopSchedule(int totalStages)
     {
-        EnsureRefs();
         if (progressText == null) return;
 
+        var sw = Stopwatch.StartNew();
+
+        EnsureRefs();
         EnsureRow();
+        UpdateRowSizeIfNeeded();
         EnsureMarkers(totalStages);
 
-        // База не показывает иконки
+        // база — никогда
         if (_shopMarkers != null && _shopMarkers.Length > 0 && _shopMarkers[0] != null)
             _shopMarkers[0].gameObject.SetActive(false);
 
-        // Магазин может быть после победы на stage 1..(totalStages-1) (после последнего смысла нет для стрелки)
         for (int stage = 1; stage <= totalStages; stage++)
         {
             var mode = ShopKeeperManager.Instance != null
@@ -86,59 +118,84 @@ public class InterLevelUI : MonoBehaviour
                 : ShopCurrencyMode.None;
 
             bool show = mode != ShopCurrencyMode.None;
+
             var img = _shopMarkers[stage];
-            img.gameObject.SetActive(show);
+            if (img == null) continue;
+
+            if (img.gameObject.activeSelf != show)
+                img.gameObject.SetActive(show);
 
             if (!show) continue;
 
             img.sprite = (mode == ShopCurrencyMode.CoinsOnly) ? coinsMarkerSprite : coinsAndSoulsMarkerSprite;
 
-            // Магазин после stage N рисуем на стрелке N->N+1 = arrowIndex (N+1)
+            // магазин после stage N -> на стрелке N->N+1 => arrowIndex = N+1
             int arrowIndex = Mathf.Clamp(stage + 1, 1, totalStages);
 
             Vector2 pos = GetCachedArrowPos(arrowIndex);
             img.rectTransform.anchoredPosition = pos;
         }
+
+        sw.Stop();
+        LogTimingIfNeeded("ApplyShopSchedule", sw);
     }
 
     // ---------------- internals ----------------
 
-    private void EnsureRefs()
+    void EnsureRefs()
     {
         if (progressText != null && _progressRect == null)
             _progressRect = progressText.GetComponent<RectTransform>();
     }
 
-    private void EnsureRow()
+    void EnsureRow()
     {
         if (_progressRect == null) return;
 
-        if (_markersRow == null)
+        if (markersRowOverride != null)
         {
-            var go = new GameObject("ShopMarkersRow", typeof(RectTransform));
-            go.transform.SetParent(_progressRect, false);
-            _markersRow = go.GetComponent<RectTransform>();
+            _markersRow = markersRowOverride;
+            return;
         }
 
-        // Ключевой фикс "поехало": делаем row в той же локальной системе, что и TMP
-        // (центр, sizeDelta как у текста, anchoredPosition = 0)
-        _markersRow.anchorMin = new Vector2(0.5f, 0.5f);
-        _markersRow.anchorMax = new Vector2(0.5f, 0.5f);
-        _markersRow.pivot = new Vector2(0.5f, 0.5f);
-        _markersRow.sizeDelta = _progressRect.rect.size;
-        _markersRow.anchoredPosition = Vector2.zero;
-        _markersRow.localScale = Vector3.one;
-        _markersRow.localRotation = Quaternion.identity;
+        if (_markersRow == null)
+        {
+            // создаём НЕ под TMP, а рядом (в родителе)
+            Transform parent = _progressRect.parent;
+            var go = new GameObject("ShopMarkersRow", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            _markersRow = go.GetComponent<RectTransform>();
+
+            // копируем трансформ у текста
+            _markersRow.anchorMin = _progressRect.anchorMin;
+            _markersRow.anchorMax = _progressRect.anchorMax;
+            _markersRow.pivot = _progressRect.pivot;
+            _markersRow.anchoredPosition = _progressRect.anchoredPosition;
+            _markersRow.localScale = Vector3.one;
+            _markersRow.localRotation = Quaternion.identity;
+        }
     }
 
-    private void EnsureMarkers(int totalStages)
+    void UpdateRowSizeIfNeeded()
+    {
+        if (_markersRow == null || _progressRect == null) return;
+
+        // если прогрессText растянут (stretch) — rect.size меняется
+        Vector2 sz = _progressRect.rect.size;
+        if (sz == _lastProgressRectSize) return;
+
+        _lastProgressRectSize = sz;
+        _markersRow.sizeDelta = sz;
+    }
+
+    void EnsureMarkers(int totalStages)
     {
         int count = Mathf.Max(0, totalStages) + 1;
 
         if (_shopMarkers != null && _shopMarkers.Length == count)
             return;
 
-        // Важно: пересоздаём ТОЛЬКО если изменилось totalStages (обычно никогда в рантайме)
+        // пересоздаём только если изменилось число стадий
         if (_markersRow != null)
         {
             for (int i = _markersRow.childCount - 1; i >= 0; i--)
@@ -154,6 +211,8 @@ public class InterLevelUI : MonoBehaviour
 
             var rt = go.GetComponent<RectTransform>();
             rt.sizeDelta = markerSize;
+
+            // важное: якоримся в центр строки (как у текста)
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
@@ -166,7 +225,7 @@ public class InterLevelUI : MonoBehaviour
         }
     }
 
-    private Vector2 GetCachedArrowPos(int arrowIndex)
+    Vector2 GetCachedArrowPos(int arrowIndex)
     {
         if (_arrowPosCache == null || arrowIndex < 0 || arrowIndex >= _arrowPosCache.Length)
             return new Vector2(markerXOffset, markerYOffset);
@@ -174,20 +233,16 @@ public class InterLevelUI : MonoBehaviour
         return _arrowPosCache[arrowIndex];
     }
 
-    private void CacheArrowPositions(int totalStages)
+    void CacheArrowPositions(int totalStages)
     {
         _arrowPosCache = new Vector2[totalStages + 1];
-
-        // stage 0 не используем, но положим туда 0,0
         _arrowPosCache[0] = new Vector2(markerXOffset, markerYOffset);
 
         for (int arrowIndex = 1; arrowIndex <= totalStages; arrowIndex++)
-        {
             _arrowPosCache[arrowIndex] = ComputeAnchoredPositionForArrow(arrowIndex);
-        }
     }
 
-    private Vector2 ComputeAnchoredPositionForArrow(int stageArrowIndex)
+    Vector2 ComputeAnchoredPositionForArrow(int stageArrowIndex)
     {
         if (_arrowCharIndexForStage == null || _arrowCharIndexForStage.Length <= stageArrowIndex)
             return new Vector2(markerXOffset, markerYOffset);
@@ -205,44 +260,39 @@ public class InterLevelUI : MonoBehaviour
         var ch = ti.characterInfo[charIndex];
         if (!ch.isVisible)
         {
-            // Если вдруг попали в невидимый, ищем ближайший видимый справа
             int i = charIndex;
             while (i < ti.characterCount && !ti.characterInfo[i].isVisible) i++;
             if (i < ti.characterCount) ch = ti.characterInfo[i];
         }
 
+        // TMP координаты — в локальном пространстве текста.
+        // Мы копируем размер/позицию в row, поэтому это совпадает.
         float x = (ch.bottomLeft.x + ch.topRight.x) * 0.5f + markerXOffset;
         float y = (ch.bottomLeft.y + ch.topRight.y) * 0.5f + markerYOffset;
 
         return new Vector2(x, y);
     }
 
-    private string BuildRomanProgressAndCacheArrowMap(int totalStages, int currentStage)
+    string BuildRomanProgressAndCacheArrowMap(int totalStages, int currentStage)
     {
-        // arrow index 1..totalStages
         _arrowCharIndexForStage = new int[totalStages + 1];
         for (int i = 0; i < _arrowCharIndexForStage.Length; i++)
             _arrowCharIndexForStage[i] = -1;
 
-        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+        var sb = new System.Text.StringBuilder();
 
-        // stage 0
-        if (currentStage == 0) sb.Append("(0)");
-        else sb.Append("0");
+        sb.Append(currentStage == 0 ? "(0)" : "0");
 
         for (int stage = 1; stage <= totalStages; stage++)
         {
             sb.Append(" ");
 
-            // Мы хотим якориться к символу '>' (а не к '-'), чтобы иконка не залезала на римские цифры.
-            // Формат: "->"
-            int arrowStart = sb.Length;   // позиция начала "->"
+            int arrowStart = sb.Length;
             sb.Append("->");
-            int gtIndex = arrowStart + 1; // индекс '>'
+            int gtIndex = arrowStart + 1; // '>'
 
             sb.Append(" ");
 
-            // arrowIndex = stage (стрелка перед этим stage)
             _arrowCharIndexForStage[stage] = gtIndex;
 
             string roman = ToRoman(stage);
@@ -255,7 +305,7 @@ public class InterLevelUI : MonoBehaviour
         return sb.ToString();
     }
 
-    private string ToRoman(int number)
+    string ToRoman(int number)
     {
         (int value, string symbol)[] map = {
             (1000,"M"),(900,"CM"),(500,"D"),(400,"CD"),
@@ -264,7 +314,7 @@ public class InterLevelUI : MonoBehaviour
         };
 
         int n = number;
-        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+        var sb = new System.Text.StringBuilder();
         foreach (var (value, symbol) in map)
         {
             while (n >= value)
@@ -274,5 +324,23 @@ public class InterLevelUI : MonoBehaviour
             }
         }
         return sb.ToString();
+    }
+
+    void LogTimingIfNeeded(string method, Stopwatch sw)
+    {
+        if (!debugLogTimings) return;
+
+        float ms = (float)sw.Elapsed.TotalMilliseconds;
+        if (ms >= logIfMethodTookMsMoreThan)
+        {
+            UnityEngine.Debug.LogWarning(
+                $"[InterLevelUI] {method} took {ms:0.00} ms | " +
+                $"stage={_cachedCurrentStage}/{_cachedTotalStages} id={_id}"
+            );
+        }
+        else if (debugLogs)
+        {
+            UnityEngine.Debug.Log($"[InterLevelUI] {method} {ms:0.00} ms");
+        }
     }
 }

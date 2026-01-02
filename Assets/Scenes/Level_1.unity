@@ -3742,7 +3742,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 669322078}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 407e0fd54cd28374583a2b71f4fb6fa2, type: 3}
   m_Name: 
@@ -3773,7 +3773,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 669322078}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cc09cec9d6c8da943af2ba26a4ade064, type: 3}
   m_Name: 
@@ -5316,7 +5316,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 765279632}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0c4d366b03747f943bc28414bd57ac1f, type: 3}
   m_Name: 
@@ -5943,7 +5943,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &932788302
 RectTransform:
   m_ObjectHideFlags: 0
@@ -6865,7 +6865,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1029167811}
   - component: {fileID: 1029167814}
-  - component: {fileID: 1029167813}
   - component: {fileID: 1029167812}
   m_Layer: 5
   m_Name: Content
@@ -6888,11 +6887,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 1510070784}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0.5, y: 209.1}
-  m_SizeDelta: {x: 100, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 13, y: -20}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1029167812
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6908,22 +6907,22 @@ MonoBehaviour:
   content: {fileID: 1029167811}
   iconPrefab: {fileID: 7410972412674622390, guid: be03e409c2f5218448661187775a7523, type: 3}
   hpStickSprite: {fileID: 7910273412404247695, guid: 8091c7e48a78b444eb6bb8b6b85231cb, type: 3}
-  topPadding: 8
-  ensurePadding: 1
---- !u!114 &1029167813
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1029167810}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3245ec927659c4140ac4f8d17403cc18, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.ContentSizeFitter
-  m_HorizontalFit: 0
-  m_VerticalFit: 2
+  innerTopPaddingPx: 0
+  bottomPaddingPx: 0
+  leftPaddingPx: 26
+  rightPaddingPx: 0
+  spacingPx: 3
+  horizontalOffsetPx: 0
+  enforceLayoutEveryFrame: 1
+  forceIconSize: 1
+  forceIconWidth: 24
+  forceIconHeight: 24
+  breatheAmplitude: 0.06
+  breatheSpeed: 1.2
+  breatheUseUnscaledTime: 0
+  newHeartPopScale: 4.71
+  popDownDuration: 0.369
+  popUseUnscaledTime: 1
 --- !u!114 &1029167814
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6937,14 +6936,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.VerticalLayoutGroup
   m_Padding:
-    m_Left: 2
-    m_Right: 2
-    m_Top: 36
-    m_Bottom: 10
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
   m_ChildAlignment: 1
-  m_Spacing: 4
+  m_Spacing: 3
   m_ChildForceExpandWidth: 0
-  m_ChildForceExpandHeight: 1
+  m_ChildForceExpandHeight: 0
   m_ChildControlWidth: 0
   m_ChildControlHeight: 0
   m_ChildScaleWidth: 0
@@ -7528,7 +7527,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InterLevelUI
   progressText: {fileID: 1118943243}
-  enableDebugLogs: 1
+  markersRowOverride: {fileID: 0}
+  markerSize: {x: 16, y: 16}
+  markerYOffset: -14
+  markerXOffset: 0
+  coinsMarkerSprite: {fileID: -6301429047446442448, guid: d4d1e62dfba261946b2cad3d65697180, type: 3}
+  coinsAndSoulsMarkerSprite: {fileID: 21300000, guid: 34ceee80a6c534f40ac7658b34cccf30, type: 3}
+  debugLogs: 1
+  debugLogTimings: 1
+  logIfMethodTookMsMoreThan: 2
 --- !u!1 &1156386781
 GameObject:
   m_ObjectHideFlags: 0
@@ -8935,6 +8942,7 @@ GameObject:
   - component: {fileID: 1510070784}
   - component: {fileID: 1510070786}
   - component: {fileID: 1510070785}
+  - component: {fileID: 1510070788}
   m_Layer: 5
   m_Name: PerkPanel
   m_TagString: Untagged
@@ -9000,6 +9008,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1510070783}
   m_CullTransparentMesh: 1
+--- !u!114 &1510070788
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1510070783}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3245ec927659c4140ac4f8d17403cc18, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.ContentSizeFitter
+  m_HorizontalFit: 0
+  m_VerticalFit: 0
 --- !u!1 &1536146568
 GameObject:
   m_ObjectHideFlags: 0
@@ -11126,7 +11148,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!82 &2026905444
 AudioSource:
   m_ObjectHideFlags: 0

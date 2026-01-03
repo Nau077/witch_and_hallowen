@@ -1236,21 +1236,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 263f989ca21278c4cb3d46d1b973a0e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyTopSpawner
-  enemyZone: {fileID: 1367967838}
+  enemyZone: {fileID: 0}
   enemyPrefab: {fileID: 0}
   enemyPrefabs:
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
   - {fileID: 5553669972159275953, guid: 6c85a8b7040f0f646b2f713c9520cb15, type: 3}
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
-  spawnMode: 2
+  spawnMode: 0
   initialCount: 4
   spawnInterval: 0
   container: {fileID: 0}
   xInset: 0.05
   cellsBelowTop: 2
   cellSize: 1
-  spawnYOffset: 1
+  spawnYOffset: 0
   decideJitter: 0.35
   attackJitter: 0.35
   firstDecisionDelayRange: {x: 0, y: 0.8}
@@ -2600,23 +2600,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 263f989ca21278c4cb3d46d1b973a0e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyTopSpawner
-  enemyZone: {fileID: 1367967838}
+  enemyZone: {fileID: 0}
   enemyPrefab: {fileID: 0}
   enemyPrefabs:
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
-  spawnMode: 2
+  - {fileID: 5553669972159275953, guid: 6c85a8b7040f0f646b2f713c9520cb15, type: 3}
+  spawnMode: 0
   initialCount: 1
   spawnInterval: 0
   container: {fileID: 0}
   xInset: 0.05
   cellsBelowTop: 2
   cellSize: 1
-  spawnYOffset: 1
+  spawnYOffset: 0
   decideJitter: 0.35
   attackJitter: 0.35
   firstDecisionDelayRange: {x: 0, y: 0.8}
   firstAttackDelayRange: {x: 0.2, y: 1}
-  moveSpeedJitter: 0.094
+  moveSpeedJitter: 0.08
 --- !u!4 &391113851
 Transform:
   m_ObjectHideFlags: 0
@@ -2869,20 +2870,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 263f989ca21278c4cb3d46d1b973a0e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyTopSpawner
-  enemyZone: {fileID: 1367967838}
+  enemyZone: {fileID: 0}
   enemyPrefab: {fileID: 0}
   enemyPrefabs:
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
   - {fileID: 5553669972159275953, guid: 6c85a8b7040f0f646b2f713c9520cb15, type: 3}
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
-  spawnMode: 2
+  spawnMode: 0
   initialCount: 4
   spawnInterval: 0
   container: {fileID: 0}
   xInset: 0.05
   cellsBelowTop: 2
   cellSize: 1
-  spawnYOffset: 1
+  spawnYOffset: 0
   decideJitter: 0.35
   attackJitter: 0.35
   firstDecisionDelayRange: {x: 0, y: 0.8}
@@ -4778,20 +4779,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 263f989ca21278c4cb3d46d1b973a0e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyTopSpawner
-  enemyZone: {fileID: 1367967838}
+  enemyZone: {fileID: 0}
   enemyPrefab: {fileID: 0}
   enemyPrefabs:
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
   - {fileID: 5553669972159275953, guid: 6c85a8b7040f0f646b2f713c9520cb15, type: 3}
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
-  spawnMode: 2
+  spawnMode: 0
   initialCount: 4
   spawnInterval: 0
   container: {fileID: 0}
   xInset: 0.05
   cellsBelowTop: 2
   cellSize: 1
-  spawnYOffset: 1
+  spawnYOffset: 0
   decideJitter: 0.35
   attackJitter: 0.35
   firstDecisionDelayRange: {x: 0, y: 0.8}
@@ -4916,19 +4917,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 263f989ca21278c4cb3d46d1b973a0e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyTopSpawner
-  enemyZone: {fileID: 1367967838}
+  enemyZone: {fileID: 0}
   enemyPrefab: {fileID: 0}
   enemyPrefabs:
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
-  spawnMode: 2
-  initialCount: 4
+  spawnMode: 0
+  initialCount: 2
   spawnInterval: 0
   container: {fileID: 0}
   xInset: 0.05
   cellsBelowTop: 2
   cellSize: 1
-  spawnYOffset: 1
+  spawnYOffset: 0
   decideJitter: 0.35
   attackJitter: 0.35
   firstDecisionDelayRange: {x: 0, y: 0.8}
@@ -5151,20 +5152,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 263f989ca21278c4cb3d46d1b973a0e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyTopSpawner
-  enemyZone: {fileID: 1367967838}
+  enemyZone: {fileID: 0}
   enemyPrefab: {fileID: 0}
   enemyPrefabs:
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
   - {fileID: 5553669972159275953, guid: 6c85a8b7040f0f646b2f713c9520cb15, type: 3}
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
-  spawnMode: 2
+  spawnMode: 0
   initialCount: 4
   spawnInterval: 0
   container: {fileID: 0}
   xInset: 0.05
   cellsBelowTop: 2
   cellSize: 1
-  spawnYOffset: 1
+  spawnYOffset: 0
   decideJitter: 0.35
   attackJitter: 0.35
   firstDecisionDelayRange: {x: 0, y: 0.8}
@@ -6029,6 +6030,7 @@ MonoBehaviour:
   perksPanelUI: {fileID: 1029167812}
   enableCoinSection: 1
   enableSoulSection: 1
+  _mode: 0
 --- !u!114 &932788304
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7533,6 +7535,18 @@ MonoBehaviour:
   markerXOffset: 0
   coinsMarkerSprite: {fileID: -6301429047446442448, guid: d4d1e62dfba261946b2cad3d65697180, type: 3}
   coinsAndSoulsMarkerSprite: {fileID: 21300000, guid: 34ceee80a6c534f40ac7658b34cccf30, type: 3}
+  introPopEnabled: 1
+  introPopUseEndOfFrame: 1
+  introPopDelay: 0.091
+  introPopScale: 3.24
+  introPopDownDuration: 0.324
+  introPopSecondaryBounce: 1
+  introPopBounceScale: 1.418
+  introPopBounceDuration: 0.486
+  introPopUseUnscaledTime: 1
+  markerPopScale: 2.45
+  markerPopDownDuration: 0.187
+  markerPopUseUnscaledTime: 1
   debugLogs: 1
   debugLogTimings: 1
   logIfMethodTookMsMoreThan: 2
@@ -8018,20 +8032,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 263f989ca21278c4cb3d46d1b973a0e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyTopSpawner
-  enemyZone: {fileID: 1367967838}
+  enemyZone: {fileID: 0}
   enemyPrefab: {fileID: 0}
   enemyPrefabs:
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
   - {fileID: 5553669972159275953, guid: 6c85a8b7040f0f646b2f713c9520cb15, type: 3}
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
-  spawnMode: 2
-  initialCount: 4
+  spawnMode: 0
+  initialCount: 3
   spawnInterval: 0
   container: {fileID: 0}
   xInset: 0.05
   cellsBelowTop: 2
   cellSize: 1
-  spawnYOffset: 1
+  spawnYOffset: 0
   decideJitter: 0.35
   attackJitter: 0.35
   firstDecisionDelayRange: {x: 0, y: 0.8}
@@ -8372,20 +8386,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 263f989ca21278c4cb3d46d1b973a0e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyTopSpawner
-  enemyZone: {fileID: 1367967838}
+  enemyZone: {fileID: 0}
   enemyPrefab: {fileID: 0}
   enemyPrefabs:
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
   - {fileID: 5553669972159275953, guid: 6c85a8b7040f0f646b2f713c9520cb15, type: 3}
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
-  spawnMode: 2
+  spawnMode: 0
   initialCount: 4
   spawnInterval: 0
   container: {fileID: 0}
   xInset: 0.05
   cellsBelowTop: 2
   cellSize: 1
-  spawnYOffset: 1
+  spawnYOffset: 0
   decideJitter: 0.35
   attackJitter: 0.35
   firstDecisionDelayRange: {x: 0, y: 0.8}

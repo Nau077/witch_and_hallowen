@@ -113,6 +113,11 @@ public class PlayerSkillShooter : MonoBehaviour
 
     void Update()
     {
+        // FIX: skipNextClickFromUI должен жить ТОЛЬКО до отпускания кнопки мыши
+        if (_skipNextClickFromUI && !Input.GetMouseButton(0))
+        {
+            _skipNextClickFromUI = false;
+        }
         HandleInput();
         HandleWheel();
 

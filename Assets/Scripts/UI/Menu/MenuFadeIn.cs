@@ -1,11 +1,11 @@
-using UnityEngine;
+п»їusing UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 
 [RequireComponent(typeof(CanvasGroup))]
 public class MenuFadeIn : MonoBehaviour
 {
-    [Tooltip("Сколько секунд длится появление из темноты")]
+    [Tooltip("Г‘ГЄГ®Г«ГјГЄГ® Г±ГҐГЄГіГ­Г¤ Г¤Г«ГЁГІГ±Гї ГЇГ®ГїГўГ«ГҐГ­ГЁГҐ ГЁГ§ ГІГҐГ¬Г­Г®ГІГ»")]
     public float duration = 5f;
 
     private CanvasGroup cg;
@@ -13,8 +13,8 @@ public class MenuFadeIn : MonoBehaviour
     void Awake()
     {
         cg = GetComponent<CanvasGroup>();
-        cg.alpha = 4f;           // стартуем с полной темноты
-        cg.blocksRaycasts = true; // блокируем клики, пока темно
+        cg.alpha = 1f;            // Р±С‹Р»Рѕ 4f (СЌС‚Рѕ РІРѕРѕР±С‰Рµ Р»РёС€РЅРµРµ)
+        cg.blocksRaycasts = false; // вњ… РќР• Р±Р»РѕРєРёСЂСѓРµРј РєР»РёРєРё
         cg.interactable = false;
     }
 
@@ -28,14 +28,14 @@ public class MenuFadeIn : MonoBehaviour
         float t = 0f;
         while (t < duration)
         {
-            t += Time.unscaledDeltaTime;            // независимо от timeScale
+            t += Time.unscaledDeltaTime;            // Г­ГҐГ§Г ГўГЁГ±ГЁГ¬Г® Г®ГІ timeScale
             cg.alpha = Mathf.Lerp(1f, 0f, t / duration);
             yield return null;
         }
         cg.alpha = 0f;
-        cg.blocksRaycasts = false;  // больше не перекрывает клики
+        cg.blocksRaycasts = false;  // ГЎГ®Г«ГјГёГҐ Г­ГҐ ГЇГҐГ°ГҐГЄГ°Г»ГўГ ГҐГІ ГЄГ«ГЁГЄГЁ
         cg.interactable = false;
-        // необязательно: можно просто скрыть объект
+        // Г­ГҐГ®ГЎГїГ§Г ГІГҐГ«ГјГ­Г®: Г¬Г®Г¦Г­Г® ГЇГ°Г®Г±ГІГ® Г±ГЄГ°Г»ГІГј Г®ГЎГєГҐГЄГІ
         // gameObject.SetActive(false);
     }
 }

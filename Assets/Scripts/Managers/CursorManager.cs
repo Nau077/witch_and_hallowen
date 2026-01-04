@@ -19,18 +19,35 @@ public class CursorManager : MonoBehaviour
     [Tooltip("Если true — курсор всегда UI (например открыт попап/магазин).")]
     public bool popupBlocking = false;
 
-    [Header("Debug")]
-    public bool debug = true;
+    [Header("Stability")]
+    [Tooltip("Сколько секунд держать боевой курсор после попадания в боевую зону (страховка от мерцаний).")]
+    public float combatStickySeconds = 0.08f;
 
-    // Эти ссылки НЕ показываем в инспекторе (чтобы в MainMenu не бесили)
+    [Tooltip("Сколько кадров подряд курсор должен быть ВНЕ боевой зоны, чтобы выйти из Combat. 3–6 обычно идеально.")]
+    public int combatExitFrames = 5;
+
+    [Header("Debug")]
+    public bool debug = false;
+
+    // Scene refs (не показываем в инспекторе)
     RectTransform _combatZoneRect;
     RectTransform _uiOverrideRect;
+
+    // Камера, которой проверяем WorldSpace canvas (фикс для WorldSpace)
+    Camera _combatUICam;
 
     enum Mode { UI, Combat }
     Mode _currentMode = (Mode)(-1);
     bool _currentActive;
 
-    Canvas _canvas;
+    float _combatStickyUntil = 0f;
+    int _combatExitCounter = 0;
+
+    // Debug state
+    Mode _lastDbgMode = (Mode)(-1);
+    bool _lastDbgActive;
+    bool _lastDbgInsideCombat;
+    bool _lastDbgPopup;
 
     void Awake()
     {
@@ -50,34 +67,53 @@ public class CursorManager : MonoBehaviour
     {
         RefreshSceneRefs();
         ForceRefresh();
+        // в меню сразу ставим UI (чтобы не стартовать с Combat из прошлой сцены)
+        if (theme != null && SceneManager.GetActiveScene().name == theme.menuSceneName)
+            ApplyCursor(Mode.UI, false);
     }
 
     void OnSceneLoaded(Scene s, LoadSceneMode m)
     {
-        // чтобы не было "залипания" блокировки после смен сцен
+        // Смена сцены: не переносим блокировку попапа
         popupBlocking = false;
 
         RefreshSceneRefs();
         ForceRefresh();
+
+        // На входе в меню — всегда UI
+        if (theme != null && s.name == theme.menuSceneName)
+            ApplyCursor(Mode.UI, false);
+    }
+
+    void ForceRefresh()
+    {
+        _currentMode = (Mode)(-1);
+        _currentActive = false;
+
+        _combatStickyUntil = 0f;
+        _combatExitCounter = 0;
+
+        _lastDbgMode = (Mode)(-1);
+        _lastDbgActive = false;
+        _lastDbgInsideCombat = false;
+        _lastDbgPopup = false;
     }
 
     void RefreshSceneRefs()
     {
-        // Canvas ищем заново в каждой сцене
-        _canvas = FindFirstObjectByType<Canvas>();
-
-        // Rect'ы валидны только в пределах сцены → ищем заново
         _combatZoneRect = FindRectInScene(combatZoneName);
         _uiOverrideRect = string.IsNullOrEmpty(uiOverrideName) ? null : FindRectInScene(uiOverrideName);
 
-        if (debug)
+        // Камеру берем из Canvas, где лежит CombatCursorZone (или Main Camera как fallback)
+        _combatUICam = null;
+        if (_combatZoneRect != null)
         {
-            string scene = SceneManager.GetActiveScene().name;
-            string canvasName = _canvas ? _canvas.name : "NULL";
-            string combatName = _combatZoneRect ? _combatZoneRect.name : "NULL";
-            string combatCanvas = _combatZoneRect ? (_combatZoneRect.GetComponentInParent<Canvas>()?.name ?? "NULL") : "NULL";
+            var canvas = _combatZoneRect.GetComponentInParent<Canvas>();
+            if (canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay)
+                _combatUICam = canvas.worldCamera;
 
-            Debug.Log($"[CursorManager] RefreshSceneRefs scene={scene} canvas={canvasName} combatRect={combatName} combatParentCanvas={combatCanvas}");
+            if (_combatUICam == null)
+                _combatUICam = Camera.main;
         }
     }
 
@@ -95,10 +131,6 @@ public class CursorManager : MonoBehaviour
             if (all[i] != null && all[i].name == objName)
                 return all[i];
         }
-
-        if (debug)
-            Debug.LogWarning($"[CursorManager] FindRectInScene: '{objName}' NOT FOUND in scene '{SceneManager.GetActiveScene().name}'");
-
         return null;
     }
 
@@ -107,25 +139,50 @@ public class CursorManager : MonoBehaviour
         theme = t;
         RefreshSceneRefs();
         ForceRefresh();
-        ApplyCursor(Mode.UI, false);
+
+        // В меню — строго UI
+        if (theme != null && SceneManager.GetActiveScene().name == theme.menuSceneName)
+            ApplyCursor(Mode.UI, false);
+        else
+            ApplyCursor(Mode.UI, false);
     }
 
     public void SetPopupBlocking(bool blocked)
     {
         popupBlocking = blocked;
 
-        // сразу принудительно ставим UI курсор (не ждём Update)
-        if (theme != null)
-        {
-            bool active = Input.GetMouseButton(0);
-            ApplyCursor(Mode.UI, active);
-        }
-    }
+        if (theme == null) return;
 
-    void ForceRefresh()
-    {
-        _currentMode = (Mode)(-1);
-        _currentActive = false;
+        // меню — всегда UI
+        if (SceneManager.GetActiveScene().name == theme.menuSceneName)
+        {
+            ApplyCursor(Mode.UI, false);
+            return;
+        }
+
+        bool active = Input.GetMouseButton(0);
+
+        if (blocked)
+        {
+            // попап открылся -> принудительно UI
+            ApplyCursor(Mode.UI, active);
+            return;
+        }
+
+        // попап закрылся -> пересчёт по позиции мыши прямо сейчас
+        if (_combatZoneRect != null)
+        {
+            bool insideCombat = IsPointerInsideRect(_combatZoneRect, _combatUICam);
+            if (insideCombat)
+            {
+                _combatExitCounter = Mathf.Max(1, combatExitFrames);
+                _combatStickyUntil = Time.unscaledTime + combatStickySeconds;
+                ApplyCursor(Mode.Combat, active);
+                return;
+            }
+        }
+
+        ApplyCursor(Mode.UI, active);
     }
 
     void Update()
@@ -133,81 +190,82 @@ public class CursorManager : MonoBehaviour
         if (theme == null) return;
 
         bool active = Input.GetMouseButton(0);
+        string sceneName = SceneManager.GetActiveScene().name;
 
-        // раз в секунду печатаем состояние (не спамим)
-        if (debug && Time.frameCount % 60 == 0)
-        {
-            Debug.Log($"[CursorManager] tick scene={SceneManager.GetActiveScene().name} popupBlocking={popupBlocking} combatRectIsNull={(_combatZoneRect == null)}");
-        }
-
-        // Меню — всегда UI
-        if (SceneManager.GetActiveScene().name == theme.menuSceneName)
+        // Меню — всегда UI (и никаких Combat даже если что-то мигнет)
+        if (sceneName == theme.menuSceneName)
         {
             ApplyCursor(Mode.UI, active);
+            DebugModeChange(Mode.UI, active, insideCombat: false);
             return;
         }
 
-        // Открыт попап — всегда UI
+        // Попап — всегда UI
         if (popupBlocking)
         {
             ApplyCursor(Mode.UI, active);
+            DebugModeChange(Mode.UI, active, insideCombat: false);
             return;
         }
 
-        // Если нет боевой зоны в сцене — по умолчанию UI
+        // Если нет боевой зоны — UI
         if (_combatZoneRect == null)
         {
             ApplyCursor(Mode.UI, active);
+            DebugModeChange(Mode.UI, active, insideCombat: false);
             return;
         }
 
-        // UI override — всегда UI (если задан)
-        if (_uiOverrideRect != null && IsPointerInsideRect(_uiOverrideRect, isCombat: false))
+        // UI override — всегда UI (если задан и курсор там)
+        if (_uiOverrideRect != null && IsPointerInsideRect(_uiOverrideRect, _combatUICam))
         {
             ApplyCursor(Mode.UI, active);
+            DebugModeChange(Mode.UI, active, insideCombat: false);
             return;
         }
 
-        // Боевая зона — Combat
-        if (IsPointerInsideRect(_combatZoneRect, isCombat: true))
+        // --- КЛЮЧЕВОЙ ФИКС: debounce выхода из Combat ---
+        bool insideCombatRaw = IsPointerInsideRect(_combatZoneRect, _combatUICam);
+
+        // Внутри Combat — сразу Combat, сбрасываем счетчик выхода
+        if (insideCombatRaw)
+        {
+            _combatExitCounter = Mathf.Max(1, combatExitFrames);
+            _combatStickyUntil = Time.unscaledTime + combatStickySeconds;
+
+            ApplyCursor(Mode.Combat, active);
+            DebugModeChange(Mode.Combat, active, insideCombat: true);
+            return;
+        }
+
+        // Снаружи Combat — держим Combat N кадров, чтобы игнорировать 1-кадровые провалы
+        if (_combatExitCounter > 0)
+        {
+            _combatExitCounter--;
+
+            ApplyCursor(Mode.Combat, active);
+            DebugModeChange(Mode.Combat, active, insideCombat: false);
+            return;
+        }
+
+        // Доп. страховка по времени (можно оставить)
+        if (Time.unscaledTime < _combatStickyUntil)
         {
             ApplyCursor(Mode.Combat, active);
+            DebugModeChange(Mode.Combat, active, insideCombat: false);
             return;
         }
 
         // Иначе UI
         ApplyCursor(Mode.UI, active);
+        DebugModeChange(Mode.UI, active, insideCombat: false);
     }
 
-    bool IsPointerInsideRect(RectTransform rect, bool isCombat)
+    bool IsPointerInsideRect(RectTransform rect, Camera uiCam)
     {
         if (rect == null) return false;
-
-        // Берём canvas конкретно этого rect'а (не общий _canvas)
-        var canvasForRect = rect.GetComponentInParent<Canvas>();
-
-        Camera uiCam = null;
-
-        // Если Canvas не Overlay — пробуем взять worldCamera.
-        if (canvasForRect != null && canvasForRect.renderMode != RenderMode.ScreenSpaceOverlay)
-        {
-            uiCam = canvasForRect.worldCamera;
-
-            // ✅ КЛЮЧ: если worldCamera не назначена, используем Camera.main
-            if (uiCam == null) uiCam = Camera.main;
-        }
-
-        bool inside = RectTransformUtility.RectangleContainsScreenPoint(rect, Input.mousePosition, uiCam);
-
-        if (debug && isCombat && Time.frameCount % 30 == 0)
-        {
-            Debug.Log($"[CursorManager] contains? rect={rect.name} inside={inside} canvasMode={canvasForRect?.renderMode} " +
-                      $"uiCam={(uiCam ? uiCam.name : "NULL")} mouse={Input.mousePosition}");
-        }
-
-        return inside;
+        return RectTransformUtility.RectangleContainsScreenPoint(rect, Input.mousePosition, uiCam);
     }
-
 
     void ApplyCursor(Mode mode, bool active)
     {
@@ -243,12 +301,12 @@ public class CursorManager : MonoBehaviour
     {
         if (sprite == null) return null;
 
-        // если это полный Texture2D — можно вернуть напрямую (без GetPixels)
+        // полный Texture2D
         if (sprite.rect.width == sprite.texture.width &&
             sprite.rect.height == sprite.texture.height)
             return sprite.texture;
 
-        // иначе вырезаем из атласа (нужен Read/Write Enabled у текстуры!)
+        // вырезаем из атласа (нужен Read/Write Enabled)
         Rect r = sprite.rect;
         var tex = new Texture2D((int)r.width, (int)r.height, TextureFormat.RGBA32, false);
 
@@ -256,5 +314,30 @@ public class CursorManager : MonoBehaviour
         tex.SetPixels(pixels);
         tex.Apply();
         return tex;
+    }
+
+    // Логи только при изменении режима/active/popup/insideCombat — не спамит
+    void DebugModeChange(Mode mode, bool active, bool insideCombat)
+    {
+        if (!debug) return;
+
+        bool changed =
+            mode != _lastDbgMode ||
+            active != _lastDbgActive ||
+            popupBlocking != _lastDbgPopup ||
+            insideCombat != _lastDbgInsideCombat;
+
+        if (!changed) return;
+
+        _lastDbgMode = mode;
+        _lastDbgActive = active;
+        _lastDbgPopup = popupBlocking;
+        _lastDbgInsideCombat = insideCombat;
+
+        float stickyLeft = _combatStickyUntil - Time.unscaledTime;
+
+        Debug.Log($"[CursorManager][MODE] scene={SceneManager.GetActiveScene().name} " +
+                  $"mode={mode} active={active} popupBlocking={popupBlocking} insideCombat={insideCombat} " +
+                  $"exitCounter={_combatExitCounter} stickyLeft={stickyLeft:0.000}");
     }
 }

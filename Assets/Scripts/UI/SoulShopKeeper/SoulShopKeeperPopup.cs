@@ -141,7 +141,7 @@ public class SoulShopKeeperPopup : MonoBehaviour
         ApplyModeUI();
 
         popupRoot.SetActive(true);
-
+        CursorManager.Instance?.SetPopupBlocking(true);
         RunLevelManager.Instance?.SetInputLocked(true);
 
         BuildShop();
@@ -151,6 +151,7 @@ public class SoulShopKeeperPopup : MonoBehaviour
     public void Hide()
     {
         RunLevelManager.Instance?.SetInputLocked(false);
+        CursorManager.Instance?.SetPopupBlocking(false);
         if (popupRoot != null) popupRoot.SetActive(false);
     }
 

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 745618c59a30a0c4da76ead02c773f86, type: 3}
+  m_Name: CursorTheme
+  m_EditorClassIdentifier: Assembly-CSharp::CursorTheme
+  uiIdle: {fileID: 2378759337328328385, guid: c41a8caf47bd05246983f400865d7354, type: 3}
+  uiActive: {fileID: 4081147264238874686, guid: c41a8caf47bd05246983f400865d7354, type: 3}
+  combatIdle: {fileID: 6698501368232893113, guid: c41a8caf47bd05246983f400865d7354, type: 3}
+  combatActive: {fileID: -7700193406760174763, guid: c41a8caf47bd05246983f400865d7354, type: 3}
+  uiHotspot: {x: 0, y: 0}
+  combatHotspot: {x: 0, y: 0}
+  combatZoneMask:
+    serializedVersion: 2
+    m_Bits: 0
+  menuSceneName: MainMenu

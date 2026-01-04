@@ -12,7 +12,7 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - EnemyZone
   - Water
   - UI
   - 
@@ -71,6 +71,9 @@ TagManager:
     locked: 0
   - name: 
     uniqueID: 2567592305
+    locked: 0
+  - name: New Layer 10
+    uniqueID: 2130992365
     locked: 0
   m_RenderingLayers:
   - Default

@@ -2071,6 +2071,94 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 222688803}
   m_CullTransparentMesh: 1
+--- !u!1 &263478335
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 263478336}
+  - component: {fileID: 263478339}
+  - component: {fileID: 263478338}
+  - component: {fileID: 263478337}
+  m_Layer: 5
+  m_Name: CombatCursorZone
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &263478336
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 263478335}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2143260458}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: -10.52, y: 13.44}
+  m_SizeDelta: {x: 755.77, y: 452.76}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &263478337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 263478335}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 926299db191de7544939062ad675c536, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CursorCombatZoneUI
+--- !u!114 &263478338
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 263478335}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &263478339
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 263478335}
+  m_CullTransparentMesh: 1
 --- !u!114 &266118626 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5118248586886358469, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}
@@ -3671,7 +3759,7 @@ MonoBehaviour:
   m_Intensity: 0.56
   m_LightVolumeIntensity: 1
   m_LightVolumeEnabled: 0
-  m_ApplyToSortingLayers: 0000000013af29e837dbd36e9798ba6c0bd8b0dccd5e5b55cdb6860aeb3363e9a58069de71590a99
+  m_ApplyToSortingLayers: 0000000013af29e837dbd36e9798ba6c0bd8b0dccd5e5b55cdb6860aeb3363e9a58069de71590a99ed5c047f
   m_LightCookieSprite: {fileID: 0}
   m_DeprecatedPointLightCookieSprite: {fileID: 0}
   m_LightOrder: 0
@@ -5938,6 +6026,7 @@ GameObject:
   - component: {fileID: 932788305}
   - component: {fileID: 932788304}
   - component: {fileID: 932788303}
+  - component: {fileID: 932788306}
   m_Layer: 5
   m_Name: SoulShopKeeperPopup
   m_TagString: Untagged
@@ -6069,6 +6158,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 932788301}
   m_CullTransparentMesh: 1
+--- !u!114 &932788306
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 932788301}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0461d161630952846942e153f7513b4b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CursorPopupBlocker
 --- !u!1 &937756697
 GameObject:
   m_ObjectHideFlags: 0
@@ -8551,7 +8652,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1367967839}
   - component: {fileID: 1367967838}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: EnemyZone
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -8604,7 +8705,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 2
+  m_SortingOrder: 3
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
   m_Color: {r: 0.1254902, g: 0.1254902, b: 0.1254902, a: 1}
   m_FlipX: 0
@@ -10238,6 +10339,7 @@ GameObject:
   - component: {fileID: 1782959092}
   - component: {fileID: 1782959091}
   - component: {fileID: 1782959089}
+  - component: {fileID: 1782959093}
   m_Layer: 5
   m_Name: StageTransitionPanel
   m_TagString: Untagged
@@ -10328,6 +10430,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1782959088}
   m_CullTransparentMesh: 1
+--- !u!114 &1782959093
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1782959088}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0461d161630952846942e153f7513b4b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CursorPopupBlocker
 --- !u!1 &1787679651
 GameObject:
   m_ObjectHideFlags: 0
@@ -11162,7 +11276,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!82 &2026905444
 AudioSource:
   m_ObjectHideFlags: 0
@@ -11727,6 +11841,7 @@ RectTransform:
   - {fileID: 932788302}
   - {fileID: 1510070784}
   - {fileID: 1330846071}
+  - {fileID: 263478336}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}

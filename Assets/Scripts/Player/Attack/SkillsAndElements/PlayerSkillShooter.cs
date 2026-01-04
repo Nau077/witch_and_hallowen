@@ -108,7 +108,6 @@ public class PlayerSkillShooter : MonoBehaviour
     {
         runLevelManager = RunLevelManager.Instance;
         if (chargeUI) chargeUI.Clear();
-
     }
 
     void Update()
@@ -118,6 +117,7 @@ public class PlayerSkillShooter : MonoBehaviour
         {
             _skipNextClickFromUI = false;
         }
+
         HandleInput();
         HandleWheel();
 
@@ -160,6 +160,15 @@ public class PlayerSkillShooter : MonoBehaviour
         {
             return;
         }
+
+        // ✅ ТОЧЕЧНОЕ ИЗМЕНЕНИЕ:
+        // Если в этом кадре клик "съел" череп — мы не начинаем заряд/атаку и не релизим.
+        // Это предотвращает одновременный "замах" при клике по черепу.
+        if (SkullPickup.ClickConsumedThisFrame)
+        {
+            return;
+        }
+
         // 1) Если курсор сейчас над UI — не стреляем
         if (EventSystem.current != null &&
             EventSystem.current.IsPointerOverGameObject())
@@ -187,7 +196,6 @@ public class PlayerSkillShooter : MonoBehaviour
             ReleaseIfCharging();
         }
     }
-
 
     void HandleWheel()
     {

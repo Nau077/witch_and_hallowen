@@ -44,6 +44,11 @@ public class RunLevelManager : MonoBehaviour
     [Header("Player Mana (optional assign)")]
     public PlayerMana playerMana;
 
+    // ✅ SKULL EVENT
+    [Header("Skull Event (optional)")]
+    [Tooltip("Перетащи сюда компонент SkullEventController (обычно висит на RunLevelManager).")]
+    public SkullEventController skullEvent;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -53,12 +58,19 @@ public class RunLevelManager : MonoBehaviour
         }
 
         Instance = this;
+
         EnsurePlayerMana();
 
         if (shopPopup == null)
             shopPopup = FindObjectOfType<SoulShopKeeperPopup>(true);
 
-        Debug.Log($"[RunLevelManager] Awake. shopPopup={(shopPopup ? shopPopup.name : "NULL")}");
+        // ✅ SKULL EVENT: если не назначили — попробуем найти на себе, затем в сцене
+        if (skullEvent == null)
+            skullEvent = GetComponent<SkullEventController>();
+        if (skullEvent == null)
+            skullEvent = FindObjectOfType<SkullEventController>(true);
+
+        Debug.Log($"[RunLevelManager] Awake. shopPopup={(shopPopup ? shopPopup.name : "NULL")}, skullEvent={(skullEvent ? skullEvent.name : "NULL")}");
     }
 
     private void Start()
@@ -109,6 +121,9 @@ public class RunLevelManager : MonoBehaviour
 
         music?.SetStage(currentStage);
         FillManaToMaxSafe("InitializeRun");
+
+        // ✅ SKULL EVENT: база (stage 0) — череп выключаем
+        skullEvent?.SetStage(0);
 
         // Новый ран = новое расписание магазина
         if (ShopKeeperManager.Instance != null)
@@ -219,6 +234,9 @@ public class RunLevelManager : MonoBehaviour
             FillManaToMaxSafe($"Enter stage {currentStage}");
 
             ShopKeeperManager.Instance?.OnStageChanged(currentStage);
+
+            // ✅ SKULL EVENT: новый stage -> стартуем расписание спавна на этот stage
+            skullEvent?.SetStage(currentStage);
         }
         else
         {
@@ -244,6 +262,9 @@ public class RunLevelManager : MonoBehaviour
         ResetPlayerPosition();
         UpdateHudProgress();
         FillManaToMaxSafe("ReturnToBaseAfterDeath");
+
+        // ✅ SKULL EVENT: смерть -> база -> череп выключаем
+        skullEvent?.SetStage(0);
 
         // смерть = новый ран
         if (ShopKeeperManager.Instance != null)

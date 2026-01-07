@@ -4,11 +4,9 @@ public class CursorThemeInstaller : MonoBehaviour
 {
     public CursorTheme theme;
 
-    void Start()
+    private void Start()
     {
-        if (theme == null) return;
-        if (CursorManager.Instance == null) return;
-
-        CursorManager.Instance.ApplyTheme(theme);
+        if (CursorManager.Instance != null && theme != null)
+            CursorManager.Instance.ApplyTheme(theme);
     }
 }

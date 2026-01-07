@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 2024898690252927317}
   - component: {fileID: 1192811654979692413}
   - component: {fileID: 3233802663231194193}
+  - component: {fileID: 8272630710652294118}
   m_Layer: 0
   m_Name: FireballStronger
   m_TagString: Untagged
@@ -174,3 +175,26 @@ MonoBehaviour:
   stunDuration: 0.25
   blinkCount: 6
   blinkInterval: 0.06
+--- !u!114 &8272630710652294118
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3777930235256885239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd06be0d0fbabe542afc83a8f8d34bce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AutoShadow2D_Procedural
+  preferColliderSize: 0
+  sizeMultiplier: 1
+  heightFactor: 0.35
+  yOffsetMultiplier: 0.55
+  alpha: 0.87
+  tint: {r: 0, g: 0, b: 0, a: 1}
+  matchProjectileSorting: 1
+  fallbackSortingLayer: FX
+  fallbackOrder: -50
+  textureSize: 96
+  edgeSoftness: 3.2

@@ -10386,10 +10386,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SkullEventController
   skullPrefab: {fileID: 2334667573045435098, guid: 5601e349fe838b44089074836a816a4f, type: 3}
   groundArea: {fileID: 1679951446}
-  minDelay: 1
-  maxDelay: 5
-  skullLifetime: 200
-  minGapBetweenSpawns: 4
+  minDelay: 5
+  maxDelay: 10
+  skullLifetime: 8
+  minGapBetweenSpawns: 8
   disableOnStageZero: 1
   minSpawnsPerStage: 0
   maxSpawnsPerStage: 3

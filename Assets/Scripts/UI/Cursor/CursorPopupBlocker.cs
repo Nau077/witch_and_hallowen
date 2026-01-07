@@ -2,13 +2,13 @@
 
 public class CursorPopupBlocker : MonoBehaviour
 {
-    void OnEnable()
+    private void OnEnable()
     {
         if (CursorManager.Instance != null)
             CursorManager.Instance.SetPopupBlocking(true);
     }
 
-    void OnDisable()
+    private void OnDisable()
     {
         if (CursorManager.Instance != null)
             CursorManager.Instance.SetPopupBlocking(false);

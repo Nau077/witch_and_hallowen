@@ -15,7 +15,7 @@ public class EnemyWalker : MonoBehaviour
     public float moveSpeed = 6.6f;
     public float decideEvery = 0.8f;
     public bool snapToGrid = false;
-    [SerializeField] private float flipDeadzone = 0.02f; // чтобы не дёргалось при почти нулевой скорости
+    [SerializeField] private float flipDeadzone = 0.02f;
 
     [Header("Movement Bounds (World Coordinates)")]
     public float leftLimit = -9.0f;
@@ -34,14 +34,13 @@ public class EnemyWalker : MonoBehaviour
     public float postAttackHold = 0.25f;
 
     [Header("Safety")]
-    [SerializeField] private bool enforceGlobalBounds = true; // чтобы не менялись границы самопроизвольно
+    [SerializeField] private bool enforceGlobalBounds = true;
 
     private const float GLOBAL_LEFT = -9.0f;
     private const float GLOBAL_RIGHT = 8.5f;
     private const float GLOBAL_TOP = 3.4f;
     private const float GLOBAL_BOTTOM = -2.76f;
 
-    // внутренние переменные
     private Rigidbody2D rb;
     private SpriteRenderer sr;
     private Vector2 desiredDir = Vector2.zero;
@@ -49,7 +48,7 @@ public class EnemyWalker : MonoBehaviour
     private bool isAttacking = false;
     private bool isHoldingForAttack = false;
     private float attackTimer;
-    private int attackIndex; // глобальный счётчик атак
+    private int attackIndex;
 
     private Sprite baseSprite;
 
@@ -58,7 +57,9 @@ public class EnemyWalker : MonoBehaviour
 
     private EnemySkillBase[] skills;
 
-    // публичные вещи, которые могут смотреть скиллы
+    // ✅ чтобы снаряды могли понять "враг сейчас в атаке" и усилить стаггер
+    public bool IsBusyAttacking => isAttacking || isHoldingForAttack;
+
     public int AttackIndex => attackIndex;
     public bool PlayerIsDead => playerHP != null && playerHP.IsDead;
     public Transform PlayerTransform => player;
@@ -72,7 +73,6 @@ public class EnemyWalker : MonoBehaviour
         rb.gravityScale = 0f;
         rb.freezeRotation = true;
 
-        // жёстко фиксируем границы (если включено)
         if (enforceGlobalBounds)
         {
             leftLimit = GLOBAL_LEFT;
@@ -87,11 +87,9 @@ public class EnemyWalker : MonoBehaviour
         if (player != null) playerHP = player.GetComponent<PlayerHealth>();
         selfHP = GetComponent<EnemyHealth>();
 
-        // Собираем и инициализируем все скиллы на этом объекте
         skills = GetComponents<EnemySkillBase>();
         if (skills != null && skills.Length > 0)
         {
-            // сортируем по приоритету (больший приоритет ходит первым)
             System.Array.Sort(skills, (a, b) => b.Priority.CompareTo(a.Priority));
             foreach (var s in skills)
             {
@@ -110,14 +108,19 @@ public class EnemyWalker : MonoBehaviour
             return;
         }
 
-        // если заморожен — ничего не делаем
         if (selfHP && selfHP.IsFrozen)
         {
             rb.linearVelocity = Vector2.zero;
             return;
         }
 
-        // обновление скиллов по времени
+        // ✅ СТАГГЕР: стопим движение и не даём атаковать
+        if (selfHP && selfHP.IsStaggered)
+        {
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
+
         float dt = Time.deltaTime;
         if (skills != null)
         {
@@ -135,7 +138,6 @@ public class EnemyWalker : MonoBehaviour
             return;
         }
 
-        // Не подходить к игроку ближе по оси X
         if (player)
         {
             float minDistX = minCellsFromPlayer * cellSize;
@@ -154,8 +156,14 @@ public class EnemyWalker : MonoBehaviour
     {
         if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead)) return;
 
-        // заморожен => вообще не двигаемся
         if (selfHP && selfHP.IsFrozen)
+        {
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
+
+        // ✅ СТАГГЕР: стопим физику движения
+        if (selfHP && selfHP.IsStaggered)
         {
             rb.linearVelocity = Vector2.zero;
             return;
@@ -170,12 +178,11 @@ public class EnemyWalker : MonoBehaviour
         rb.MovePosition(clamped);
         rb.linearVelocity = (clamped - cur) / Time.fixedDeltaTime;
 
-        // флип по фактическому движению
         if (sr)
         {
             float mx = rb.linearVelocity.x;
-            if (mx > flipDeadzone) sr.flipX = false; // лицом вправо
-            else if (mx < -flipDeadzone) sr.flipX = true; // лицом влево
+            if (mx > flipDeadzone) sr.flipX = false;
+            else if (mx < -flipDeadzone) sr.flipX = true;
         }
     }
 
@@ -185,9 +192,8 @@ public class EnemyWalker : MonoBehaviour
         {
             yield return new WaitForSeconds(decideEvery);
 
-            // если враг умер или заморожен — не пересчитываем направление
-            if ((selfHP && selfHP.IsDead) || (selfHP && selfHP.IsFrozen))
-                continue;
+            if ((selfHP && selfHP.IsDead) || (selfHP && selfHP.IsFrozen)) continue;
+            if (selfHP && selfHP.IsStaggered) continue;
 
             int r = Random.Range(0, 4);
             Vector2 dir = r switch
@@ -198,7 +204,6 @@ public class EnemyWalker : MonoBehaviour
                 _ => Vector2.down
             };
 
-            // коррекция, если у краёв по Y
             float y = transform.position.y;
             const float edgeBias = 0.2f;
             if (y > topLimit - edgeBias) dir = Vector2.down;
@@ -236,6 +241,10 @@ public class EnemyWalker : MonoBehaviour
         if (selfHP && selfHP.IsDead) return false;
         if (playerHP && playerHP.IsDead) return false;
         if (selfHP && selfHP.IsFrozen) return false;
+
+        // ✅ СТАГГЕР блокирует атаку
+        if (selfHP && selfHP.IsStaggered) return false;
+
         return true;
     }
 
@@ -248,26 +257,26 @@ public class EnemyWalker : MonoBehaviour
         isHoldingForAttack = true;
         rb.linearVelocity = Vector2.zero;
 
-        // задержка перед атакой
         if (preAttackHold > 0f)
             yield return new WaitForSeconds(preAttackHold);
 
-        isHoldingForAttack = false;
-
+        // ✅ если стаггер случился во время подготовки — срываем атаку
         if (!CanAttackNow())
         {
+            isHoldingForAttack = false;
             isAttacking = false;
             RestoreSprite();
             yield break;
         }
 
-        // включаем спрайт атаки
+        isHoldingForAttack = false;
+
         if (sr && attackSprite)
             sr.sprite = attackSprite;
 
-        // короткий «кадр броска» как раньше
         yield return new WaitForSeconds(0.25f);
 
+        // ✅ если стаггер случился перед выпуском — срываем атаку
         if (!CanAttackNow())
         {
             isAttacking = false;
@@ -275,11 +284,9 @@ public class EnemyWalker : MonoBehaviour
             yield break;
         }
 
-        // глобальный счётчик атак
         attackIndex++;
         bool attackConsumed = false;
 
-        // даём шанс всем скиллам по очереди
         if (skills != null)
         {
             for (int i = 0; i < skills.Length; i++)
@@ -290,7 +297,6 @@ public class EnemyWalker : MonoBehaviour
             }
         }
 
-        // пост-задержка
         if (postAttackHold > 0f)
             yield return new WaitForSeconds(postAttackHold);
 
@@ -315,9 +321,6 @@ public class EnemyWalker : MonoBehaviour
         return new Vector2(x, y);
     }
 
-    /// <summary>
-    /// Десинхронизирует движения и атаки (рандомные сдвиги).
-    /// </summary>
     public void ApplyDesync(float decideJitter, float attackJitter, float firstDecisionDelay, float firstAttackDelay)
     {
         decideJitter = Mathf.Clamp01(decideJitter);
@@ -345,23 +348,4 @@ public class EnemyWalker : MonoBehaviour
             rb2.angularVelocity = 0f;
         }
     }
-
-#if UNITY_EDITOR
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.cyan;
-        Vector3 c = new Vector3((leftLimit + rightLimit) / 2f, (bottomLimit + topLimit) / 2f, 0f);
-        Vector3 s = new Vector3(Mathf.Abs(rightLimit - leftLimit), Mathf.Abs(topLimit - bottomLimit), 0f);
-        Gizmos.DrawWireCube(c, s);
-
-        if (player)
-        {
-            float minDistX = minCellsFromPlayer * cellSize;
-            Vector3 p = player.position;
-            Gizmos.color = Color.green;
-            Gizmos.DrawLine(new Vector3(p.x - minDistX, bottomLimit, 0), new Vector3(p.x - minDistX, topLimit, 0));
-            Gizmos.DrawLine(new Vector3(p.x + minDistX, bottomLimit, 0), new Vector3(p.x + minDistX, topLimit, 0));
-        }
-    }
-#endif
 }

@@ -301,6 +301,12 @@ MonoBehaviour:
   lifetime: 2.2
   damage: 5
   ignoreEnemiesFirstMeters: 0
+  enableCritBlink: 1
+  critChance: 0.3
+  critDuration: 0.5
+  critBlinkInterval: -1
+  staggerMultiplier: 1
+  staggerMultiplierWhenEnemyAttacking: 1.5
   currentIceSkillLevel: 1
   hitsToFreezeLvl1: 1
   hitsToFreezeLvl2: 1
@@ -381,15 +387,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AutoShadow2D
   preferColliderSize: 0
   sizeMultiplier: 1
+  minWidth: 0.35
   heightFactor: 0.4
+  baseLocalOffset: {x: 0.25, y: -0.35}
   yOffsetMultiplier: 0.55
   alpha: 0.78
   tint: {r: 0, g: 0, b: 0, a: 1}
-  matchProjectileSorting: 1
+  matchProjectileSortingLayer: 1
+  matchProjectileSortingOrder: 1
   fallbackSortingLayer: FX
-  fallbackOrder: -50
-  textureSize: 96
-  edgeSoftness: 3.2
+  fallbackSortingOrder: 0
+  textureSize: 256
+  edgeSoftness: 6
+  debugRed: 0
 --- !u!1 &2451047454038232209
 GameObject:
   m_ObjectHideFlags: 0
@@ -5403,7 +5413,7 @@ Transform:
   m_GameObject: {fileID: 3468156908949687791}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.25, z: 0}
+  m_LocalPosition: {x: 0.25, y: -0.86282, z: -0.01}
   m_LocalScale: {x: 0.5808, y: 0.23232, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5453,18 +5463,18 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 1432051405
-  m_SortingLayer: 5
-  m_SortingOrder: -50
-  m_Sprite: {fileID: -2413806693520163455, guid: ba3cfb5dbeecabf4db2dbbb596406730, type: 3}
-  m_Color: {r: 0, g: 0, b: 0, a: 0.35}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 3
+  m_Sprite: {fileID: 0}
+  m_Color: {r: 0, g: 0, b: 0, a: 0.78}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 2.56, y: 2.56}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
 --- !u!1 &4827012900514565111

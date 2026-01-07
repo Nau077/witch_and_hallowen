@@ -1,4 +1,4 @@
-using System;
+п»їusing System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -46,15 +46,40 @@ public class EnemyHealth : MonoBehaviour
     [Header("Rewards")]
     public int cursedGoldOnDeath = 10;
 
+    // ---------- CRIT / STAGGER (BLINK) ----------
+    [Header("Crit (Blink + Micro Stagger)")]
+    [Tooltip("Р•СЃР»Рё true вЂ” РІСЂР°Рі РјРѕР¶РµС‚ РІС…РѕРґРёС‚СЊ РІ РєСЂРёС‚-РјРёРіР°РЅРёРµ Рё РјРёРєСЂРѕ-СЃС‚Р°РіРіРµСЂ РѕС‚ РїРѕРїР°РґР°РЅРёР№.")]
+    public bool canBeCritStaggered = true;
+
+    [Tooltip("Р”РµС„РѕР»С‚РЅС‹Р№ РёРЅС‚РµСЂРІР°Р» РјРёРіР°РЅРёСЏ (СЃРµРє). РЎРЅР°СЂСЏРґ РјРѕР¶РµС‚ РїРµСЂРµРѕРїСЂРµРґРµР»РёС‚СЊ.")]
+    public float defaultCritBlinkInterval = 0.12f;
+
+    [Tooltip("Р•СЃР»Рё РєСЂРёС‚ СѓР¶Рµ Р°РєС‚РёРІРµРЅ Рё РїСЂРёР»РµС‚Р°РµС‚ РЅРѕРІС‹Р№ вЂ” РїСЂРѕРґР»РµРІР°РµРј.")]
+    public bool extendCritOnRehit = true;
+
+    [Header("Micro Stagger")]
+    [Tooltip("РљР°РєР°СЏ РґРѕР»СЏ РѕС‚ critDuration РёРґС‘С‚ РІ РјРёРєСЂРѕ-СЃС‚Р°РіРіРµСЂ. 0.35 = 35% РѕС‚ critDuration.")]
+    [Range(0f, 1f)]
+    public float staggerFractionOfCritDuration = 0.35f;
+
+    [Tooltip("РњРёРЅРёРјР°Р»СЊРЅР°СЏ РґР»РёС‚РµР»СЊРЅРѕСЃС‚СЊ СЃС‚Р°РіРіРµСЂР° (СЃРµРє), С‡С‚РѕР±С‹ Р±С‹Р» Р·Р°РјРµС‚РµРЅ РґР°Р¶Рµ РїСЂРё РєРѕСЂРѕС‚РєРѕРј РєСЂРёС‚Рµ.")]
+    public float staggerMinDuration = 0.06f;
+
+    [Tooltip("РњР°РєСЃРёРјР°Р»СЊРЅР°СЏ РґР»РёС‚РµР»СЊРЅРѕСЃС‚СЊ СЃС‚Р°РіРіРµСЂР° (СЃРµРє), С‡С‚РѕР±С‹ РЅРµ РїСЂРµРІСЂР°С‰Р°Р»РѕСЃСЊ РІ СЃС‚Р°РЅ.")]
+    public float staggerMaxDuration = 0.25f;
+
+    private float _staggerUntilTime;
+    public bool IsStaggered => !isDead && Time.time < _staggerUntilTime;
+
     // ---------- ICE / FREEZE ----------
     [Header("Ice Freeze")]
-    [Tooltip("Можно ли этого врага вообще замораживать.")]
+    [Tooltip("РњРѕР¶РЅРѕ Р»Рё СЌС‚РѕРіРѕ РІСЂР°РіР° РІРѕРѕР±С‰Рµ Р·Р°РјРѕСЂР°Р¶РёРІР°С‚СЊ.")]
     public bool canBeFrozen = true;
 
-    [Tooltip("Префаб льда (SpriteRenderer), который будет появляться поверх врага при заморозке.")]
+    [Tooltip("РџСЂРµС„Р°Р± Р»СЊРґР° (SpriteRenderer), РєРѕС‚РѕСЂС‹Р№ Р±СѓРґРµС‚ РїРѕСЏРІР»СЏС‚СЊСЃСЏ РїРѕРІРµСЂС… РІСЂР°РіР° РїСЂРё Р·Р°РјРѕСЂРѕР·РєРµ.")]
     public GameObject freezeVfxPrefab;
 
-    [Tooltip("Смещение льда относительно центра врага (например, 0, 0.3).")]
+    [Tooltip("РЎРјРµС‰РµРЅРёРµ Р»СЊРґР° РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅРѕ С†РµРЅС‚СЂР° РІСЂР°РіР° (РЅР°РїСЂРёРјРµСЂ, 0, 0.3).")]
     public Vector2 freezeVfxOffset = new Vector2(0f, 0.3f);
 
     private bool isFrozen;
@@ -65,15 +90,14 @@ public class EnemyHealth : MonoBehaviour
 
     // ---------- DAMAGE TEXT ----------
     [Header("Damage Text")]
-    [Tooltip("Префаб с TMP_Text + DamageTextPopup.")]
+    [Tooltip("РџСЂРµС„Р°Р± СЃ TMP_Text + DamageTextPopup.")]
     public GameObject damageTextPrefab;
 
-    [Tooltip("Мировое смещение над врагом, откуда вылетают цифры.")]
+    [Tooltip("РњРёСЂРѕРІРѕРµ СЃРјРµС‰РµРЅРёРµ РЅР°Рґ РІСЂР°РіРѕРј, РѕС‚РєСѓРґР° РІС‹Р»РµС‚Р°СЋС‚ С†РёС„СЂС‹.")]
     public Vector3 damageTextOffset = new Vector3(0f, 1.1f, 0f);
 
-    [Tooltip("Небольшой разброс вокруг offset, чтобы цифры не налезали друг на друга.")]
+    [Tooltip("РќРµР±РѕР»СЊС€РѕР№ СЂР°Р·Р±СЂРѕСЃ РІРѕРєСЂСѓРі offset, С‡С‚РѕР±С‹ С†РёС„СЂС‹ РЅРµ РЅР°Р»РµР·Р°Р»Рё РґСЂСѓРі РЅР° РґСЂСѓРіР°.")]
     public float damageTextRandomRadius = 0.25f;
-    // -----------------------------
 
     // ---------- INTERNAL ----------
     private SpriteRenderer sr;
@@ -88,6 +112,11 @@ public class EnemyHealth : MonoBehaviour
     private Coroutine _stopParticlesRoutine;
 
     private Canvas _cachedDamageCanvas;
+
+    // crit blink runtime
+    private Coroutine _critBlinkRoutine;
+    private float _critUntilTime;
+    private bool _baseRendererEnabled = true;
 
     private void Awake()
     {
@@ -107,20 +136,44 @@ public class EnemyHealth : MonoBehaviour
         }
 
         baseColor = sr.color;
+        _baseRendererEnabled = sr.enabled;
+
         currentHealth = maxHealth;
         if (hpBar) hpBar.SetMax(maxHealth);
     }
 
+    // ---------------- PUBLIC DAMAGE API ----------------
+
+    /// <summary>
+    /// РЎС‚Р°СЂС‹Р№ РєРѕРЅС‚СЂР°РєС‚ вЂ” РќР• Р»РѕРјР°РµРј. Р‘РµР· РєСЂРёС‚Р°.
+    /// </summary>
     public void TakeDamage(int amount)
+    {
+        TakeDamage(amount, 0f, 0f, -1f, 1f);
+    }
+
+    /// <summary>
+    /// РЎС‚Р°СЂС‹Р№ СЂР°СЃС€РёСЂРµРЅРЅС‹Р№ РєРѕРЅС‚СЂР°РєС‚ вЂ” РќР• Р»РѕРјР°РµРј. РњРЅРѕР¶РёС‚РµР»СЊ СЃС‚Р°РіРіРµСЂР° = 1.
+    /// </summary>
+    public void TakeDamage(int amount, float critChance, float critDuration, float critBlinkInterval = -1f)
+    {
+        TakeDamage(amount, critChance, critDuration, critBlinkInterval, 1f);
+    }
+
+    /// <summary>
+    /// РќРѕРІС‹Р№ РєРѕРЅС‚СЂР°РєС‚: РєСЂРёС‚ + РјРЅРѕР¶РёС‚РµР»СЊ РјРёРєСЂРѕ-СЃС‚Р°РіРіРµСЂР° (РґР»СЏ РїСЂРµС„Р°Р±РѕРІ СЃРЅР°СЂСЏРґРѕРІ).
+    /// staggerMultiplier: 0 = Р±РµР· СЃС‚Р°РіРіРµСЂР°, 1 = РЅРѕСЂРј, 2 = СЃРёР»СЊРЅРµРµ.
+    /// </summary>
+    public void TakeDamage(int amount, float critChance, float critDuration, float critBlinkInterval, float staggerMultiplier)
     {
         if (isDead || amount <= 0) return;
 
         currentHealth = Mathf.Max(0, currentHealth - amount);
 
-        // ----- цифра урона -----
+        // ----- С†РёС„СЂР° СѓСЂРѕРЅР° -----
         ShowDamageNumber(amount);
 
-        // не трогаем заморозку, только эффекты удара
+        // РѕР±С‹С‡РЅС‹Р№ hit flash (С‚РёРЅС‚)
         if (_hitFlashRoutine != null)
             StopCoroutine(_hitFlashRoutine);
         _hitFlashRoutine = StartCoroutine(HitFlash());
@@ -139,6 +192,9 @@ public class EnemyHealth : MonoBehaviour
             Destroy(fx, 0.6f);
         }
 
+        // ---------- CRIT / MICRO STAGGER ----------
+        TryApplyCritFromHit(critChance, critDuration, critBlinkInterval, staggerMultiplier);
+
         if (hpBar) hpBar.SetValue(currentHealth);
 
         TryPlayHitSound();
@@ -147,9 +203,98 @@ public class EnemyHealth : MonoBehaviour
             Die();
     }
 
+    private void TryApplyCritFromHit(float critChance, float critDuration, float critBlinkInterval, float staggerMultiplier)
+    {
+        if (!canBeCritStaggered) return;
+        if (isDead) return;
+
+        if (critChance <= 0f) return;
+        if (critDuration <= 0f) return;
+
+        if (UnityEngine.Random.value > Mathf.Clamp01(critChance))
+            return;
+
+        float interval = (critBlinkInterval > 0f) ? critBlinkInterval : Mathf.Max(0.01f, defaultCritBlinkInterval);
+        ApplyCritBlink(critDuration, interval, staggerMultiplier);
+    }
+
     /// <summary>
-    /// Снаружи (скил) говорит врагу: "замёрзни на duration секунд".
+    /// РЎС‚Р°СЂС‹Р№ РјРµС‚РѕРґ вЂ” РѕСЃС‚Р°РІР»СЏРµРј (СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚СЊ).
     /// </summary>
+    public void ApplyCritBlink(float critDuration, float blinkInterval = -1f)
+    {
+        ApplyCritBlink(critDuration, blinkInterval, 1f);
+    }
+
+    /// <summary>
+    /// РќРѕРІС‹Р№ РјРµС‚РѕРґ: РєСЂРёС‚-РјРёРіР°РЅРёРµ + РјРёРєСЂРѕ-СЃС‚Р°РіРіРµСЂ СЃ РјРЅРѕР¶РёС‚РµР»РµРј.
+    /// </summary>
+    public void ApplyCritBlink(float critDuration, float blinkInterval, float staggerMultiplier)
+    {
+        if (!canBeCritStaggered || isDead) return;
+
+        float interval = (blinkInterval > 0f) ? blinkInterval : Mathf.Max(0.01f, defaultCritBlinkInterval);
+        float dur = Mathf.Max(0.01f, critDuration);
+
+        // 1) Р’РёР·СѓР°Р» (РјРёРіР°РЅРёРµ) вЂ” РґРѕ Time.time + dur
+        float newCritUntil = Time.time + dur;
+
+        if (_critBlinkRoutine == null)
+        {
+            _critUntilTime = newCritUntil;
+            _critBlinkRoutine = StartCoroutine(CritBlinkRoutine(interval));
+        }
+        else
+        {
+            if (extendCritOnRehit)
+                _critUntilTime = Mathf.Max(_critUntilTime, newCritUntil);
+        }
+
+        // 2) РњРёРєСЂРѕ-СЃС‚Р°РіРіРµСЂ (РїР°СѓР·Р° Р»РѕРіРёРєРё РІСЂР°РіР°) + РјРЅРѕР¶РёС‚РµР»СЊ РѕС‚ СЃРЅР°СЂСЏРґР°
+        float m = Mathf.Max(0f, staggerMultiplier);
+        if (m <= 0f) return; // СЃРЅР°СЂСЏРґ РјРѕР¶РµС‚ С…РѕС‚РµС‚СЊ "РєСЂРёС‚-РјРёРіР°РЅРёРµ Р±РµР· СЃС‚Р°РіРіРµСЂР°"
+
+        float staggerDur = dur * Mathf.Clamp01(staggerFractionOfCritDuration) * m;
+
+        // clamp (С‚РѕР¶Рµ РјР°СЃС€С‚Р°Р±РёСЂСѓРµРј)
+        float min = Mathf.Max(0f, staggerMinDuration) * m;
+        float max = Mathf.Max(staggerMinDuration, staggerMaxDuration) * m;
+        staggerDur = Mathf.Clamp(staggerDur, min, max);
+
+        float newStaggerUntil = Time.time + staggerDur;
+
+        if (extendCritOnRehit)
+            _staggerUntilTime = Mathf.Max(_staggerUntilTime, newStaggerUntil);
+        else
+            _staggerUntilTime = newStaggerUntil;
+    }
+
+    private IEnumerator CritBlinkRoutine(float interval)
+    {
+        if (sr) _baseRendererEnabled = sr.enabled;
+
+        bool visible = true;
+        while (!isDead && Time.time < _critUntilTime)
+        {
+            if (sr)
+            {
+                visible = !visible;
+                sr.enabled = visible;
+            }
+            yield return new WaitForSeconds(interval);
+        }
+
+        if (sr)
+        {
+            sr.enabled = _baseRendererEnabled;
+            sr.color = baseColor;
+        }
+
+        _critBlinkRoutine = null;
+    }
+
+    // ---------------- FREEZE ----------------
+
     public void ApplyFreeze(float duration)
     {
         if (!canBeFrozen || isDead) return;
@@ -191,6 +336,8 @@ public class EnemyHealth : MonoBehaviour
         _freezeRoutine = null;
     }
 
+    // ---------------- SOUND / FX ----------------
+
     private void TryPlayHitSound()
     {
         if (hitClips == null || hitClips.Length == 0 || audioSource == null) return;
@@ -208,17 +355,18 @@ public class EnemyHealth : MonoBehaviour
     private IEnumerator HitFlash()
     {
         float half = flashDuration * 0.5f;
-        sr.color = fireTint;
+
+        if (sr) sr.color = fireTint;
         yield return new WaitForSeconds(half);
 
         float t = 0f;
         while (t < half)
         {
-            sr.color = Color.Lerp(fireTint, baseColor, t / half);
+            if (sr) sr.color = Color.Lerp(fireTint, baseColor, t / half);
             t += Time.deltaTime;
             yield return null;
         }
-        sr.color = baseColor;
+        if (sr) sr.color = baseColor;
 
         _hitFlashRoutine = null;
     }
@@ -235,7 +383,16 @@ public class EnemyHealth : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        // снимаем заморозку
+        // СЃРЅРёРјР°РµРј РєСЂРёС‚-РјРёРіР°РЅРёРµ
+        if (_critBlinkRoutine != null) StopCoroutine(_critBlinkRoutine);
+        _critBlinkRoutine = null;
+        if (sr)
+        {
+            sr.enabled = _baseRendererEnabled;
+            sr.color = baseColor;
+        }
+
+        // СЃРЅРёРјР°РµРј Р·Р°РјРѕСЂРѕР·РєСѓ
         if (_freezeRoutine != null) StopCoroutine(_freezeRoutine);
         isFrozen = false;
         if (_currentFreezeVfx != null)
@@ -297,8 +454,6 @@ public class EnemyHealth : MonoBehaviour
     private Canvas GetDamageCanvas()
     {
         if (_cachedDamageCanvas != null) return _cachedDamageCanvas;
-
-        // Unity 6 / 2023+ — современный API без устаревшего предупреждения
         _cachedDamageCanvas = FindFirstObjectByType<Canvas>();
         return _cachedDamageCanvas;
     }
@@ -310,7 +465,6 @@ public class EnemyHealth : MonoBehaviour
         var cam = Camera.main;
         if (cam == null) return;
 
-        // 1) Мировая позиция над врагом
         Vector3 worldPos = transform.position + damageTextOffset;
 
         if (damageTextRandomRadius > 0f)
@@ -319,16 +473,13 @@ public class EnemyHealth : MonoBehaviour
             worldPos += new Vector3(rnd.x, rnd.y, 0f);
         }
 
-        // 2) Переводим в экранные координаты
         Vector3 screenPos = cam.WorldToScreenPoint(worldPos);
 
-        // 3) Ищем Canvas
         Canvas canvas = GetDamageCanvas();
         if (canvas == null) return;
 
         RectTransform canvasRect = canvas.transform as RectTransform;
 
-        // 4) Создаём UI-объект под Canvas
         GameObject go = Instantiate(damageTextPrefab, canvas.transform);
         RectTransform rect = go.transform as RectTransform;
 
@@ -346,11 +497,9 @@ public class EnemyHealth : MonoBehaviour
         }
         else
         {
-            // запасной вариант
             go.transform.position = screenPos;
         }
 
-        // 5) Передаём значение урона
         var popup = go.GetComponent<DamageTextPopup>();
         if (popup != null)
             popup.Setup(amount);

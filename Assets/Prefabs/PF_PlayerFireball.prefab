@@ -454,7 +454,7 @@ MonoBehaviour:
   ignoreEnemiesFirstMeters: 0
   enableCritBlink: 1
   critChance: 1
-  critDuration: 0.3
+  critDuration: 0.52
   critBlinkInterval: 0.11
   staggerMultiplier: 1.09
   staggerMultiplierWhenEnemyAttacking: 2.66

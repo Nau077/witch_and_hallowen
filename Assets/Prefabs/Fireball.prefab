@@ -183,22 +183,26 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3777930235256885239}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fd06be0d0fbabe542afc83a8f8d34bce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoShadow2D
   preferColliderSize: 0
   sizeMultiplier: 1
+  minWidth: 0.35
   heightFactor: 0.4
+  baseLocalOffset: {x: 0.28, y: -0.32}
   yOffsetMultiplier: 0.55
   alpha: 0.72
   tint: {r: 0, g: 0, b: 0, a: 1}
-  matchProjectileSorting: 1
+  matchProjectileSortingLayer: 1
+  matchProjectileSortingOrder: 1
   fallbackSortingLayer: FX
-  fallbackOrder: -50
+  fallbackSortingOrder: 0
   textureSize: 96
   edgeSoftness: 3.2
+  debugRed: 0
 --- !u!1 &9037398870074022154
 GameObject:
   m_ObjectHideFlags: 0
@@ -225,7 +229,7 @@ Transform:
   m_GameObject: {fileID: 9037398870074022154}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.25, z: 0}
+  m_LocalPosition: {x: 0.28, y: -0.5519735, z: -0.01}
   m_LocalScale: {x: 0.49827, y: 0.19930801, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -275,17 +279,17 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 1432051405
-  m_SortingLayer: 5
-  m_SortingOrder: -50
-  m_Sprite: {fileID: -2413806693520163455, guid: ba3cfb5dbeecabf4db2dbbb596406730, type: 3}
-  m_Color: {r: 0, g: 0, b: 0, a: 0.35}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 3
+  m_Sprite: {fileID: 0}
+  m_Color: {r: 0, g: 0, b: 0, a: 0.72}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0

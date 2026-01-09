@@ -1,9 +1,8 @@
-using UnityEngine;
+п»їusing UnityEngine;
 
 /// <summary>
-/// Кошелёк для ДУШ (souls).
-/// Использует SoulCounter.cursedGoldRun как источник правды.
-/// Вешаем, например, на объект SoulScore.
+/// РљРѕС€РµР»С‘Рє РґР»СЏ SOULS (РїРµСЂРјР°РЅРµРЅС‚РЅРѕР№ РІР°Р»СЋС‚С‹).
+/// РСЃС‚РѕС‡РЅРёРє РёСЃС‚РёРЅС‹: SoulCounter.souls
 /// </summary>
 public class PlayerSoulsWallet : MonoBehaviour
 {
@@ -19,13 +18,12 @@ public class PlayerSoulsWallet : MonoBehaviour
         Instance = this;
     }
 
-    /// <summary>Текущее количество душ в ран-забеге.</summary>
     public int CurrentSouls
     {
         get
         {
             if (SoulCounter.Instance == null) return 0;
-            return SoulCounter.Instance.cursedGoldRun;   // <-- ЭТО souls
+            return SoulCounter.Instance.Souls;
         }
     }
 
@@ -33,23 +31,22 @@ public class PlayerSoulsWallet : MonoBehaviour
 
     public bool TrySpend(int amount)
     {
+        if (amount <= 0) return true;
         if (!CanSpend(amount)) return false;
 
-        if (SoulCounter.Instance != null)
-        {
-            SoulCounter.Instance.cursedGoldRun -= amount;
-            SoulCounter.Instance.RefreshUI();   // обновляем текст душ
-        }
+        // СѓРјРµРЅСЊС€Р°РµРј РїРµСЂРјР°РЅРµРЅС‚РЅС‹Рµ souls Рё СЃРѕС…СЂР°РЅСЏРµРј
+        SoulCounter.Instance.SetSouls(CurrentSouls - amount);
+        SoulCounter.Instance.RefreshUI();
 
         return true;
     }
 
     public void Add(int amount)
     {
-        if (SoulCounter.Instance != null)
-        {
-            SoulCounter.Instance.cursedGoldRun += amount;
-            SoulCounter.Instance.RefreshUI();
-        }
+        if (amount <= 0) return;
+        if (SoulCounter.Instance == null) return;
+
+        SoulCounter.Instance.AddSouls(amount);
+        SoulCounter.Instance.RefreshUI();
     }
 }

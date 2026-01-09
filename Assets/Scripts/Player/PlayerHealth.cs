@@ -70,6 +70,7 @@ public class PlayerHealth : MonoBehaviour
         currentHealth = maxHealth;
         if (baseMaxHealth <= 0)
             baseMaxHealth = maxHealth;
+
         UpdateBar();
 
         // визуал "живая ведьма" на старте
@@ -125,8 +126,6 @@ public class PlayerHealth : MonoBehaviour
         isDead = true;
 
         ApplyDeathVisual();
-
-        // Запускаем кат-сцену смерти
         StartCoroutine(DeathSequence());
     }
 
@@ -178,23 +177,21 @@ public class PlayerHealth : MonoBehaviour
             camFx.intensity = 1f;
         }
 
-        // подождать 1 секунду
         yield return new WaitForSeconds(1f);
 
-        // показать попап
         if (WitchIsDeadPopup.Instance)
             WitchIsDeadPopup.Instance.Show("Witch is dead");
 
-        // подождать ещё немного
         yield return new WaitForSeconds(1.2f);
 
-        // выключить попап
         if (WitchIsDeadPopup.Instance)
             WitchIsDeadPopup.Instance.HideImmediate();
 
-        // вернуть цвет
         if (camFx)
             camFx.intensity = 0f;
+
+        // ✅ ВОТ ОН: сброс ран-монет (coins) при смерти
+        PlayerWallet.Instance?.ResetRunCoins();
 
         // вернуть игрока на базу
         if (RunLevelManager.Instance != null)
@@ -217,7 +214,6 @@ public class PlayerHealth : MonoBehaviour
         currentHealth = maxHealth;
         UpdateBar();
 
-        // Восстановить физику
         if (rb != null)
         {
             rb.bodyType = defaultBodyType;
@@ -225,19 +221,15 @@ public class PlayerHealth : MonoBehaviour
             rb.angularVelocity = 0f;
         }
 
-        // Восстановить движение
         if (disableMovementOnDeath && movement != null)
             movement.enabled = true;
 
-        // Вернуть анимации
         if (anim)
             anim.enabled = true;
 
-        // Вернуть живой спрайт
         if (aliveSprite != null && sr != null)
             sr.sprite = aliveSprite;
 
-        // Включить стрельбу
         if (shooter != null)
             shooter.enabled = true;
     }
@@ -299,18 +291,12 @@ public class PlayerHealth : MonoBehaviour
 
     public void ApplyPermanentMaxHpBonus(int bonus)
     {
-        // baseMaxHealth у тебя уже есть и ты его инициализируешь в Awake:
-        // if (baseMaxHealth <= 0) baseMaxHealth = maxHealth;
-
         permanentMaxHealthBonus = Mathf.Max(0, bonus);
 
         int newMax = Mathf.Max(1, baseMaxHealth + permanentMaxHealthBonus);
-
         maxHealth = newMax;
 
-        // По твоему требованию: при покупке/сбросе здоровье поднимаем до максимума
         currentHealth = maxHealth;
-
         UpdateBar();
     }
 

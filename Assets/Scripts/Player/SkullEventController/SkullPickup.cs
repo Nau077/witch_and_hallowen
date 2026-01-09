@@ -29,8 +29,6 @@ public class SkullPickup : MonoBehaviour
     private Color _baseColor = Color.white;
     private Coroutine _flashRoutine;
 
-    private const string KILLS_KEY = "kills_lifetime";
-
     // ======= BLOCK ATTACK THIS FRAME =======
     private static int _consumeFrame = -9999;
     public static bool ClickConsumedThisFrame => _consumeFrame == Time.frameCount;
@@ -63,7 +61,6 @@ public class SkullPickup : MonoBehaviour
             if (t != null) barFillImage = t.GetComponent<Image>();
             if (barFillImage == null)
             {
-                // fallback по имени
                 var all = GetComponentsInChildren<Transform>(true);
                 foreach (var tr in all)
                 {
@@ -88,10 +85,7 @@ public class SkullPickup : MonoBehaviour
         {
             float d = Vector2.Distance(player.position, transform.position);
             if (d > requiredDistance)
-            {
-                // можно добавить мягкий фидбек, но пока просто игнор
                 return;
-            }
         }
 
         // 2) съедаем клик, чтобы атака не сработала в этом кадре
@@ -141,14 +135,10 @@ public class SkullPickup : MonoBehaviour
 
         if (SoulCounter.Instance != null)
         {
-            SoulCounter.Instance.killsLifetime = Mathf.Max(0, SoulCounter.Instance.killsLifetime + soulsReward);
-
-            PlayerPrefs.SetInt(KILLS_KEY, SoulCounter.Instance.killsLifetime);
-            PlayerPrefs.Save();
-
+            // ✅ даём перманентные SOULS
+            SoulCounter.Instance.AddSouls(Mathf.Max(0, soulsReward));
             SoulCounter.Instance.RefreshUI();
 
-            // optional popup
             SoulPopup.Create(transform.position, soulsReward, SoulPopup.PopupType.Souls);
         }
         else

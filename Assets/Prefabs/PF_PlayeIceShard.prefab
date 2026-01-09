@@ -301,12 +301,12 @@ MonoBehaviour:
   lifetime: 2.2
   damage: 5
   ignoreEnemiesFirstMeters: 0
-  enableCritBlink: 1
+  enableCrit: 1
   critChance: 0.3
   critDuration: 1
   critBlinkInterval: -1
   staggerMultiplier: 1
-  staggerMultiplierWhenEnemyAttacking: 1.5
+  critBlinkColor: {r: 1, g: 0, b: 0, a: 1}
   currentIceSkillLevel: 1
   hitsToFreezeLvl1: 1
   hitsToFreezeLvl2: 1

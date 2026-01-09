@@ -74,7 +74,6 @@ public class ShopItemSlotUI : MonoBehaviour
     {
         if (_def == null) return 0;
 
-        // Динамическая цена для перка HP
         if (_def.effectType == ShopItemEffectType.IncreaseMaxHealth)
         {
             var perks = SoulPerksManager.Instance;
@@ -89,30 +88,24 @@ public class ShopItemSlotUI : MonoBehaviour
     {
         if (_def == null) return false;
 
-        // Перманентные перки за души
+        // --- SOULS (перманентно) ---
         if (_def.currency == ShopCurrency.Souls)
         {
             var perks = SoulPerksManager.Instance;
             var sc = SoulCounter.Instance;
-
             if (sc == null) return false;
 
             if (_def.effectType == ShopItemEffectType.IncreaseMaxHealth)
-            {
                 return perks != null && perks.CanBuyHealthUpgrade();
-            }
 
             if (_def.effectType == ShopItemEffectType.ResetSoulPerks)
-            {
-                // Можно нажимать только если есть что сбрасывать
                 return perks != null && perks.HasAnythingToReset();
-            }
 
-            // Обычные товары за души (если оставишь такие)
-            return sc.killsLifetime >= _def.price;
+            // обычные товары за souls
+            return sc.souls >= GetCurrentPrice();
         }
 
-        // Coins
+        // --- COINS (только ран) ---
         if (_def.currency == ShopCurrency.Coins)
         {
             return PlayerWallet.Instance != null && PlayerWallet.Instance.CanSpend(_def.price);
@@ -127,7 +120,7 @@ public class ShopItemSlotUI : MonoBehaviour
 
         bool paidOrDone = false;
 
-        // --- SOUL PERKS ---
+        // --- SOULS PERKS / SOULS покупки ---
         if (_def.currency == ShopCurrency.Souls)
         {
             var perks = SoulPerksManager.Instance;
@@ -144,11 +137,12 @@ public class ShopItemSlotUI : MonoBehaviour
             }
             else
             {
-                // обычная покупка за души (killsLifetime)
+                // обычная покупка за souls
                 var sc = SoulCounter.Instance;
-                if (sc != null && sc.killsLifetime >= _def.price)
+                int price = GetCurrentPrice();
+                if (sc != null && sc.souls >= price)
                 {
-                    sc.killsLifetime -= _def.price;
+                    sc.SetSouls(sc.souls - price);
                     sc.RefreshUI();
                     paidOrDone = true;
 
@@ -170,7 +164,6 @@ public class ShopItemSlotUI : MonoBehaviour
         if (!paidOrDone)
             return;
 
-        // Обновляем UI магазина + правую панель
         RefreshVisual();
         _ownerPopup?.OnShopItemPurchased(_def);
     }

@@ -6,7 +6,6 @@ public class SoulPerksManager : MonoBehaviour
 {
     public static SoulPerksManager Instance { get; private set; }
 
-    // Событие для UI и других систем
     public event Action OnPerksChanged;
 
     // --- PlayerPrefs keys ---
@@ -67,9 +66,11 @@ public class SoulPerksManager : MonoBehaviour
     public bool CanBuyHealthUpgrade()
     {
         if (HpLevel >= hpMaxPurchases) return false;
+
         var sc = SoulCounter.Instance;
         if (sc == null) return false;
-        return sc.killsLifetime >= GetHealthUpgradePrice();
+
+        return sc.souls >= GetHealthUpgradePrice();
     }
 
     public bool HasAnythingToReset()
@@ -85,13 +86,12 @@ public class SoulPerksManager : MonoBehaviour
         if (sc == null) return false;
 
         int price = GetHealthUpgradePrice();
-        if (sc.killsLifetime < price) return false;
+        if (sc.souls < price) return false;
 
-        // списали души
-        sc.killsLifetime -= price;
+        // списали souls
+        sc.SetSouls(sc.souls - price);
         sc.RefreshUI();
 
-        // сохранили прогресс перков
         SoulsSpent += price;
         HpLevel++;
 
@@ -110,15 +110,14 @@ public class SoulPerksManager : MonoBehaviour
         var sc = SoulCounter.Instance;
         if (sc == null) return false;
 
-        // цена ресета = 100 душ
-        if (sc.killsLifetime < resetPrice)
+        // цена ресета = 100 souls
+        if (sc.souls < resetPrice)
             return false;
 
         // вернём (SoulsSpent - resetPrice), но не меньше 0
         int refund = Mathf.Max(0, SoulsSpent - resetPrice);
 
-        sc.killsLifetime -= resetPrice;
-        sc.killsLifetime += refund;
+        sc.SetSouls(sc.souls - resetPrice + refund);
         sc.RefreshUI();
 
         HpLevel = 0;

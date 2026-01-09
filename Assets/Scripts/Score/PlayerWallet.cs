@@ -5,11 +5,11 @@ public class PlayerWallet : MonoBehaviour
 {
     public static PlayerWallet Instance { get; private set; }
 
-    [Header("Runtime Coins (used by shop when currency = Coins)")]
+    [Header("Run Coins (ONLY during run)")]
     [Min(0)] public int coins = 0;
 
     [Header("UI")]
-    [Tooltip("Текст для отображения coins (можно указать GoldText).")]
+    [Tooltip("Текст для отображения coins.")]
     [SerializeField] private TMP_Text coinsText;
 
     public enum DebugApplyMode { None, Overwrite, Add }
@@ -20,15 +20,14 @@ public class PlayerWallet : MonoBehaviour
     [Tooltip("Значение/прибавка для coins.")]
     public int debugCoinsValue = 100;
 
-    [Tooltip("Значение/прибавка для souls (SoulCounter.killsLifetime).")]
-    public int debugSoulsValue = 200;
-
-    private const string KILLS_KEY = "kills_lifetime";
-
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+
+        // Если PlayerWallet есть в нескольких сценах — лучше оставить один:
+        // DontDestroyOnLoad(gameObject);
+
         RefreshUI();
     }
 
@@ -37,7 +36,6 @@ public class PlayerWallet : MonoBehaviour
 #if UNITY_EDITOR
         ApplyDebugValuesIfNeeded();
 #endif
-        // Важно: после любых стартовых апдейтов — ещё раз зафиксировать UI
         RefreshUI();
     }
 
@@ -46,29 +44,10 @@ public class PlayerWallet : MonoBehaviour
     {
         if (debugMode == DebugApplyMode.None) return;
 
-        // --- COINS ---
         if (debugMode == DebugApplyMode.Overwrite)
             coins = Mathf.Max(0, debugCoinsValue);
         else if (debugMode == DebugApplyMode.Add)
             coins = Mathf.Max(0, coins + debugCoinsValue);
-
-        // --- SOULS ---
-        var sc = SoulCounter.Instance;
-        if (sc != null)
-        {
-            if (debugMode == DebugApplyMode.Overwrite)
-                sc.killsLifetime = Mathf.Max(0, debugSoulsValue);
-            else if (debugMode == DebugApplyMode.Add)
-                sc.killsLifetime = Mathf.Max(0, sc.killsLifetime + debugSoulsValue);
-
-            PlayerPrefs.SetInt(KILLS_KEY, sc.killsLifetime);
-            PlayerPrefs.Save();
-            sc.RefreshUI();
-        }
-        else
-        {
-            Debug.LogWarning("[PlayerWallet] Debug souls: SoulCounter.Instance is null (souls not applied).");
-        }
 
         Debug.Log($"[PlayerWallet] Debug applied. Mode={debugMode}, coins={coins}");
     }
@@ -87,7 +66,7 @@ public class PlayerWallet : MonoBehaviour
 
     public void Add(int c)
     {
-        coins += c;
+        coins = Mathf.Max(0, coins + c);
         RefreshUI();
     }
 
@@ -95,6 +74,16 @@ public class PlayerWallet : MonoBehaviour
     {
         coins = Mathf.Max(0, value);
         RefreshUI();
+    }
+
+    /// <summary>
+    /// ✅ Сброс coins (рановая валюта). Должна вызываться при смерти/рестарте рана.
+    /// </summary>
+    public void ResetRunCoins()
+    {
+        coins = 0;
+        RefreshUI();
+        Debug.Log("[PlayerWallet] ResetRunCoins → coins=0");
     }
 
     public void RefreshUI()

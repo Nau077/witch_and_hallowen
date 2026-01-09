@@ -8,55 +8,48 @@ public class SoulCounter : MonoBehaviour
     public static SoulCounter Instance { get; private set; }
 
     // ---------- KEYS ----------
-    private const string KILLS_KEY = "kills_lifetime";
-    private const string LAST_RUN_GOLD_KEY = "gold_last_run"; // для экрана смерти/итогов
+    // ⚠️ Оставляем старый ключ, чтобы не потерять прогресс игроков
+    private const string SOULS_KEY = "kills_lifetime";
+    private const string LAST_RUN_COINS_KEY = "coins_last_run"; // для экрана смерти/итогов (если нужно)
 
     // ---------- DATA ----------
-    [Header("Scores")]
-    [Min(0)] public int killsLifetime = 0; // живёт между забегами и сессиями
-    [Min(0)] public int cursedGoldRun = 0; // живёт в рамках забега
+    [Header("Currencies")]
+    [Min(0)] public int souls = 0; // ✅ перманентно
+    [Min(0)] public int coins = 0; // ✅ витрина coins (истина = PlayerWallet.coins)
 
     [Tooltip("Если EnemyHealth не укажет своё значение, возьмём это.")]
-    public int defaultGoldPerKill = 10;
+    public int defaultCoinsPerKill = 10;
 
     // ---------- UI ----------
     [Header("UI (TMP)")]
-    [SerializeField] private TMP_Text killsText; // иконка-череп + число (души)
-    [SerializeField] private TMP_Text goldText;  // иконка-золото + число
+    [SerializeField] private TMP_Text soulsText; // было killsText
+    [SerializeField] private TMP_Text coinsText; // было goldText
 
-    // ---------- AUDIO (опционально) ----------
+    // ---------- AUDIO (optional) ----------
     [Header("Audio (optional)")]
     public AudioSource audioSource;
-    public AudioClip killSfx;   // звук убийства / душ
-    public AudioClip goldSfx;   // звон монет
+    public AudioClip soulSfx;   // звук душ
+    public AudioClip coinSfx;   // звон монет
 
     // ---------- VICTORY SNAPSHOT / LOCK ----------
     private bool victoryLock = false;
-    private int snapshotKills = 0;
-    private int snapshotGold = 0;
+    private int snapshotSouls = 0;
+    private int snapshotCoins = 0;
 
-    // ---------- ANIMATION STATE (числа) ----------
-    private Coroutine killsAnimRoutine;
-    private Coroutine goldAnimRoutine;
+    // ---------- ANIMATION STATE (numbers) ----------
+    private Coroutine soulsAnimRoutine;
+    private Coroutine coinsAnimRoutine;
 
-    // ---------- ANIMATION STATE (scale-прыжок) ----------
+    // ---------- ANIMATION STATE (scale punch) ----------
     [Header("Counter Punch Animation")]
-    [Tooltip("Во сколько раз увеличивать текст при «прыжке».")]
     public float counterPunchScale = 1.2f;
-    [Tooltip("Время на полный цикл (увеличить и вернуть).")]
     public float counterPunchTime = 0.16f;
 
-     // Публичный хелпер для других скриптов (кошельки и т.п.)
-    public void RefreshUI()
-    {
-        UpdateUI(updateKills: true, updateGold: true);
-    }
+    private Coroutine soulsScaleRoutine;
+    private Coroutine coinsScaleRoutine;
 
-    private Coroutine killsScaleRoutine;
-    private Coroutine goldScaleRoutine;
-
-    private Vector3 killsBaseScale = Vector3.one;
-    private Vector3 goldBaseScale = Vector3.one;
+    private Vector3 soulsBaseScale = Vector3.one;
+    private Vector3 coinsBaseScale = Vector3.one;
 
     private void Awake()
     {
@@ -70,16 +63,18 @@ public class SoulCounter : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         // базовый масштаб текстов
-        if (killsText)
-            killsBaseScale = killsText.rectTransform.localScale;
-        if (goldText)
-            goldBaseScale = goldText.rectTransform.localScale;
+        if (soulsText)
+            soulsBaseScale = soulsText.rectTransform.localScale;
+        if (coinsText)
+            coinsBaseScale = coinsText.rectTransform.localScale;
 
-        // загрузка прогресса
-        killsLifetime = PlayerPrefs.GetInt(KILLS_KEY, 0);
-        cursedGoldRun = 0; // золото — только текущий забег
+        // загрузка перманентных душ
+        souls = PlayerPrefs.GetInt(SOULS_KEY, 0);
 
-        UpdateUI(updateKills: true, updateGold: true);
+        // coins только ран → начинаем с 0, но если кошелёк уже существует — синхроним
+        SyncCoinsFromWallet();
+
+        UpdateUI(updateSouls: true, updateCoins: true);
     }
 
     private void OnEnable()
@@ -92,88 +87,128 @@ public class SoulCounter : MonoBehaviour
         EnemyHealth.OnAnyEnemyDied -= HandleEnemyDied;
     }
 
+    // ---------- PUBLIC API: souls ----------
+    public void SetSouls(int value)
+    {
+        souls = Mathf.Max(0, value);
+        PlayerPrefs.SetInt(SOULS_KEY, souls);
+        PlayerPrefs.Save();
+        UpdateUI(updateSouls: true, updateCoins: false);
+    }
+
+    public void AddSouls(int amount)
+    {
+        if (amount <= 0) return;
+        souls += amount;
+        PlayerPrefs.SetInt(SOULS_KEY, souls);
+        PlayerPrefs.Save();
+        UpdateUI(updateSouls: true, updateCoins: false);
+    }
+
+    // ---------- COINS SYNC ----------
+    /// <summary>
+    /// Витрина coins в SoulCounter обновляется из PlayerWallet (истина coins).
+    /// </summary>
+    public void SyncCoinsFromWallet()
+    {
+        if (PlayerWallet.Instance != null)
+            coins = Mathf.Max(0, PlayerWallet.Instance.coins);
+        else
+            coins = Mathf.Max(0, coins);
+    }
+
     // === Вызывается из EnemyHealth.OnAnyEnemyDied ===
     private void HandleEnemyDied(EnemyHealth enemy)
     {
-        int addGold = (enemy != null) ? Mathf.Max(0, enemy.cursedGoldOnDeath) : defaultGoldPerKill;
+        int addCoins = (enemy != null) ? Mathf.Max(0, enemy.cursedGoldOnDeath) : defaultCoinsPerKill;
 
         // старые значения для анимации
-        int oldKills = killsLifetime;
-        int oldGold = cursedGoldRun;
+        int oldSouls = souls;
+        int oldCoins = coins;
 
-        // 1) убийства — +1 и сохраняем навсегда
-        killsLifetime++;
-        PlayerPrefs.SetInt(KILLS_KEY, killsLifetime);
-
-        // 2) золото забега — +N (живёт только этот ран)
-        cursedGoldRun += addGold;
-
+        // 1) souls — +1 и сохраняем навсегда
+        souls++;
+        PlayerPrefs.SetInt(SOULS_KEY, souls);
         PlayerPrefs.Save();
 
-        // ---- АУДИО (если настроено) ----
-        PlayKillSound();
-        if (addGold > 0) PlayGoldSound();
+        // 2) coins — +N в кошелёк (истина coins)
+        if (PlayerWallet.Instance != null && addCoins > 0)
+            PlayerWallet.Instance.Add(addCoins);
 
-        // ---- АНИМАЦИЯ СЧЁТЧИКОВ (числа + scale-прыжок) ----
-        AnimateKills(oldKills, killsLifetime);
-        if (addGold != 0)
-            AnimateGold(oldGold, cursedGoldRun);
+        // 3) синхронизируем витрину coins
+        SyncCoinsFromWallet();
+
+        // ---- AUDIO ----
+        PlaySoulSound();
+        if (addCoins > 0) PlayCoinSound();
+
+        // ---- ANIM ----
+        AnimateSouls(oldSouls, souls);
+        if (addCoins != 0)
+            AnimateCoins(oldCoins, coins);
         else
-            UpdateUI(updateKills: false, updateGold: true); // синхронизация, если золота нет
+            UpdateUI(updateSouls: false, updateCoins: true);
 
-        // ---- ПОПАПЫ ----
+        // ---- POPUPS ----
         Vector3 pos = enemy ? enemy.transform.position : Vector3.zero;
         SoulPopup.Create(pos, 1, SoulPopup.PopupType.Souls);
-        SoulPopup.Create(pos, addGold, SoulPopup.PopupType.CursedGold, snapshotGold, cursedGoldRun);
+        SoulPopup.Create(pos, addCoins, SoulPopup.PopupType.CursedGold, oldCoins, coins);
     }
 
-    // === ТОЛЬКО при смерти игрока ===
-    public void ResetRunGold_OnDeathOrRestart()
+    /// <summary>
+    /// Вызывать при смерти игрока/рестарте рана.
+    /// coins сбрасываются, souls — нет.
+    /// </summary>
+    public void ResetRunCoins_OnDeathOrRestart()
     {
         if (victoryLock)
         {
-            Debug.LogWarning("[SoulCounter] Run gold reset ignored during Victory (lock active).");
+            Debug.LogWarning("[SoulCounter] Run coins reset ignored during Victory (lock active).");
             return;
         }
 
-        PlayerPrefs.SetInt(LAST_RUN_GOLD_KEY, cursedGoldRun);
+        // если нужно отображать "coins last run" где-то
+        PlayerPrefs.SetInt(LAST_RUN_COINS_KEY, coins);
         PlayerPrefs.Save();
 
-        cursedGoldRun = 0;
-        UpdateUI(updateKills: false, updateGold: true);
+        // Сброс coins в истине
+        if (PlayerWallet.Instance != null)
+            PlayerWallet.Instance.ResetRunCoins();
+
+        // Сброс витрины
+        SyncCoinsFromWallet();
+        UpdateUI(updateSouls: false, updateCoins: true);
     }
 
-    public int GetLastRunGoldAndClear(bool clear = false)
+    public int GetLastRunCoinsAndClear(bool clear = false)
     {
-        int last = PlayerPrefs.GetInt(LAST_RUN_GOLD_KEY, 0);
+        int last = PlayerPrefs.GetInt(LAST_RUN_COINS_KEY, 0);
         if (clear)
         {
-            PlayerPrefs.SetInt(LAST_RUN_GOLD_KEY, 0);
+            PlayerPrefs.SetInt(LAST_RUN_COINS_KEY, 0);
             PlayerPrefs.Save();
         }
         return last;
     }
 
-    public void ResetKillsLifetime()
+    public void RefreshUI()
     {
-        killsLifetime = 0;
-        PlayerPrefs.SetInt(KILLS_KEY, 0);
-        PlayerPrefs.Save();
-        UpdateUI(updateKills: true, updateGold: false);
+        SyncCoinsFromWallet();
+        UpdateUI(updateSouls: true, updateCoins: true);
     }
 
-    private void UpdateUI(bool updateKills, bool updateGold)
+    private void UpdateUI(bool updateSouls, bool updateCoins)
     {
-        if (updateKills && killsText) killsText.text = killsLifetime.ToString();
-        if (updateGold && goldText) goldText.text = cursedGoldRun.ToString();
+        if (updateSouls && soulsText) soulsText.text = souls.ToString();
+        if (updateCoins && coinsText) coinsText.text = coins.ToString();
     }
 
-    // ---------- PUBLIC API ДЛЯ ЭКРАНА ПОБЕДЫ ----------
+    // ---------- VICTORY API ----------
     public void BeginVictorySequence()
     {
         victoryLock = true;
-        snapshotKills = killsLifetime;
-        snapshotGold = cursedGoldRun;
+        snapshotSouls = souls;
+        snapshotCoins = coins; // coins-витрина уже синхронизирована
     }
 
     public void EndVictorySequence()
@@ -181,45 +216,44 @@ public class SoulCounter : MonoBehaviour
         victoryLock = false;
     }
 
-    public void GetVictorySnapshot(out int kills, out int gold)
+    public void GetVictorySnapshot(out int outSouls, out int outCoins)
     {
         if (victoryLock)
         {
-            kills = snapshotKills;
-            gold = snapshotGold;
+            outSouls = snapshotSouls;
+            outCoins = snapshotCoins;
         }
         else
         {
-            kills = killsLifetime;
-            gold = cursedGoldRun;
+            outSouls = souls;
+            outCoins = coins;
         }
     }
 
-    public int Kills => killsLifetime;
-    public int RunGold => cursedGoldRun;
+    public int Souls => souls;
+    public int Coins => coins;
 
-    // ---------- ANIMATION HELPERS (число) ----------
-
-    private void AnimateKills(int from, int to)
+    // ---------- ANIMATION HELPERS ----------
+    private void AnimateSouls(int from, int to)
     {
-        if (!killsText) return;
+        if (!soulsText) return;
 
-        if (killsAnimRoutine != null)
-            StopCoroutine(killsAnimRoutine);
+        if (soulsAnimRoutine != null)
+            StopCoroutine(soulsAnimRoutine);
 
-        killsAnimRoutine = StartCoroutine(AnimateIntRoutine(from, to, killsText));
-        AnimateTextPunch(killsText, ref killsScaleRoutine, killsBaseScale);
+        soulsAnimRoutine = StartCoroutine(AnimateIntRoutine(from, to, soulsText));
+        AnimateTextPunch(soulsText, ref soulsScaleRoutine, soulsBaseScale);
     }
 
-    private void AnimateGold(int from, int to)
+    private void AnimateCoins(int from, int to)
     {
-        if (!goldText) return;
+        if (!coinsText) return;
 
-        if (goldAnimRoutine != null)
-            StopCoroutine(goldAnimRoutine);
+        if (coinsAnimRoutine != null)
+            StopCoroutine(coinsAnimRoutine);
 
-        goldAnimRoutine = StartCoroutine(AnimateIntRoutine(from, to, goldText));
-        AnimateTextPunch(goldText, ref goldScaleRoutine, goldBaseScale);
+        coinsAnimRoutine = StartCoroutine(AnimateIntRoutine(from, to, coinsText));
+        AnimateTextPunch(coinsText, ref coinsScaleRoutine, coinsBaseScale);
     }
 
     private IEnumerator AnimateIntRoutine(int from, int to, TMP_Text targetText)
@@ -280,15 +314,15 @@ public class SoulCounter : MonoBehaviour
         rect.localScale = baseScale;
     }
 
-    private void PlayKillSound()
+    private void PlaySoulSound()
     {
-        if (audioSource && killSfx)
-            audioSource.PlayOneShot(killSfx, 1f);
+        if (audioSource && soulSfx)
+            audioSource.PlayOneShot(soulSfx, 1f);
     }
 
-    private void PlayGoldSound()
+    private void PlayCoinSound()
     {
-        if (audioSource && goldSfx)
-            audioSource.PlayOneShot(goldSfx, 1f);
+        if (audioSource && coinSfx)
+            audioSource.PlayOneShot(coinSfx, 1f);
     }
 }

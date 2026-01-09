@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿// Assets/Scripts/Player/Attack/SkillsAndElements/skills/PlayerProjectileDamageBase.cs
+using UnityEngine;
 
 [RequireComponent(typeof(Collider2D))]
 public abstract class PlayerProjectileDamageBase : MonoBehaviour, IProjectile
@@ -13,31 +14,24 @@ public abstract class PlayerProjectileDamageBase : MonoBehaviour, IProjectile
     [HideInInspector]
     public float ignoreEnemiesFirstMeters = 0f;
 
-    // ---------- CRIT (Enemy Blink + Micro Stagger) ----------
-    [Header("Crit (Enemy Blink + Micro Stagger)")]
-    [Tooltip("Включает crit-мигание у врага при попадании")]
-    public bool enableCritBlink = true;
+    [Header("Crit (Color Blink + Stagger)")]
+    public bool enableCrit = true;
 
     [Range(0f, 1f)]
-    [Tooltip("Шанс крита. Дефолт задаётся здесь, но может быть переопределён в инспекторе.")]
-    public float critChance = 0.3f;
+    public float critChance = 0.25f;
 
     [Min(0f)]
-    [Tooltip("Длительность крита (сек). Важно: от неё же считается базовая длительность микро-стаггера на враге.")]
     public float critDuration = 0.5f;
 
     [Tooltip("Интервал мигания. <= 0 — взять дефолт врага")]
     public float critBlinkInterval = -1f;
 
-    [Header("Micro Stagger Strength")]
-    [Tooltip("Множитель микро-стаггера от этого снаряда. 1 = норм, 2 = сильнее, 0 = вообще без стаггера.")]
     [Min(0f)]
+    [Tooltip("0 = нет стаггера вообще, 1 = норм, 2 = сильнее")]
     public float staggerMultiplier = 1f;
 
-    [Tooltip("Если враг уже в атаке/подготовке атаки — можно дать более сильный стаггер, чтобы сбивать атаки.")]
-    [Min(0f)]
-    public float staggerMultiplierWhenEnemyAttacking = 1.5f;
-    // ---------------------------------------
+    [Tooltip("Цвет мигания при крите (задаётся в префабе снаряда)")]
+    public Color critBlinkColor = Color.red;
 
     protected Vector2 _dir = Vector2.up;
     protected Vector2 _startPos;
@@ -78,7 +72,7 @@ public abstract class PlayerProjectileDamageBase : MonoBehaviour, IProjectile
         var hp = other.GetComponent<EnemyHealth>();
         if (hp != null)
         {
-            ApplyDamage(hp, other);
+            ApplyDamage(hp);
             OnHitEnemy(hp);
         }
 
@@ -90,26 +84,23 @@ public abstract class PlayerProjectileDamageBase : MonoBehaviour, IProjectile
             Destroy(gameObject);
     }
 
-    private void ApplyDamage(EnemyHealth hp, Collider2D enemyCollider)
+    protected void ApplyDamage(EnemyHealth hp)
     {
-        if (!enableCritBlink || critChance <= 0f || critDuration <= 0f)
+        if (!enableCrit || critChance <= 0f || critDuration <= 0f)
         {
             hp.TakeDamage(damage);
             return;
         }
 
-        // Если враг сейчас в атаке — усиливаем стаггер (чтобы лучше сбивало атаки)
-        float mult = Mathf.Max(0f, staggerMultiplier);
-
-        var walker = enemyCollider.GetComponent<EnemyWalker>();
-        if (walker != null && walker.IsBusyAttacking)
-            mult = Mathf.Max(0f, staggerMultiplierWhenEnemyAttacking);
-
-        hp.TakeDamage(damage, critChance, critDuration, critBlinkInterval, mult);
+        hp.TakeDamage(
+            damage,
+            critChance,
+            critDuration,
+            critBlinkInterval,
+            staggerMultiplier,
+            critBlinkColor
+        );
     }
 
-    /// <summary>
-    /// Хук для наследников (freeze, poison, chain, etc)
-    /// </summary>
     protected virtual void OnHitEnemy(EnemyHealth hp) { }
 }

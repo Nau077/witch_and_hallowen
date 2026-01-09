@@ -1,16 +1,17 @@
+п»ї// Assets/Scripts/Enemy/skills/EnemySkillBase.cs
 using UnityEngine;
 
 public abstract class EnemySkillBase : MonoBehaviour
 {
     [Header("Common Skill Settings")]
-    [Tooltip("Более высокий приоритет получает первый шанс обработать атаку.")]
+    [Tooltip("Р‘РѕР»РµРµ РІС‹СЃРѕРєРёР№ РїСЂРёРѕСЂРёС‚РµС‚ РїРѕР»СѓС‡Р°РµС‚ РїРµСЂРІС‹Р№ С€Р°РЅСЃ РѕР±СЂР°Р±РѕС‚Р°С‚СЊ Р°С‚Р°РєСѓ.")]
     public int priority = 0;
 
     [Range(0f, 1f)]
-    [Tooltip("Вероятность срабатывания при подходящем тике.")]
+    [Tooltip("Р’РµСЂРѕСЏС‚РЅРѕСЃС‚СЊ СЃСЂР°Р±Р°С‚С‹РІР°РЅРёСЏ РїСЂРё РїРѕРґС…РѕРґСЏС‰РµРј С‚РёРєРµ.")]
     public float useChance = 1f;
 
-    [Tooltip("Если > 0, скилл проверяет только каждый N-й глобальный тик атаки.")]
+    [Tooltip("Р•СЃР»Рё > 0, СЃРєРёР»Р» РїСЂРѕРІРµСЂСЏРµС‚ С‚РѕР»СЊРєРѕ РєР°Р¶РґС‹Р№ N-Р№ РіР»РѕР±Р°Р»СЊРЅС‹Р№ С‚РёРє Р°С‚Р°РєРё.")]
     public int everyNthAttack = 0;
 
     protected EnemyWalker brain;
@@ -19,9 +20,7 @@ public abstract class EnemySkillBase : MonoBehaviour
 
     public int Priority => priority;
 
-    /// <summary>
-    /// Вызывается мозгом из Start.
-    /// </summary>
+    /// <summary>Р’С‹Р·С‹РІР°РµС‚СЃСЏ РјРѕР·РіРѕРј РёР· Start.</summary>
     public virtual void Init(EnemyWalker brain)
     {
         this.brain = brain;
@@ -33,20 +32,21 @@ public abstract class EnemySkillBase : MonoBehaviour
     }
 
     /// <summary>
-    /// Вызывается мозгом в момент атаки.
-    /// attackIndex – глобальный счётчик атак.
-    /// attackConsumed – если предыдущий скилл уже «занял» тик, он ставит true.
+    /// Р’С‹Р·С‹РІР°РµС‚СЃСЏ РјРѕР·РіРѕРј РІ РјРѕРјРµРЅС‚ Р°С‚Р°РєРё.
+    /// attackIndex вЂ“ РіР»РѕР±Р°Р»СЊРЅС‹Р№ СЃС‡С‘С‚С‡РёРє Р°С‚Р°Рє.
+    /// attackConsumed вЂ“ РµСЃР»Рё РїСЂРµРґС‹РґСѓС‰РёР№ СЃРєРёР»Р» СѓР¶Рµ В«Р·Р°РЅСЏР»В» С‚РёРє, РѕРЅ СЃС‚Р°РІРёС‚ true.
     /// </summary>
     public virtual void OnBrainAttackTick(int attackIndex, ref bool attackConsumed) { }
 
-    /// <summary>
-    /// Вызывается каждый кадр Update, если враг жив и не заморожен.
-    /// </summary>
+    /// <summary>Р’С‹Р·С‹РІР°РµС‚СЃСЏ РєР°Р¶РґС‹Р№ РєР°РґСЂ Update, РµСЃР»Рё РІСЂР°Рі Р¶РёРІ Рё РЅРµ Р·Р°РјРѕСЂРѕР¶РµРЅ/РЅРµ РІ СЃС‚Р°РіРіРµСЂРµ.</summary>
     public virtual void OnBrainUpdateSkill(float deltaTime) { }
 
     /// <summary>
-    /// Общая проверка – можно ли сейчас пытаться сработать.
+    /// Р’РђР–РќРћ: РІС‹Р·С‹РІР°РµС‚СЃСЏ, РєРѕРіРґР° РјРѕР·Рі РџР Р•Р Р«Р’РђР•Рў С‚РµРєСѓС‰СѓСЋ Р°С‚Р°РєСѓ (freeze/stagger/РІРЅРµС€РЅРёР№ interrupt).
+    /// РќР°СЃР»РµРґРЅРёРєРё РґРѕР»Р¶РЅС‹ С‚СѓС‚ РѕСЃС‚Р°РЅР°РІР»РёРІР°С‚СЊ СЃРІРѕРё РєРѕСЂСѓС‚РёРЅС‹/Invoke Рё СЃР±СЂР°СЃС‹РІР°С‚СЊ СЃРѕСЃС‚РѕСЏРЅРёРµ.
     /// </summary>
+    public virtual void OnBrainAttackInterrupted() { }
+
     protected bool CanUse(int attackIndex, bool alreadyConsumed)
     {
         if (!enabled) return false;

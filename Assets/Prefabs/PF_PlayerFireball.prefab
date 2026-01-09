@@ -452,12 +452,12 @@ MonoBehaviour:
   lifetime: 2
   damage: 10
   ignoreEnemiesFirstMeters: 0
-  enableCritBlink: 1
-  critChance: 1
-  critDuration: 0.52
-  critBlinkInterval: 0.11
-  staggerMultiplier: 1.09
-  staggerMultiplierWhenEnemyAttacking: 2.66
+  enableCrit: 1
+  critChance: 0.6
+  critDuration: 0.17
+  critBlinkInterval: 0.09
+  staggerMultiplier: 0.55
+  critBlinkColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!114 &3773226783772722073
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -524,7 +524,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1307152648960653708}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fd06be0d0fbabe542afc83a8f8d34bce, type: 3}
   m_Name: 

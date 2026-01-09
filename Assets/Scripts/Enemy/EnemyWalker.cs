@@ -1,3 +1,4 @@
+// Assets/Scripts/Enemy/EnemyWalker.cs
 using UnityEngine;
 using System.Collections;
 
@@ -57,15 +58,16 @@ public class EnemyWalker : MonoBehaviour
 
     private EnemySkillBase[] skills;
 
-    // ✅ для снарядов: усилить стаггер, когда враг уже атакует/холдит
-    public bool IsBusyAttacking => isAttacking || isHoldingForAttack;
+    private Coroutine _attackRoutine;
 
-    // ✅ чтобы Detect’ить “стаггер начался” и сбрасывать атаку 1 раз
-    private bool _wasStaggeredLastFrame = false;
+    private bool _wasFrozen;
+    private bool _wasStaggered;
 
     public int AttackIndex => attackIndex;
     public bool PlayerIsDead => playerHP != null && playerHP.IsDead;
     public Transform PlayerTransform => player;
+
+    public bool IsBusyAttacking => isAttacking || isHoldingForAttack;
 
     private void Awake()
     {
@@ -95,9 +97,7 @@ public class EnemyWalker : MonoBehaviour
         {
             System.Array.Sort(skills, (a, b) => b.Priority.CompareTo(a.Priority));
             foreach (var s in skills)
-            {
                 if (s != null) s.Init(this);
-            }
         }
 
         StartCoroutine(DecideLoop());
@@ -111,28 +111,32 @@ public class EnemyWalker : MonoBehaviour
             return;
         }
 
-        if (selfHP && selfHP.IsFrozen)
+        bool frozenNow = selfHP && selfHP.IsFrozen;
+        bool staggerNow = selfHP && selfHP.IsStaggered;
+
+        // вошли во freeze/stagger -> немедленно прерываем атаку/скиллы
+        if ((frozenNow && !_wasFrozen) || (staggerNow && !_wasStaggered))
+        {
+            InterruptAttackAndSkills();
+        }
+
+        // вышли из freeze/stagger -> форсим новое решение, чтобы не "залип"
+        if ((!frozenNow && _wasFrozen) || (!staggerNow && _wasStaggered))
+        {
+            ForceNewDecisionDirection();
+        }
+
+        _wasFrozen = frozenNow;
+        _wasStaggered = staggerNow;
+
+        // пока freeze/stagger — стоим и не атакуем
+        if (frozenNow || staggerNow)
         {
             rb.linearVelocity = Vector2.zero;
             return;
         }
 
-        // ✅ СТАГГЕР: ощущаемый стоп + сброс атаки
-        if (selfHP && selfHP.IsStaggered)
-        {
-            // если стаггер только что начался — жёстко срываем атаку
-            if (!_wasStaggeredLastFrame)
-            {
-                ForceCancelAttackAndStop();
-            }
-
-            _wasStaggeredLastFrame = true;
-            rb.linearVelocity = Vector2.zero;
-            return;
-        }
-        _wasStaggeredLastFrame = false;
-
-        // обновление скиллов
+        // обновление скиллов (только когда НЕ freeze/stagger)
         float dt = Time.deltaTime;
         if (skills != null)
         {
@@ -150,7 +154,7 @@ public class EnemyWalker : MonoBehaviour
             return;
         }
 
-        // Не подходить к игроку ближе по X
+        // keep distance
         if (player)
         {
             float minDistX = minCellsFromPlayer * cellSize;
@@ -169,14 +173,7 @@ public class EnemyWalker : MonoBehaviour
     {
         if ((selfHP && selfHP.IsDead) || (playerHP && playerHP.IsDead)) return;
 
-        if (selfHP && selfHP.IsFrozen)
-        {
-            rb.linearVelocity = Vector2.zero;
-            return;
-        }
-
-        // ✅ СТАГГЕР: стопим физику движения
-        if (selfHP && selfHP.IsStaggered)
+        if (selfHP && (selfHP.IsFrozen || selfHP.IsStaggered))
         {
             rb.linearVelocity = Vector2.zero;
             return;
@@ -205,36 +202,38 @@ public class EnemyWalker : MonoBehaviour
         {
             yield return new WaitForSeconds(decideEvery);
 
-            if ((selfHP && selfHP.IsDead) || (selfHP && selfHP.IsFrozen))
+            if ((selfHP && selfHP.IsDead) || (selfHP && selfHP.IsFrozen) || (selfHP && selfHP.IsStaggered))
                 continue;
 
-            if (selfHP && selfHP.IsStaggered)
-                continue;
+            ForceNewDecisionDirection();
+        }
+    }
 
-            int r = Random.Range(0, 4);
-            Vector2 dir = r switch
-            {
-                0 => Vector2.right,
-                1 => Vector2.left,
-                2 => Vector2.up,
-                _ => Vector2.down
-            };
+    private void ForceNewDecisionDirection()
+    {
+        int r = Random.Range(0, 4);
+        Vector2 dir = r switch
+        {
+            0 => Vector2.right,
+            1 => Vector2.left,
+            2 => Vector2.up,
+            _ => Vector2.down
+        };
 
-            float y = transform.position.y;
-            const float edgeBias = 0.2f;
-            if (y > topLimit - edgeBias) dir = Vector2.down;
-            else if (y < bottomLimit + edgeBias) dir = Vector2.up;
+        float y = transform.position.y;
+        const float edgeBias = 0.2f;
+        if (y > topLimit - edgeBias) dir = Vector2.down;
+        else if (y < bottomLimit + edgeBias) dir = Vector2.up;
 
-            desiredDir = dir;
+        desiredDir = dir;
 
-            if (snapToGrid)
-            {
-                float step = cellSize;
-                Vector2 target = (Vector2)transform.position + dir * step;
-                target = ClampToBounds(target);
-                Vector2 d = target - (Vector2)transform.position;
-                desiredDir = d.sqrMagnitude > 0.000001f ? d.normalized : Vector2.zero;
-            }
+        if (snapToGrid)
+        {
+            float step = cellSize;
+            Vector2 target = (Vector2)transform.position + dir * step;
+            target = ClampToBounds(target);
+            Vector2 d = target - (Vector2)transform.position;
+            desiredDir = d.sqrMagnitude > 0.000001f ? d.normalized : Vector2.zero;
         }
     }
 
@@ -247,7 +246,9 @@ public class EnemyWalker : MonoBehaviour
         if (attackTimer >= attackInterval)
         {
             attackTimer = 0f;
-            StartCoroutine(AttackSequence());
+
+            if (_attackRoutine != null) StopCoroutine(_attackRoutine);
+            _attackRoutine = StartCoroutine(AttackSequence());
         }
     }
 
@@ -257,17 +258,14 @@ public class EnemyWalker : MonoBehaviour
         if (selfHP && selfHP.IsDead) return false;
         if (playerHP && playerHP.IsDead) return false;
         if (selfHP && selfHP.IsFrozen) return false;
-
-        // ✅ стаггер блокирует атаку
         if (selfHP && selfHP.IsStaggered) return false;
-
         return true;
     }
 
     private IEnumerator AttackSequence()
     {
-        if (!CanAttackNow()) yield break;
-        if (isAttacking) yield break;
+        if (!CanAttackNow()) { _attackRoutine = null; yield break; }
+        if (isAttacking) { _attackRoutine = null; yield break; }
 
         isAttacking = true;
         isHoldingForAttack = true;
@@ -276,27 +274,26 @@ public class EnemyWalker : MonoBehaviour
         if (preAttackHold > 0f)
             yield return new WaitForSeconds(preAttackHold);
 
-        // ✅ если стаггер случился во время подготовки — срываем атаку
+        isHoldingForAttack = false;
+
         if (!CanAttackNow())
         {
-            isHoldingForAttack = false;
             isAttacking = false;
             RestoreSprite();
+            _attackRoutine = null;
             yield break;
         }
-
-        isHoldingForAttack = false;
 
         if (sr && attackSprite)
             sr.sprite = attackSprite;
 
         yield return new WaitForSeconds(0.25f);
 
-        // ✅ если стаггер случился перед выпуском — срываем атаку
         if (!CanAttackNow())
         {
             isAttacking = false;
             RestoreSprite();
+            _attackRoutine = null;
             yield break;
         }
 
@@ -310,8 +307,12 @@ public class EnemyWalker : MonoBehaviour
                 var s = skills[i];
                 if (s == null || !s.isActiveAndEnabled) continue;
 
-                // на всякий — ещё раз (если стаггер в середине кадра)
-                if (!CanAttackNow()) break;
+                if (selfHP && (selfHP.IsFrozen || selfHP.IsStaggered))
+                {
+                    InterruptAttackAndSkills();
+                    _attackRoutine = null;
+                    yield break;
+                }
 
                 s.OnBrainAttackTick(attackIndex, ref attackConsumed);
             }
@@ -322,22 +323,40 @@ public class EnemyWalker : MonoBehaviour
 
         RestoreSprite();
         isAttacking = false;
+        _attackRoutine = null;
     }
 
-    private void ForceCancelAttackAndStop()
+    private void InterruptAttackAndSkills()
     {
-        // стопим движение “на месте”
-        desiredDir = Vector2.zero;
-        rb.linearVelocity = Vector2.zero;
+        if (_attackRoutine != null)
+        {
+            StopCoroutine(_attackRoutine);
+            _attackRoutine = null;
+        }
 
-        // сбрасываем атаку
-        isHoldingForAttack = false;
         isAttacking = false;
+        isHoldingForAttack = false;
 
-        // чтобы враг не “моментально” снова атаковал сразу после стаггера
-        attackTimer = 0f;
+        if (skills != null)
+        {
+            for (int i = 0; i < skills.Length; i++)
+            {
+                var s = skills[i];
+                if (s == null || !s.isActiveAndEnabled) continue;
+                s.OnBrainAttackInterrupted();
+            }
+        }
 
         RestoreSprite();
+    }
+
+    /// <summary>
+    /// Вызывается EnemyHealth в момент крита/стаггера — чтобы мгновенно прервать уже начатую атаку.
+    /// </summary>
+    public void ForceInterruptFromExternalStagger()
+    {
+        InterruptAttackAndSkills();
+        rb.linearVelocity = Vector2.zero;
     }
 
     private void RestoreSprite()
@@ -357,6 +376,30 @@ public class EnemyWalker : MonoBehaviour
         return new Vector2(x, y);
     }
 
+    // -------------------- DESYNC SUPPORT (FOR SPAWNER) --------------------
+
+    public void ApplyDesync(float decideJitter, float attackJitter, float firstDecisionDelay, float firstAttackDelay)
+    {
+        decideJitter = Mathf.Clamp01(decideJitter);
+        attackJitter = Mathf.Clamp01(attackJitter);
+
+        decideEvery = decideEvery * Random.Range(1f - decideJitter, 1f + decideJitter);
+        attackInterval = attackInterval * Random.Range(1f - attackJitter, 1f + attackJitter);
+
+        // атаки могут стартовать "не сразу"
+        attackTimer = -Mathf.Max(0f, firstAttackDelay);
+
+        // решения направления тоже можем сместить
+        StartCoroutine(_FirstDecisionDelay(Mathf.Max(0f, firstDecisionDelay)));
+    }
+
+    private IEnumerator _FirstDecisionDelay(float t)
+    {
+        if (t > 0f) yield return new WaitForSeconds(t);
+    }
+
+    // ----------------------------------------------------------------------
+
     public void OnDeathExternal()
     {
         StopAllCoroutines();
@@ -366,32 +409,5 @@ public class EnemyWalker : MonoBehaviour
             rb2.linearVelocity = Vector2.zero;
             rb2.angularVelocity = 0f;
         }
-    }
-
-    /// <summary>
-    /// Десинхронизирует движения и атаки (рандомные сдвиги),
-    /// используется спавнерами / волнами.
-    /// </summary>
-    public void ApplyDesync(
-        float decideJitter,
-        float attackJitter,
-        float firstDecisionDelay,
-        float firstAttackDelay
-    )
-    {
-        decideJitter = Mathf.Clamp01(decideJitter);
-        attackJitter = Mathf.Clamp01(attackJitter);
-
-        decideEvery = decideEvery * Random.Range(1f - decideJitter, 1f + decideJitter);
-        attackInterval = attackInterval * Random.Range(1f - attackJitter, 1f + attackJitter);
-
-        attackTimer = -Mathf.Max(0f, firstAttackDelay);
-        StartCoroutine(_FirstDecisionDelay(Mathf.Max(0f, firstDecisionDelay)));
-    }
-
-    private IEnumerator _FirstDecisionDelay(float t)
-    {
-        if (t > 0f)
-            yield return new WaitForSeconds(t);
     }
 }

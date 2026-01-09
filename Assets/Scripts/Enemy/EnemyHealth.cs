@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Assets/Scripts/Enemy/EnemyHealth.cs
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -14,7 +15,7 @@ public class EnemyHealth : MonoBehaviour
     public int maxHealth = 50;
     public int currentHealth;
 
-    [Header("Hit Effect")]
+    [Header("Hit Effect (regular hit flash)")]
     public Color fireTint = new Color(1f, 0.45f, 0.05f, 1f);
     public float flashDuration = 0.3f;
     public ParticleSystem burnParticles;
@@ -46,9 +47,8 @@ public class EnemyHealth : MonoBehaviour
     [Header("Rewards")]
     public int cursedGoldOnDeath = 10;
 
-    // ---------- CRIT / STAGGER (BLINK) ----------
-    [Header("Crit (Blink + Micro Stagger)")]
-    [Tooltip("Если true — враг может входить в крит-мигание и микро-стаггер от попаданий.")]
+    // ---------- CRIT / STAGGER ----------
+    [Header("Crit (Color Blink + Stagger)")]
     public bool canBeCritStaggered = true;
 
     [Tooltip("Дефолтный интервал мигания (сек). Снаряд может переопределить.")]
@@ -57,29 +57,26 @@ public class EnemyHealth : MonoBehaviour
     [Tooltip("Если крит уже активен и прилетает новый — продлеваем.")]
     public bool extendCritOnRehit = true;
 
-    [Header("Micro Stagger")]
-    [Tooltip("Какая доля от critDuration идёт в микро-стаггер. 0.35 = 35% от critDuration.")]
+    [Tooltip("Если true — стаггер = ВСЯ длительность крита (пока мигает — стоит и не атакует).")]
+    public bool lockMovementAndAttackForFullCritDuration = true;
+
+    [Tooltip("Если lockMovementAndAttackForFullCritDuration выключен, то стаггер = critDuration * lockFraction.")]
     [Range(0f, 1f)]
-    public float staggerFractionOfCritDuration = 0.35f;
+    public float lockFractionOfCritDuration = 0.35f;
 
-    [Tooltip("Минимальная длительность стаггера (сек), чтобы был заметен даже при коротком крите.")]
-    public float staggerMinDuration = 0.06f;
+    [Tooltip("Минимальный стаггер (сек)")]
+    public float lockMinDuration = 0.06f;
 
-    [Tooltip("Максимальная длительность стаггера (сек), чтобы не превращалось в стан.")]
-    public float staggerMaxDuration = 0.25f;
+    [Tooltip("Максимальный стаггер (сек)")]
+    public float lockMaxDuration = 0.25f;
 
     private float _staggerUntilTime;
     public bool IsStaggered => !isDead && Time.time < _staggerUntilTime;
 
     // ---------- ICE / FREEZE ----------
     [Header("Ice Freeze")]
-    [Tooltip("Можно ли этого врага вообще замораживать.")]
     public bool canBeFrozen = true;
-
-    [Tooltip("Префаб льда (SpriteRenderer), который будет появляться поверх врага при заморозке.")]
     public GameObject freezeVfxPrefab;
-
-    [Tooltip("Смещение льда относительно центра врага (например, 0, 0.3).")]
     public Vector2 freezeVfxOffset = new Vector2(0f, 0.3f);
 
     private bool isFrozen;
@@ -90,13 +87,8 @@ public class EnemyHealth : MonoBehaviour
 
     // ---------- DAMAGE TEXT ----------
     [Header("Damage Text")]
-    [Tooltip("Префаб с TMP_Text + DamageTextPopup.")]
     public GameObject damageTextPrefab;
-
-    [Tooltip("Мировое смещение над врагом, откуда вылетают цифры.")]
     public Vector3 damageTextOffset = new Vector3(0f, 1.1f, 0f);
-
-    [Tooltip("Небольшой разброс вокруг offset, чтобы цифры не налезали друг на друга.")]
     public float damageTextRandomRadius = 0.25f;
 
     // ---------- INTERNAL ----------
@@ -113,15 +105,18 @@ public class EnemyHealth : MonoBehaviour
 
     private Canvas _cachedDamageCanvas;
 
-    // crit blink runtime
     private Coroutine _critBlinkRoutine;
     private float _critUntilTime;
-    private bool _baseRendererEnabled = true;
+    private bool _critBlinkOn;
+    private Color _critBlinkColor = Color.white;
+
+    private EnemyWalker _walkerCached;
 
     private void Awake()
     {
         sr = GetComponent<SpriteRenderer>();
         audioSource = GetComponent<AudioSource>();
+        _walkerCached = GetComponent<EnemyWalker>();
 
         if (audioSource != null)
         {
@@ -135,8 +130,7 @@ public class EnemyHealth : MonoBehaviour
                 audioSource.outputAudioMixerGroup = outputMixerGroup;
         }
 
-        baseColor = sr.color;
-        _baseRendererEnabled = sr.enabled;
+        baseColor = sr ? sr.color : Color.white;
 
         currentHealth = maxHealth;
         if (hpBar) hpBar.SetMax(maxHealth);
@@ -144,39 +138,37 @@ public class EnemyHealth : MonoBehaviour
 
     // ---------------- PUBLIC DAMAGE API ----------------
 
-    /// <summary>
-    /// Старый контракт — НЕ ломаем. Без крита.
-    /// </summary>
     public void TakeDamage(int amount)
     {
-        TakeDamage(amount, 0f, 0f, -1f, 1f);
+        TakeDamage(amount, 0f, 0f, -1f, 1f, Color.white);
     }
 
-    /// <summary>
-    /// Старый расширенный контракт — НЕ ломаем. Множитель стаггера = 1.
-    /// </summary>
     public void TakeDamage(int amount, float critChance, float critDuration, float critBlinkInterval = -1f)
     {
-        TakeDamage(amount, critChance, critDuration, critBlinkInterval, 1f);
+        TakeDamage(amount, critChance, critDuration, critBlinkInterval, 1f, Color.white);
     }
 
-    /// <summary>
-    /// Новый контракт: крит + множитель микро-стаггера (для префабов снарядов).
-    /// staggerMultiplier: 0 = без стаггера, 1 = норм, 2 = сильнее.
-    /// </summary>
     public void TakeDamage(int amount, float critChance, float critDuration, float critBlinkInterval, float staggerMultiplier)
+    {
+        TakeDamage(amount, critChance, critDuration, critBlinkInterval, staggerMultiplier, Color.white);
+    }
+
+    public void TakeDamage(int amount, float critChance, float critDuration, float critBlinkInterval, float staggerMultiplier, Color critBlinkColor)
     {
         if (isDead || amount <= 0) return;
 
         currentHealth = Mathf.Max(0, currentHealth - amount);
 
-        // ----- цифра урона -----
         ShowDamageNumber(amount);
 
-        // обычный hit flash (тинт)
-        if (_hitFlashRoutine != null)
-            StopCoroutine(_hitFlashRoutine);
-        _hitFlashRoutine = StartCoroutine(HitFlash());
+        // обычный hit-flash НЕ должен "ломать" крит-цвет — поэтому:
+        // если сейчас идет крит-мигание, хит-флэш не запускаем
+        if (_critBlinkRoutine == null)
+        {
+            if (_hitFlashRoutine != null)
+                StopCoroutine(_hitFlashRoutine);
+            _hitFlashRoutine = StartCoroutine(HitFlash());
+        }
 
         if (burnParticles)
         {
@@ -192,8 +184,7 @@ public class EnemyHealth : MonoBehaviour
             Destroy(fx, 0.6f);
         }
 
-        // ---------- CRIT / MICRO STAGGER ----------
-        TryApplyCritFromHit(critChance, critDuration, critBlinkInterval, staggerMultiplier);
+        TryApplyCritFromHit(critChance, critDuration, critBlinkInterval, staggerMultiplier, critBlinkColor);
 
         if (hpBar) hpBar.SetValue(currentHealth);
 
@@ -203,7 +194,7 @@ public class EnemyHealth : MonoBehaviour
             Die();
     }
 
-    private void TryApplyCritFromHit(float critChance, float critDuration, float critBlinkInterval, float staggerMultiplier)
+    private void TryApplyCritFromHit(float critChance, float critDuration, float critBlinkInterval, float staggerMultiplier, Color critBlinkColor)
     {
         if (!canBeCritStaggered) return;
         if (isDead) return;
@@ -215,33 +206,41 @@ public class EnemyHealth : MonoBehaviour
             return;
 
         float interval = (critBlinkInterval > 0f) ? critBlinkInterval : Mathf.Max(0.01f, defaultCritBlinkInterval);
-        ApplyCritBlink(critDuration, interval, staggerMultiplier);
+        ApplyCritBlink(critDuration, interval, staggerMultiplier, critBlinkColor);
     }
 
-    /// <summary>
-    /// Старый метод — оставляем (совместимость).
-    /// </summary>
     public void ApplyCritBlink(float critDuration, float blinkInterval = -1f)
     {
-        ApplyCritBlink(critDuration, blinkInterval, 1f);
+        ApplyCritBlink(critDuration, blinkInterval, 1f, Color.white);
+    }
+
+    public void ApplyCritBlink(float critDuration, float blinkInterval, float staggerMultiplier)
+    {
+        ApplyCritBlink(critDuration, blinkInterval, staggerMultiplier, Color.white);
     }
 
     /// <summary>
-    /// Новый метод: крит-мигание + микро-стаггер с множителем.
+    /// Крит: мигание цветом + стаггер + мгновенный interrupt атаки.
     /// </summary>
-    public void ApplyCritBlink(float critDuration, float blinkInterval, float staggerMultiplier)
+    public void ApplyCritBlink(float critDuration, float blinkInterval, float staggerMultiplier, Color critBlinkColor)
     {
         if (!canBeCritStaggered || isDead) return;
 
-        float interval = (blinkInterval > 0f) ? blinkInterval : Mathf.Max(0.01f, defaultCritBlinkInterval);
         float dur = Mathf.Max(0.01f, critDuration);
+        float interval = (blinkInterval > 0f) ? blinkInterval : Mathf.Max(0.01f, defaultCritBlinkInterval);
 
-        // 1) Визуал (мигание) — до Time.time + dur
+        // цвет (если пришёл без альфы — делаем альфу 1)
+        _critBlinkColor = (critBlinkColor.a <= 0f)
+            ? new Color(critBlinkColor.r, critBlinkColor.g, critBlinkColor.b, 1f)
+            : critBlinkColor;
+
+        // 1) Таймер мигания
         float newCritUntil = Time.time + dur;
 
         if (_critBlinkRoutine == null)
         {
             _critUntilTime = newCritUntil;
+            _critBlinkOn = false;
             _critBlinkRoutine = StartCoroutine(CritBlinkRoutine(interval));
         }
         else
@@ -250,46 +249,50 @@ public class EnemyHealth : MonoBehaviour
                 _critUntilTime = Mathf.Max(_critUntilTime, newCritUntil);
         }
 
-        // 2) Микро-стаггер (пауза логики врага) + множитель от снаряда
+        // 2) Стаггер (блок движения/атаки) + множитель от снаряда
         float m = Mathf.Max(0f, staggerMultiplier);
-        if (m <= 0f) return; // снаряд может хотеть "крит-мигание без стаггера"
+        if (m > 0f)
+        {
+            float staggerDur;
 
-        float staggerDur = dur * Mathf.Clamp01(staggerFractionOfCritDuration) * m;
+            if (lockMovementAndAttackForFullCritDuration)
+            {
+                staggerDur = dur;
+            }
+            else
+            {
+                staggerDur = dur * Mathf.Clamp01(lockFractionOfCritDuration);
+                staggerDur = Mathf.Clamp(staggerDur, lockMinDuration, lockMaxDuration);
+            }
 
-        // clamp (тоже масштабируем)
-        float min = Mathf.Max(0f, staggerMinDuration) * m;
-        float max = Mathf.Max(staggerMinDuration, staggerMaxDuration) * m;
-        staggerDur = Mathf.Clamp(staggerDur, min, max);
+            staggerDur *= m;
 
-        float newStaggerUntil = Time.time + staggerDur;
+            float newStaggerUntil = Time.time + staggerDur;
 
-        if (extendCritOnRehit)
-            _staggerUntilTime = Mathf.Max(_staggerUntilTime, newStaggerUntil);
-        else
-            _staggerUntilTime = newStaggerUntil;
+            if (extendCritOnRehit)
+                _staggerUntilTime = Mathf.Max(_staggerUntilTime, newStaggerUntil);
+            else
+                _staggerUntilTime = newStaggerUntil;
+
+            // 3) МГНОВЕННО прерываем текущую атаку/скиллы (в этот же кадр)
+            if (_walkerCached != null)
+                _walkerCached.ForceInterruptFromExternalStagger();
+        }
     }
 
     private IEnumerator CritBlinkRoutine(float interval)
     {
-        if (sr) _baseRendererEnabled = sr.enabled;
-
-        bool visible = true;
         while (!isDead && Time.time < _critUntilTime)
         {
             if (sr)
             {
-                visible = !visible;
-                sr.enabled = visible;
+                _critBlinkOn = !_critBlinkOn;
+                sr.color = _critBlinkOn ? _critBlinkColor : baseColor;
             }
             yield return new WaitForSeconds(interval);
         }
 
-        if (sr)
-        {
-            sr.enabled = _baseRendererEnabled;
-            sr.color = baseColor;
-        }
-
+        if (sr) sr.color = baseColor;
         _critBlinkRoutine = null;
     }
 
@@ -383,16 +386,10 @@ public class EnemyHealth : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        // снимаем крит-мигание
         if (_critBlinkRoutine != null) StopCoroutine(_critBlinkRoutine);
         _critBlinkRoutine = null;
-        if (sr)
-        {
-            sr.enabled = _baseRendererEnabled;
-            sr.color = baseColor;
-        }
+        if (sr) sr.color = baseColor;
 
-        // снимаем заморозку
         if (_freezeRoutine != null) StopCoroutine(_freezeRoutine);
         isFrozen = false;
         if (_currentFreezeVfx != null)
@@ -401,21 +398,19 @@ public class EnemyHealth : MonoBehaviour
             _currentFreezeVfx = null;
         }
 
-        var walker = GetComponent<EnemyWalker>();
-        if (walker) walker.OnDeathExternal();
+        if (_walkerCached) _walkerCached.OnDeathExternal();
 
         var col = GetComponent<Collider2D>(); if (col) col.enabled = false;
         var rb = GetComponent<Rigidbody2D>(); if (rb) rb.simulated = false;
-        if (walker) walker.enabled = false;
+        if (_walkerCached) _walkerCached.enabled = false;
 
         var anim = GetComponent<Animator>();
         if (anim && anim.runtimeAnimatorController) anim.SetTrigger("Die");
-        else if (deadSprite) sr.sprite = deadSprite;
+        else if (deadSprite && sr) sr.sprite = deadSprite;
 
         if (hpBar) hpBar.Hide();
 
         PlayDeathSound();
-
         OnAnyEnemyDied?.Invoke(this);
 
         StartCoroutine(FadeAndDestroy(sr, destroyAfter, 0.4f));
@@ -449,7 +444,7 @@ public class EnemyHealth : MonoBehaviour
         Destroy(gameObject);
     }
 
-    // ---------- DAMAGE TEXT LOGIC ----------
+    // ---------- DAMAGE TEXT ----------
 
     private Canvas GetDamageCanvas()
     {
@@ -485,14 +480,12 @@ public class EnemyHealth : MonoBehaviour
 
         if (rect != null && canvasRect != null)
         {
-            Vector2 localPos;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 canvasRect,
                 screenPos,
                 canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : cam,
-                out localPos
+                out Vector2 localPos
             );
-
             rect.anchoredPosition = localPos;
         }
         else

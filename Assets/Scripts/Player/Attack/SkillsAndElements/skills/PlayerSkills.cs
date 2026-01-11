@@ -1,13 +1,6 @@
-using System.Collections.Generic;
+п»їusing System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Простое хранилище прогресса скиллов:
-/// - какие разлочены,
-/// - какой уровень,
-/// - сколько "общих" зарядов (если хочешь использовать).
-/// Это не UI, а чистая логика прогресса.
-/// </summary>
 public class PlayerSkills : MonoBehaviour
 {
     public static PlayerSkills Instance { get; private set; }
@@ -17,7 +10,7 @@ public class PlayerSkills : MonoBehaviour
     {
         public SkillId skillId;
         public int level;
-        public int charges;  // глобальные заряды (по желанию)
+        public int charges; // -1 = infinite
 
         public bool unlocked => level > 0;
     }
@@ -53,14 +46,14 @@ public class PlayerSkills : MonoBehaviour
             }
         }
 
-        // гарантируем фаербол 1 уровня с "бесконечностью"
+        // РіР°СЂР°РЅС‚РёСЂСѓРµРј Fireball
         if (!_skills.ContainsKey(SkillId.Fireball))
         {
             _skills[SkillId.Fireball] = new SkillState
             {
                 skillId = SkillId.Fireball,
                 level = 1,
-                charges = -1 // -1 = бесконечные
+                charges = -1
             };
         }
     }
@@ -115,7 +108,7 @@ public class PlayerSkills : MonoBehaviour
             _skills[id] = state;
         }
 
-        if (state.charges < 0) return; // бесконечные - не считаем
+        if (state.charges < 0) return; // infinite
         state.charges += amount;
     }
 
@@ -124,4 +117,64 @@ public class PlayerSkills : MonoBehaviour
         if (id == SkillId.None) return true;
         return HasSkill(id) && GetSkillLevel(id) >= requiredLevel;
     }
+
+    // ======================
+    // SAVE/LOAD helpers
+    // ======================
+
+    public void ExportStates(out int[] ids, out int[] levels, out int[] charges)
+    {
+        ids = new int[_skills.Count];
+        levels = new int[_skills.Count];
+        charges = new int[_skills.Count];
+
+        int i = 0;
+        foreach (var kv in _skills)
+        {
+            ids[i] = (int)kv.Key;
+            levels[i] = kv.Value.level;
+            charges[i] = kv.Value.charges;
+            i++;
+        }
+    }
+
+    public void ImportStates(int[] ids, int[] levels, int[] charges)
+    {
+        _skills.Clear();
+
+        int n = ids != null ? ids.Length : 0;
+        for (int i = 0; i < n; i++)
+        {
+            SkillId id = (SkillId)ids[i];
+            if (id == SkillId.None) continue;
+
+            int lvl = (levels != null && i < levels.Length) ? levels[i] : 0;
+            int ch = (charges != null && i < charges.Length) ? charges[i] : 0;
+
+            _skills[id] = new SkillState
+            {
+                skillId = id,
+                level = lvl,
+                charges = ch
+            };
+        }
+
+        // РіР°СЂР°РЅС‚РёСЂСѓРµРј Fireball
+        if (!_skills.ContainsKey(SkillId.Fireball))
+        {
+            _skills[SkillId.Fireball] = new SkillState
+            {
+                skillId = SkillId.Fireball,
+                level = 1,
+                charges = -1
+            };
+        }
+    }
+
+    public bool IsSkillUnlocked(SkillId id)
+    {
+        if (id == SkillId.None) return true;
+        return _skills.ContainsKey(id) && _skills[id].unlocked;
+    }
+
 }

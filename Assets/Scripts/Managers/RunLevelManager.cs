@@ -280,4 +280,47 @@ public class RunLevelManager : MonoBehaviour
     {
         if (GameFlow.Instance != null) GameFlow.Instance.LoadMainMenu();
     }
+
+    // ====== SAVE/LOAD SUPPORT ======
+
+    /// <summary>
+    /// Восстановить stage из сейва без "прокликивания" GoDeeper().
+    /// </summary>
+    public void SetStageFromSave(int stage)
+    {
+        int total = TotalStages;
+        int clamped = Mathf.Clamp(stage, 0, total);
+
+        currentStage = clamped;
+        ApplyStageState_FromCurrent("SetStageFromSave");
+    }
+
+    private void ApplyStageState_FromCurrent(string reason)
+    {
+        // закрываем UI, магазин
+        stagePopup?.HideImmediate();
+        shopPopup?.HideImmediate();
+
+        // сбрасываем победу, спавнеры, позицию
+        ResetVictoryController();
+        DeactivateAllSpawners();
+        ResetPlayerPosition();
+
+        // stage 0 => база, stage > 0 => включаем спавнер
+        ActivateSpawnerForStage(currentStage);
+
+        // UI/аудио/мана
+        UpdateHudProgress();
+        music?.SetStage(currentStage);
+        FillManaToMaxSafe($"ApplyStageState ({reason}) stage={currentStage}");
+
+        // skull event
+        skullEvent?.SetStage(currentStage);
+
+        // shopkeeper stage change (для NPC)
+        ShopKeeperManager.Instance?.OnStageChanged(currentStage);
+
+        // стрелки/иконки магазина — обновим на всякий
+        interLevelUI?.ApplyShopSchedule(TotalStages);
+    }
 }

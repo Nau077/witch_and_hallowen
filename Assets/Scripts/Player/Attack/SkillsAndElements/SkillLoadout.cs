@@ -223,4 +223,35 @@ public class SkillLoadout : MonoBehaviour
         if (activeIndex == index)
             EnsureValidActive();
     }
+
+    // ===== SAVE / LOAD HELPERS =====
+
+    public int GetChargesForSkill(SkillId id)
+    {
+        if (slots == null) return 0;
+
+        foreach (var s in slots)
+        {
+            if (s != null && s.def != null && s.def.skillId == id)
+            {
+                return s.def.infiniteCharges ? -1 : s.charges;
+            }
+        }
+        return 0;
+    }
+
+    public void SetChargesForSkill(SkillId id, int charges)
+    {
+        if (slots == null) return;
+
+        foreach (var s in slots)
+        {
+            if (s != null && s.def != null && s.def.skillId == id)
+            {
+                if (s.def.infiniteCharges) return;
+                s.charges = Mathf.Max(0, charges);
+                return;
+            }
+        }
+    }
 }

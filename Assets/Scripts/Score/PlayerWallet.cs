@@ -5,11 +5,11 @@ public class PlayerWallet : MonoBehaviour
 {
     public static PlayerWallet Instance { get; private set; }
 
-    [Header("Run Coins (ONLY during run)")]
+    [Header("Runtime Coins (run-only)")]
     [Min(0)] public int coins = 0;
 
     [Header("UI")]
-    [Tooltip("Текст для отображения coins.")]
+    [Tooltip("Текст для отображения coins (можно указать GoldText).")]
     [SerializeField] private TMP_Text coinsText;
 
     public enum DebugApplyMode { None, Overwrite, Add }
@@ -24,9 +24,6 @@ public class PlayerWallet : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-
-        // Если PlayerWallet есть в нескольких сценах — лучше оставить один:
-        // DontDestroyOnLoad(gameObject);
 
         RefreshUI();
     }
@@ -61,29 +58,49 @@ public class PlayerWallet : MonoBehaviour
         if (coins < c) return false;
         coins -= c;
         RefreshUI();
+
+        // витрина (если есть)
+        SoulCounter.Instance?.RefreshUI();
+
         return true;
     }
 
     public void Add(int c)
     {
-        coins = Mathf.Max(0, coins + c);
+        if (c <= 0) return;
+        coins += c;
         RefreshUI();
+
+        // витрина (если есть)
+        SoulCounter.Instance?.RefreshUI();
     }
 
     public void SetCoins(int value)
     {
         coins = Mathf.Max(0, value);
         RefreshUI();
+
+        SoulCounter.Instance?.RefreshUI();
     }
 
     /// <summary>
-    /// ✅ Сброс coins (рановая валюта). Должна вызываться при смерти/рестарте рана.
+    /// ✅ Сброс coins при смерти/рестарте рана.
+    /// Run-only валюта: умираем -> 0.
     /// </summary>
     public void ResetRunCoins()
     {
         coins = 0;
         RefreshUI();
-        Debug.Log("[PlayerWallet] ResetRunCoins → coins=0");
+
+        SoulCounter.Instance?.RefreshUI();
+    }
+
+    /// <summary>
+    /// ✅ Алиас под старые вызовы (чтобы не ловить CS1061).
+    /// </summary>
+    public void ResetRunCoins_OnDeathOrRestart()
+    {
+        ResetRunCoins();
     }
 
     public void RefreshUI()

@@ -1,10 +1,16 @@
 ﻿using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections;
 using System.Collections.Generic;
 
 public class GameFlow : MonoBehaviour
 {
     public static GameFlow Instance { get; private set; }
+
+    [Header("Bootstrap")]
+    [Tooltip("Если включено — при старте GameFlow автоматически грузит главное меню. " +
+             "Выключи, если ты часто запускаешь Play из Level_1 в редакторе.")]
+    public bool autoLoadMainMenuOnAwake = true;
 
     [Header("Scene Names")]
     [Tooltip("Имя сцены главного меню (должно быть в Build Settings).")]
@@ -32,15 +38,38 @@ public class GameFlow : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        // Если мы стартуем из "пустой" сцены с этим объектом — грузим главное меню.
-        // Если ты запускаешь игру сразу из уровня, можешь временно закомментировать эту строку.
-        LoadMainMenu();
+        // Автозагрузка меню (опционально)
+        if (autoLoadMainMenuOnAwake)
+        {
+            // если мы уже в меню — не дёргаем лишний раз
+            if (!string.IsNullOrEmpty(mainMenuScene) &&
+                SceneManager.GetActiveScene().name != mainMenuScene)
+            {
+                LoadMainMenu();
+            }
+        }
+    }
+
+    // -----------------------------
+    // ✅ ДОБАВЛЕНО: универсальная загрузка сцены по имени
+    // (нужно для MainMenuRunButtons и подобных UI)
+    // -----------------------------
+    public void LoadSceneByName(string sceneName)
+    {
+        if (string.IsNullOrEmpty(sceneName))
+        {
+            Debug.LogWarning("[GameFlow] LoadSceneByName: sceneName is empty.");
+            return;
+        }
+
+        SceneManager.LoadScene(sceneName);
     }
 
     // Загрузить главное меню и сбросить прогресс
     public void LoadMainMenu()
     {
         currentLevelIndex = 0;
+
         if (!string.IsNullOrEmpty(mainMenuScene))
         {
             SceneManager.LoadScene(mainMenuScene);

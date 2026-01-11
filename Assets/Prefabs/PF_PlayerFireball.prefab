@@ -453,10 +453,10 @@ MonoBehaviour:
   damage: 10
   ignoreEnemiesFirstMeters: 0
   enableCrit: 1
-  critChance: 0.6
-  critDuration: 0.17
-  critBlinkInterval: 0.09
-  staggerMultiplier: 0.55
+  critChance: 0.82
+  critDuration: 0.15
+  critBlinkInterval: 0.11
+  staggerMultiplier: 0.82
   critBlinkColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!114 &3773226783772722073
 MonoBehaviour:

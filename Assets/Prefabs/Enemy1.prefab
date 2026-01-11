@@ -448,9 +448,9 @@ MonoBehaviour:
   defaultCritBlinkInterval: 0.06
   extendCritOnRehit: 1
   lockMovementAndAttackForFullCritDuration: 1
-  lockFractionOfCritDuration: 0.3
+  lockFractionOfCritDuration: 0.30132425
   lockMinDuration: 0.06
-  lockMaxDuration: 0.14
+  lockMaxDuration: 0.29
   canBeFrozen: 1
   freezeVfxPrefab: {fileID: 5442192347887330783, guid: b55271d71f4a32741af236e172a8e68b, type: 3}
   freezeVfxOffset: {x: 0, y: 0.3}

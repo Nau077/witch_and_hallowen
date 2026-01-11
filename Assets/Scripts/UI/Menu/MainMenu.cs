@@ -14,38 +14,51 @@ public class MainMenu : MonoBehaviour
     [Header("UI")]
     public Button newGameButton;
     public Button continueButton;
+    public Button exitButton; // <- добавили, чтобы тоже можно было гарантировать видимость
 
-    void Start()
+    private void Start()
     {
         RefreshButtons();
     }
 
     private void RefreshButtons()
     {
+        // Считаем "есть сохранение" максимально надежно для твоего проекта
+        bool hasAnySave =
+            SaveSystem.HasSave()
+            || (SaveManager.Instance != null && SaveManager.Instance.HasSave)
+            || PlayerPrefs.GetInt("has_save_v1", 0) == 1;
+
+        // 1) New Game всегда показываем
+        if (newGameButton != null)
+            newGameButton.gameObject.SetActive(true);
+
+        // 2) Continue показываем ТОЛЬКО если есть сохранение
         if (continueButton != null)
-            continueButton.gameObject.SetActive(SaveSystem.HasSave());
+            continueButton.gameObject.SetActive(hasAnySave);
+
+        // 3) Exit всегда показываем
+        if (exitButton != null)
+            exitButton.gameObject.SetActive(true);
     }
 
     public void NewGame()
     {
-        // 1) Ставим флаг "это новый забег"
         PlayerPrefs.SetInt(BOOT_MODE_KEY, BOOT_NEW_GAME);
         PlayerPrefs.Save();
 
-        // 2) Чистим старый сейв (чтобы Continue исчезал, если хочешь)
         SaveSystem.ClearSave();
+        if (SaveManager.Instance != null)
+            SaveManager.Instance.ClearSave();
 
-        // 3) Сбрасываем прогресс (души/перки/last-run coins и т.п.)
         ProgressResetter.ResetAllProgressForNewGame();
 
-        // 4) Стартуем сцену
         SaveSystem.NewGame(newGameStartScene);
         SceneManager.LoadScene(newGameStartScene);
     }
 
     public void Continue()
     {
-        // Ставим флаг "continue" — на будущее
         PlayerPrefs.SetInt(BOOT_MODE_KEY, BOOT_CONTINUE);
         PlayerPrefs.Save();
 

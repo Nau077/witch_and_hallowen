@@ -8776,6 +8776,8 @@ GameObject:
   - component: {fileID: 669322080}
   - component: {fileID: 669322079}
   - component: {fileID: 669322081}
+  - component: {fileID: 669322083}
+  - component: {fileID: 669322082}
   m_Layer: 0
   m_Name: GameSystems
   m_TagString: Untagged
@@ -8830,6 +8832,35 @@ MonoBehaviour:
   coinsText: {fileID: 1074724114}
   debugMode: 0
   debugCoinsValue: 0
+--- !u!114 &669322082
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 669322078}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3e6f6fb6c2445d42811a7e17d2fd935, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IntroDialogueOnNewGame
+  introSequence: {fileID: 11400000, guid: d2783c4738e9a70499b61c88fe41541f, type: 2}
+  startDelay: 1.8
+  clearBootModeAfterPlay: 1
+--- !u!114 &669322083
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 669322078}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 903c0ffc6b0657446a22100d5a47d83f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueRunner
+  ui: {fileID: 2083657063}
+  lockGameplayInput: 1
 --- !u!1 &670000870
 GameObject:
   m_ObjectHideFlags: 0
@@ -10942,7 +10973,7 @@ SpriteRenderer:
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 10.24, y: 10.24}
+  m_Size: {x: 5.19, y: 8.12}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -14550,6 +14581,41 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1434094426
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1434094427}
+  m_Layer: 5
+  m_Name: GameObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1434094427
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1434094426}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2083657062}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1469573029 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5118248586886358469, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}
@@ -15973,11 +16039,11 @@ Transform:
   m_GameObject: {fileID: 1694546885}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -1.3033, y: -5.0804, z: 0}
-  m_LocalScale: {x: 0.16874078, y: 0.16119234, z: 1.9650939}
+  m_LocalPosition: {x: -51.51, y: -155.09412, z: 0}
+  m_LocalScale: {x: 6.6082544, y: 6.548956, z: 10.981749}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 2143260458}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1732971583
 GameObject:
@@ -16624,7 +16690,7 @@ SpriteRenderer:
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 11.92, y: 17.293938}
+  m_Size: {x: 8.28, y: 17.002623}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -16949,8 +17015,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -324.3}
-  m_SizeDelta: {x: 152.03, y: 30}
+  m_AnchoredPosition: {x: 0, y: -322.2}
+  m_SizeDelta: {x: 155.4, y: 48.7}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1887662317
 MonoBehaviour:
@@ -17571,6 +17637,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2083657062}
+  - component: {fileID: 2083657063}
   m_Layer: 5
   m_Name: DialogueUI
   m_TagString: Untagged
@@ -17594,13 +17661,52 @@ RectTransform:
   - {fileID: 1901675021}
   - {fileID: 806277025}
   - {fileID: 1887662316}
+  - {fileID: 1434094427}
   m_Father: {fileID: 2143260458}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 65}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &2083657063
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2083657061}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73127c282b590dd46b595fe7c6cfcb69, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueUI
+  dialogRoot: {fileID: 2083657061}
+  rootCanvasGroup: {fileID: 0}
+  backgroundPanel: {fileID: 0}
+  group1:
+    root: {fileID: 1901675020}
+    portraitImage: {fileID: 938277024}
+    bodyText: {fileID: 802287794}
+  group2:
+    root: {fileID: 806277024}
+    portraitImage: {fileID: 1533147153}
+    bodyText: {fileID: 1108060538}
+  continueButton: {fileID: 1887662317}
+  continueButtonText: {fileID: 1608077752}
+  continueCanvasGroup: {fileID: 0}
+  showDuration: 0.18
+  hideDuration: 0.12
+  startScale: 0.98
+  textDelayAfterPanel: 0.08
+  typewriterCharsPerSecond: 45
+  textFadeInDuration: 0.1
+  blockContinueWhileTyping: 1
+  glowEnabled: 1
+  glowStartDelayAfterText: 1
+  glowPulsePeriod: 0.9
+  glowMinAlpha: 0.35
+  glowMaxAlpha: 1
 --- !u!224 &2087206162 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1124566145701538185, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}
@@ -18026,6 +18132,7 @@ RectTransform:
   - {fileID: 40252237}
   - {fileID: 743115435}
   - {fileID: 1931342539}
+  - {fileID: 1694546886}
   - {fileID: 1452718}
   - {fileID: 1635589298}
   - {fileID: 1782959090}
@@ -18349,7 +18456,6 @@ SceneRoots:
   - {fileID: 2026905445}
   - {fileID: 966424388}
   - {fileID: 765279634}
-  - {fileID: 1694546886}
   - {fileID: 452529312}
   - {fileID: 1308866351}
   - {fileID: 669322080}

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 
 public class IntroDialogueOnNewGame : MonoBehaviour
 {
@@ -8,7 +9,11 @@ public class IntroDialogueOnNewGame : MonoBehaviour
     [Header("Intro Dialogue")]
     public DialogueSequenceSO introSequence;
 
-    [Tooltip("Если true — после показа интро, сбросим boot_mode, чтобы при перезаходе не показывать снова.")]
+    [Header("Timing")]
+    [Range(0f, 5f)]
+    public float startDelay = 1.8f;
+
+    [Tooltip("Если true — после интро сбросим boot_mode, чтобы при перезаходе не показывать снова.")]
     public bool clearBootModeAfterPlay = true;
 
     private void Start()
@@ -16,19 +21,27 @@ public class IntroDialogueOnNewGame : MonoBehaviour
         int mode = PlayerPrefs.GetInt(BOOT_MODE_KEY, 0);
         if (mode != BOOT_NEW_GAME) return;
 
+        if (introSequence == null || introSequence.Count == 0) return;
+
+        StartCoroutine(PlayDelayed());
+    }
+
+    private IEnumerator PlayDelayed()
+    {
+        // ждать в unscaled, чтобы не зависеть от timeScale
+        float t = 0f;
+        while (t < startDelay)
+        {
+            t += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
         if (DialogueRunner.Instance == null)
         {
             Debug.LogWarning("[IntroDialogueOnNewGame] DialogueRunner not found.");
-            return;
+            yield break;
         }
 
-        if (introSequence == null || introSequence.Count == 0)
-        {
-            Debug.LogWarning("[IntroDialogueOnNewGame] introSequence is empty.");
-            return;
-        }
-
-        // На время диалога RunLevelManager.inputLocked включится через DialogueRunner (у тебя уже есть lockGameplayInput)
         DialogueRunner.Instance.Play(introSequence, () =>
         {
             if (clearBootModeAfterPlay)

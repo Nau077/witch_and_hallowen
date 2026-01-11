@@ -10,13 +10,11 @@ public class DialogueRunner : MonoBehaviour
     public DialogueUI ui;
 
     [Header("Input lock")]
-    [Tooltip("Если true — на время диалога ставим RunLevelManager.inputLocked=true (если есть).")]
     public bool lockGameplayInput = true;
 
     private DialogueSequenceSO _sequence;
     private int _index;
     private bool _playing;
-
     private Action _onFinished;
 
     private void Awake()
@@ -69,10 +67,12 @@ public class DialogueRunner : MonoBehaviour
         if (lockGameplayInput)
             SetGameplayLocked(true);
 
-        // показать UI и первую реплику
         ui.SetContinueLabel("CONTINUE");
+        ui.BeginConversation();
         ui.PlayShow();
-        ui.DisplayLine(_sequence.GetLine(_index));
+
+        // первая реплика
+        ui.DisplayLineAnimated(_sequence.GetLine(_index));
     }
 
     private void HandleContinue()
@@ -87,8 +87,7 @@ public class DialogueRunner : MonoBehaviour
             return;
         }
 
-        var line = _sequence.GetLine(_index);
-        ui.DisplayLine(line);
+        ui.DisplayLineAnimated(_sequence.GetLine(_index));
     }
 
     private void Finish()
@@ -99,11 +98,17 @@ public class DialogueRunner : MonoBehaviour
         {
             ui.PlayHide(() =>
             {
+                // страховка: гарантированно погасить всё
+                ui.HideImmediate();
+
                 if (lockGameplayInput)
                     SetGameplayLocked(false);
 
                 _onFinished?.Invoke();
                 _onFinished = null;
+
+                _sequence = null;
+                _index = 0;
             });
         }
         else
@@ -113,13 +118,14 @@ public class DialogueRunner : MonoBehaviour
 
             _onFinished?.Invoke();
             _onFinished = null;
+
+            _sequence = null;
+            _index = 0;
         }
     }
 
     private void SetGameplayLocked(bool locked)
     {
-        // Мы не лезем в твой PlayerMovement напрямую.
-        // Основной общий механизм у тебя уже есть: RunLevelManager.inputLocked.
         if (RunLevelManager.Instance != null)
             RunLevelManager.Instance.SetInputLocked(locked);
     }

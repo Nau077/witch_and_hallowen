@@ -286,9 +286,10 @@ MonoBehaviour:
   yOffsetMultiplier: 0.55
   alpha: 0.87
   tint: {r: 0, g: 0, b: 0, a: 1}
-  matchProjectileSorting: 1
+  matchProjectileSortingLayer: 1
+  matchProjectileSortingOrder: 1
   fallbackSortingLayer: FX
-  fallbackOrder: -50
-  debugForceVisible: 0
+  fallbackSortingOrder: 0
   textureSize: 256
   edgeSoftness: 6
+  debugRed: 0

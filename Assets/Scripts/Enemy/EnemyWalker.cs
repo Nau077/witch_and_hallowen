@@ -63,11 +63,36 @@ public class EnemyWalker : MonoBehaviour
     private bool _wasFrozen;
     private bool _wasStaggered;
 
+    // ---- EXTERNAL BUSY (channeling skills) ----
+    // Нужно для "длинных" скиллов (например, луч ведьмы), чтобы:
+    // - враг стоял, не менял направление, не стартовал новую атаку
+    // - но при freeze/stagger/смерти всё корректно прерывалось
+    private float _externalBusyUntilTime = -1f;
+    public bool IsExternallyBusy => Time.time < _externalBusyUntilTime;
+
     public int AttackIndex => attackIndex;
     public bool PlayerIsDead => playerHP != null && playerHP.IsDead;
     public Transform PlayerTransform => player;
 
-    public bool IsBusyAttacking => isAttacking || isHoldingForAttack;
+    // Сохраняем старый контракт + добавляем busy
+    public bool IsBusyAttacking => isAttacking || isHoldingForAttack || IsExternallyBusy;
+
+    /// <summary>
+    /// Блокирует движение/атаки врага до (Time.time + duration).
+    /// Использовать для "каналящих" скиллов типа луча.
+    /// </summary>
+    public void SetExternalBusy(float duration)
+    {
+        _externalBusyUntilTime = Mathf.Max(_externalBusyUntilTime, Time.time + Mathf.Max(0f, duration));
+    }
+
+    /// <summary>
+    /// Сбрасываем внешнюю занятость (например, при interrupt).
+    /// </summary>
+    public void ClearExternalBusy()
+    {
+        _externalBusyUntilTime = -1f;
+    }
 
     private void Awake()
     {
@@ -148,7 +173,8 @@ public class EnemyWalker : MonoBehaviour
             }
         }
 
-        if (isAttacking || isHoldingForAttack)
+        // ⬇️ ВАЖНО: во время внешнего busy (каналинга) - стоим и не стартуем атаки
+        if (isAttacking || isHoldingForAttack || IsExternallyBusy)
         {
             rb.linearVelocity = Vector2.zero;
             return;
@@ -179,7 +205,8 @@ public class EnemyWalker : MonoBehaviour
             return;
         }
 
-        if (isAttacking || isHoldingForAttack) return;
+        // ⬇️ Во время каналинга тоже не двигаемся
+        if (isAttacking || isHoldingForAttack || IsExternallyBusy) return;
 
         Vector2 cur = rb.position;
         Vector2 next = cur + desiredDir * moveSpeed * Time.fixedDeltaTime;
@@ -201,6 +228,10 @@ public class EnemyWalker : MonoBehaviour
         while (true)
         {
             yield return new WaitForSeconds(decideEvery);
+
+            // ⬇️ Во время каналинга не меняем направление (чтобы ведьма "стояла и колдовала")
+            if (IsExternallyBusy)
+                continue;
 
             if ((selfHP && selfHP.IsDead) || (selfHP && selfHP.IsFrozen) || (selfHP && selfHP.IsStaggered))
                 continue;
@@ -240,7 +271,7 @@ public class EnemyWalker : MonoBehaviour
     private void HandleAttackTimer()
     {
         if (!CanAttackNow()) return;
-        if (isAttacking || isHoldingForAttack) return;
+        if (isAttacking || isHoldingForAttack || IsExternallyBusy) return;
 
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackInterval)
@@ -267,6 +298,9 @@ public class EnemyWalker : MonoBehaviour
         if (!CanAttackNow()) { _attackRoutine = null; yield break; }
         if (isAttacking) { _attackRoutine = null; yield break; }
 
+        // ⬇️ Если вдруг кто-то поставил busy (каналинг) - атаку не стартуем
+        if (IsExternallyBusy) { _attackRoutine = null; yield break; }
+
         isAttacking = true;
         isHoldingForAttack = true;
         rb.linearVelocity = Vector2.zero;
@@ -276,7 +310,7 @@ public class EnemyWalker : MonoBehaviour
 
         isHoldingForAttack = false;
 
-        if (!CanAttackNow())
+        if (!CanAttackNow() || IsExternallyBusy)
         {
             isAttacking = false;
             RestoreSprite();
@@ -289,7 +323,7 @@ public class EnemyWalker : MonoBehaviour
 
         yield return new WaitForSeconds(0.25f);
 
-        if (!CanAttackNow())
+        if (!CanAttackNow() || IsExternallyBusy)
         {
             isAttacking = false;
             RestoreSprite();
@@ -314,6 +348,9 @@ public class EnemyWalker : MonoBehaviour
                     yield break;
                 }
 
+                // Если какой-то скилл поставит external busy прямо сейчас,
+                // следующие скиллы всё равно получат тик (как и раньше),
+                // но сам враг будет заблокирован в Update/FixedUpdate/DecideLoop.
                 s.OnBrainAttackTick(attackIndex, ref attackConsumed);
             }
         }
@@ -336,6 +373,9 @@ public class EnemyWalker : MonoBehaviour
 
         isAttacking = false;
         isHoldingForAttack = false;
+
+        // ⬇️ крит/стаггер/фриз должны сбрасывать любой каналинг
+        ClearExternalBusy();
 
         if (skills != null)
         {
@@ -403,6 +443,9 @@ public class EnemyWalker : MonoBehaviour
     public void OnDeathExternal()
     {
         StopAllCoroutines();
+
+        // ⬇️ на всякий: чтобы после смерти не осталось "занятости"
+        ClearExternalBusy();
 
         if (TryGetComponent<Rigidbody2D>(out var rb2))
         {

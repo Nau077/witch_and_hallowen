@@ -1,58 +1,41 @@
-﻿using System.Collections;
+﻿// Assets/Scripts/Enemy/skills/EnemySkillEnergyBeam.cs
+using System.Collections;
 using UnityEngine;
 
 public class EnemySkillEnergyBeam : EnemySkillBase
 {
-    [Header("Beam Prefab")]
-    public GameObject beamPrefab;
-
-    [Tooltip("Если не задано — будет использоваться brain.topLimit.")]
-    public float beamTopYOverride = 999f;
-
-    [Tooltip("Если не задано — будет использоваться brain.bottomLimit.")]
-    public float beamBottomYOverride = -999f;
-
     [Header("Trigger Distance (X)")]
-    [Tooltip("Ведьма применяет луч, когда находится примерно на N клеток по X от игрока.")]
     public int desiredCellsFromPlayerX = 2;
-
-    [Tooltip("Допуск по клеткам (например 0.6 = сработает в диапазоне 1.4..2.6 клеток).")]
     public float cellsTolerance = 0.6f;
-
-    [Tooltip("Размер клетки (обычно 1).")]
     public float cellSize = 1f;
 
     [Header("Telegraph (Blink before beam)")]
     public float preBeamBlinkTime = 1.0f;
     public float blinkInterval = 0.12f;
-
-    [Tooltip("Цвет мигания ведьмы перед выстрелом.")]
     public Color telegraphBlinkColor = new Color(1f, 0.2f, 1f, 1f);
 
-    [Header("Channeling")]
+    [Header("Reveal + Channeling")]
+    public float revealDuration = 0.35f;
     public float beamDuration = 4.0f;
-
-    [Tooltip("Скорость, с которой луч \"догоняет\" X игрока (юнитов/сек).")]
     public float followSpeed = 12f;
 
-    [Header("Beam Damage")]
-    [Tooltip("Урон за тик (не каждый кадр, а раз в tickInterval).")]
-    public int damagePerTick = 4;
+    [Header("Beam Size (Grid-based)")]
+    public float beamWidthInCells = 1f;
 
-    [Tooltip("Как часто наносить урон, пока игрок в луче.")]
+    [Header("Beam Damage")]
+    public int damagePerTick = 4;
     public float tickInterval = 0.12f;
 
     [Header("Beam Crit (player)")]
-    [Range(0f, 1f)]
-    public float critChance = 0.25f;
-
-    [Tooltip("Множитель крит-урона для игрока.")]
+    [Range(0f, 1f)] public float critChance = 0.25f;
     public float critMultiplier = 3.0f;
 
     [Header("Beam Look")]
     public Color beamTint = new Color(0.9f, 0.2f, 1f, 1f);
-    public float beamWidth = 0.35f;
-    public float colliderWidth = 0.45f;
+
+    [Header("Vertical Bounds")]
+    public float beamTopYOverride = 999f;
+    public float beamBottomYOverride = -999f;
 
     private Coroutine _routine;
     private EnergyBeamController _beam;
@@ -60,10 +43,9 @@ public class EnemySkillEnergyBeam : EnemySkillBase
     public override void OnBrainAttackTick(int attackIndex, ref bool attackConsumed)
     {
         if (!CanUse(attackIndex, attackConsumed)) return;
-        if (beamPrefab == null || brain == null || brain.PlayerTransform == null) return;
-        if (_routine != null) return; // уже каналим
+        if (brain == null || brain.PlayerTransform == null) return;
+        if (_routine != null) return;
 
-        // Триггер: ведьма на ~2 клетки слева/справа по X
         float dx = Mathf.Abs(brain.PlayerTransform.position.x - brain.transform.position.x);
         float desired = Mathf.Max(0.01f, desiredCellsFromPlayerX * cellSize);
         float tol = Mathf.Max(0f, cellsTolerance * cellSize);
@@ -106,10 +88,10 @@ public class EnemySkillEnergyBeam : EnemySkillBase
             yield break;
         }
 
-        // Блокируем мозг на всю длительность: мигание + луч
-        brain.SetExternalBusy(preBeamBlinkTime + beamDuration + 0.05f);
+        // держим мозг "занятым" (не стартуем другие атаки)
+        brain.SetExternalBusy(preBeamBlinkTime + revealDuration + beamDuration + 0.15f);
 
-        // 1) Telegraph: мигаем ведьмой
+        // 1) telegraph
         yield return TelegraphBlink(preBeamBlinkTime);
 
         if (brain == null || selfHP == null || selfHP.IsDead || brain.PlayerIsDead)
@@ -118,48 +100,46 @@ public class EnemySkillEnergyBeam : EnemySkillBase
             yield break;
         }
 
-        // 2) Спавним луч и инициализируем
+        // 2) bounds
         float topY = (beamTopYOverride != 999f) ? beamTopYOverride : brain.topLimit;
         float bottomY = (beamBottomYOverride != -999f) ? beamBottomYOverride : brain.bottomLimit;
 
-        float startX = brain.PlayerTransform.position.x; // начинаем по игроку
-
-        GameObject go = Instantiate(beamPrefab, Vector3.zero, Quaternion.identity);
-        _beam = go.GetComponent<EnergyBeamController>();
-        if (_beam == null)
-        {
-            Debug.LogWarning("EnemySkillEnergyBeam: beamPrefab должен иметь EnergyBeamController.");
-            Destroy(go);
-            _routine = null;
-            yield break;
-        }
+        // 3) spawn runtime beam
+        GameObject go = new GameObject("EnergyBeam_Runtime");
+        _beam = go.AddComponent<EnergyBeamController>();
 
         _beam.Setup(
             owner: brain.transform,
             player: brain.PlayerTransform,
             topY: topY,
-            bottomY: bottomY,
-            startX: startX,
+            bottomYFinal: bottomY,
+            startX: brain.PlayerTransform.position.x,
+
+            cellSize: cellSize,
+            beamCellsWidth: beamWidthInCells,
+
+            revealDuration: revealDuration,
             followSpeed: followSpeed,
-            beamWidth: beamWidth,
-            colliderWidth: colliderWidth,
-            tint: beamTint,
+
             damagePerTick: damagePerTick,
             tickInterval: tickInterval,
             critChance: critChance,
-            critMultiplier: critMultiplier
+            critMultiplier: critMultiplier,
+
+            color: beamTint
         );
 
-        // 3) Каналим луч
+        // 4) wait total lifetime
+        float total = Mathf.Max(0.01f, revealDuration + beamDuration);
         float t = 0f;
-        while (t < beamDuration)
+        while (t < total)
         {
             if (brain == null || selfHP == null || selfHP.IsDead || brain.PlayerIsDead) break;
             t += Time.deltaTime;
             yield return null;
         }
 
-        // 4) Выключаем луч
+        // 5) cleanup
         if (_beam != null)
         {
             Destroy(_beam.gameObject);
@@ -191,7 +171,6 @@ public class EnemySkillEnergyBeam : EnemySkillBase
             elapsed += interval;
         }
 
-        // вернуть базовый цвет
         spriteRenderer.color = baseCol;
     }
 }

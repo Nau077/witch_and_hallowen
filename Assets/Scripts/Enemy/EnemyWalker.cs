@@ -24,10 +24,14 @@ public class EnemyWalker : MonoBehaviour
     public float topLimit = 2.5f;
     public float bottomLimit = -1.76f;
 
-    [Header("Keep Distance from Player (X axis)")]
+    [Header("Keep Distance from Player (X axis) - legacy")]
     public int minCellsFromPlayer = 4;
     public float cellSize = 1f;
     public float softStopDistanceFudge = 0.15f;
+
+    [Header("External Busy (channeling skills)")]
+    [Tooltip("Если true — во время внешней 'занятости' (луч/каст) враг всё равно может двигаться.")]
+    public bool allowMoveWhileExternallyBusy = false;
 
     [Header("Attack")]
     public float attackInterval = 1.2f;
@@ -57,42 +61,38 @@ public class EnemyWalker : MonoBehaviour
     private EnemyHealth selfHP;
 
     private EnemySkillBase[] skills;
-
     private Coroutine _attackRoutine;
 
     private bool _wasFrozen;
     private bool _wasStaggered;
 
-    // ---- EXTERNAL BUSY (channeling skills) ----
-    // Нужно для "длинных" скиллов (например, луч ведьмы), чтобы:
-    // - враг стоял, не менял направление, не стартовал новую атаку
-    // - но при freeze/stagger/смерти всё корректно прерывалось
-    private float _externalBusyUntilTime = -1f;
-    public bool IsExternallyBusy => Time.time < _externalBusyUntilTime;
+    // -------- External busy (for channel skills) --------
+    private float _externalBusyUntil;
+    public bool IsExternallyBusy => Time.time < _externalBusyUntil;
+
+    public void SetExternalBusy(float duration)
+    {
+        _externalBusyUntil = Mathf.Max(_externalBusyUntil, Time.time + Mathf.Max(0f, duration));
+    }
+
+    public void ClearExternalBusy()
+    {
+        _externalBusyUntil = 0f;
+    }
+    // ---------------------------------------------------
+
+    // -------- Movement Brain (optional SOLID extension) --------
+    // Если на враге есть компонент-наследник EnemyMoveBrainBase,
+    // то он будет управлять направлением движения.
+    // Если нет — враг ходит как раньше (рандом + legacy keep distance).
+    private EnemyMoveBrainBase moveBrain;
+    // ----------------------------------------------------------
 
     public int AttackIndex => attackIndex;
     public bool PlayerIsDead => playerHP != null && playerHP.IsDead;
     public Transform PlayerTransform => player;
 
-    // Сохраняем старый контракт + добавляем busy
     public bool IsBusyAttacking => isAttacking || isHoldingForAttack || IsExternallyBusy;
-
-    /// <summary>
-    /// Блокирует движение/атаки врага до (Time.time + duration).
-    /// Использовать для "каналящих" скиллов типа луча.
-    /// </summary>
-    public void SetExternalBusy(float duration)
-    {
-        _externalBusyUntilTime = Mathf.Max(_externalBusyUntilTime, Time.time + Mathf.Max(0f, duration));
-    }
-
-    /// <summary>
-    /// Сбрасываем внешнюю занятость (например, при interrupt).
-    /// </summary>
-    public void ClearExternalBusy()
-    {
-        _externalBusyUntilTime = -1f;
-    }
 
     private void Awake()
     {
@@ -125,6 +125,11 @@ public class EnemyWalker : MonoBehaviour
                 if (s != null) s.Init(this);
         }
 
+        // optional movement brain
+        moveBrain = GetComponent<EnemyMoveBrainBase>();
+        if (moveBrain != null)
+            moveBrain.Init(this);
+
         StartCoroutine(DecideLoop());
     }
 
@@ -148,7 +153,9 @@ public class EnemyWalker : MonoBehaviour
         // вышли из freeze/stagger -> форсим новое решение, чтобы не "залип"
         if ((!frozenNow && _wasFrozen) || (!staggerNow && _wasStaggered))
         {
-            ForceNewDecisionDirection();
+            // если есть moveBrain — пусть он решит на следующем decide tick
+            // но чтобы не стоял совсем, можно дернуть старое направление:
+            if (moveBrain == null) ForceNewDecisionDirection();
         }
 
         _wasFrozen = frozenNow;
@@ -173,26 +180,45 @@ public class EnemyWalker : MonoBehaviour
             }
         }
 
-        // ⬇️ ВАЖНО: во время внешнего busy (каналинга) - стоим и не стартуем атаки
-        if (isAttacking || isHoldingForAttack || IsExternallyBusy)
+        // если идёт стандартная атака — стоп
+        if (isAttacking || isHoldingForAttack)
         {
             rb.linearVelocity = Vector2.zero;
             return;
         }
 
-        // keep distance
-        if (player)
+        // внешняя занятость (луч/каст): блокируем новые атаки,
+        // но движение разрешаем, если allowMoveWhileExternallyBusy = true
+        if (IsExternallyBusy && !allowMoveWhileExternallyBusy)
         {
-            float minDistX = minCellsFromPlayer * cellSize;
-            float dx = Mathf.Abs(player.position.x - transform.position.x);
-            if (dx <= minDistX + softStopDistanceFudge)
-            {
-                float signAway = Mathf.Sign(transform.position.x - player.position.x);
-                desiredDir = new Vector2(signAway, 0f);
-            }
+            rb.linearVelocity = Vector2.zero;
+            return;
         }
 
-        HandleAttackTimer();
+        // -------- choose movement direction --------
+        if (moveBrain != null)
+        {
+            desiredDir = moveBrain.GetDesiredMoveDir();
+        }
+        else
+        {
+            // legacy keep distance
+            if (player)
+            {
+                float minDistX = minCellsFromPlayer * cellSize;
+                float dx = Mathf.Abs(player.position.x - transform.position.x);
+                if (minCellsFromPlayer > 0 && dx <= minDistX + softStopDistanceFudge)
+                {
+                    float signAway = Mathf.Sign(transform.position.x - player.position.x);
+                    desiredDir = new Vector2(signAway, 0f);
+                }
+            }
+        }
+        // ------------------------------------------
+
+        // атаки запускаем, только если не externally busy
+        if (!IsExternallyBusy)
+            HandleAttackTimer();
     }
 
     private void FixedUpdate()
@@ -205,8 +231,10 @@ public class EnemyWalker : MonoBehaviour
             return;
         }
 
-        // ⬇️ Во время каналинга тоже не двигаемся
-        if (isAttacking || isHoldingForAttack || IsExternallyBusy) return;
+        if (isAttacking || isHoldingForAttack) return;
+
+        if (IsExternallyBusy && !allowMoveWhileExternallyBusy)
+            return;
 
         Vector2 cur = rb.position;
         Vector2 next = cur + desiredDir * moveSpeed * Time.fixedDeltaTime;
@@ -229,14 +257,16 @@ public class EnemyWalker : MonoBehaviour
         {
             yield return new WaitForSeconds(decideEvery);
 
-            // ⬇️ Во время каналинга не меняем направление (чтобы ведьма "стояла и колдовала")
-            if (IsExternallyBusy)
-                continue;
-
             if ((selfHP && selfHP.IsDead) || (selfHP && selfHP.IsFrozen) || (selfHP && selfHP.IsStaggered))
                 continue;
 
-            ForceNewDecisionDirection();
+            if (IsExternallyBusy && !allowMoveWhileExternallyBusy)
+                continue;
+
+            if (moveBrain != null)
+                moveBrain.OnDecideTick();
+            else
+                ForceNewDecisionDirection();
         }
     }
 
@@ -271,7 +301,7 @@ public class EnemyWalker : MonoBehaviour
     private void HandleAttackTimer()
     {
         if (!CanAttackNow()) return;
-        if (isAttacking || isHoldingForAttack || IsExternallyBusy) return;
+        if (isAttacking || isHoldingForAttack) return;
 
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackInterval)
@@ -297,8 +327,6 @@ public class EnemyWalker : MonoBehaviour
     {
         if (!CanAttackNow()) { _attackRoutine = null; yield break; }
         if (isAttacking) { _attackRoutine = null; yield break; }
-
-        // ⬇️ Если вдруг кто-то поставил busy (каналинг) - атаку не стартуем
         if (IsExternallyBusy) { _attackRoutine = null; yield break; }
 
         isAttacking = true;
@@ -348,9 +376,6 @@ public class EnemyWalker : MonoBehaviour
                     yield break;
                 }
 
-                // Если какой-то скилл поставит external busy прямо сейчас,
-                // следующие скиллы всё равно получат тик (как и раньше),
-                // но сам враг будет заблокирован в Update/FixedUpdate/DecideLoop.
                 s.OnBrainAttackTick(attackIndex, ref attackConsumed);
             }
         }
@@ -373,9 +398,6 @@ public class EnemyWalker : MonoBehaviour
 
         isAttacking = false;
         isHoldingForAttack = false;
-
-        // ⬇️ крит/стаггер/фриз должны сбрасывать любой каналинг
-        ClearExternalBusy();
 
         if (skills != null)
         {
@@ -416,6 +438,12 @@ public class EnemyWalker : MonoBehaviour
         return new Vector2(x, y);
     }
 
+    /// <summary>
+    /// Вспомогательный публичный clamp (для move-brain'ов при snapToGrid).
+    /// Не меняет логику, просто даёт доступ.
+    /// </summary>
+    public Vector2 DebugClampToBounds(Vector2 pos) => ClampToBounds(pos);
+
     // -------------------- DESYNC SUPPORT (FOR SPAWNER) --------------------
 
     public void ApplyDesync(float decideJitter, float attackJitter, float firstDecisionDelay, float firstAttackDelay)
@@ -443,9 +471,6 @@ public class EnemyWalker : MonoBehaviour
     public void OnDeathExternal()
     {
         StopAllCoroutines();
-
-        // ⬇️ на всякий: чтобы после смерти не осталось "занятости"
-        ClearExternalBusy();
 
         if (TryGetComponent<Rigidbody2D>(out var rb2))
         {

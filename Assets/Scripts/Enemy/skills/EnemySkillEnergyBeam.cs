@@ -4,54 +4,81 @@ using UnityEngine;
 
 public class EnemySkillEnergyBeam : EnemySkillBase
 {
-    [Header("Trigger Distance (X)")]
-    public int desiredCellsFromPlayerX = 2;
-    public float cellsTolerance = 0.6f;
+    [Header("Beam Prefab (REQUIRED)")]
+    public BeamSpriteController beamPrefab;
+
+    [Header("Trigger (X distance to player)")]
+    [Tooltip("Если |X| до игрока меньше этого расстояния (в клетках) — ведьма включает луч. 0 = игнорировать дистанцию.")]
+    public float triggerDistanceInCells = 4f;
+
+    [Tooltip("Размер клетки.")]
     public float cellSize = 1f;
 
-    [Header("Telegraph (Blink before beam)")]
-    public float preBeamBlinkTime = 1.0f;
+    [Header("Telegraph")]
+    public float preBeamBlinkTime = 0.6f;
     public float blinkInterval = 0.12f;
     public Color telegraphBlinkColor = new Color(1f, 0.2f, 1f, 1f);
 
-    [Header("Reveal + Channeling")]
-    public float revealDuration = 0.35f;
-    public float beamDuration = 4.0f;
-    public float followSpeed = 12f;
+    [Header("Beam timings")]
+    public float revealDuration = 0.20f;
+    public float beamChaseDuration = 3.5f;
 
-    [Header("Beam Size (Grid-based)")]
+    [Header("Beam size")]
+    [Tooltip("Толщина луча в клетках. По умолчанию 1.")]
     public float beamWidthInCells = 1f;
 
-    [Header("Beam Damage")]
+    [Header("Beam damage")]
     public int damagePerTick = 4;
     public float tickInterval = 0.12f;
-
-    [Header("Beam Crit (player)")]
     [Range(0f, 1f)] public float critChance = 0.25f;
-    public float critMultiplier = 3.0f;
+    public float critMultiplier = 3f;
 
-    [Header("Beam Look")]
+    [Header("Beam look")]
     public Color beamTint = new Color(0.9f, 0.2f, 1f, 1f);
+    public string sortingLayer = "Effects";
+    public int sortingOrder = 250;
 
-    [Header("Vertical Bounds")]
-    public float beamTopYOverride = 999f;
-    public float beamBottomYOverride = -999f;
+    [Header("Vertical bounds (world Y)")]
+    [Tooltip("Низ луча. Если -999 — берём brain.bottomLimit.")]
+    public float bottomYOverride = -999f;
+
+    [Header("Start under witch")]
+    [Tooltip("Насколько ниже нижней границы спрайта ведьмы начинать луч (world units).")]
+    public float startBelowWitch = 0.05f;
+
+    [Tooltip("Насколько ниже игрока должен доходить луч (world units).")]
+    public float goBelowPlayerBy = 0.2f;
+
+    [Header("Debug")]
+    public bool debugLogs = false;
 
     private Coroutine _routine;
-    private EnergyBeamController _beam;
+    private BeamSpriteController _beam;
+
+    private void Log(string msg)
+    {
+        if (!debugLogs) return;
+        Debug.Log($"[EnemySkillEnergyBeam] {msg}", this);
+    }
 
     public override void OnBrainAttackTick(int attackIndex, ref bool attackConsumed)
     {
         if (!CanUse(attackIndex, attackConsumed)) return;
-        if (brain == null || brain.PlayerTransform == null) return;
-        if (_routine != null) return;
+        if (beamPrefab == null) { Log("SKIP: beamPrefab is null"); return; }
+        if (brain == null || brain.PlayerTransform == null) { Log("SKIP: no brain/player"); return; }
+        if (_routine != null) { Log("SKIP: already running"); return; }
 
-        float dx = Mathf.Abs(brain.PlayerTransform.position.x - brain.transform.position.x);
-        float desired = Mathf.Max(0.01f, desiredCellsFromPlayerX * cellSize);
-        float tol = Mathf.Max(0f, cellsTolerance * cellSize);
-
-        if (dx < desired - tol) return;
-        if (dx > desired + tol) return;
+        // ✅ Триггер только по X
+        if (triggerDistanceInCells > 0f)
+        {
+            float dx = Mathf.Abs(brain.transform.position.x - brain.PlayerTransform.position.x);
+            float triggerX = Mathf.Max(0.1f, triggerDistanceInCells * Mathf.Max(0.01f, cellSize));
+            if (dx > triggerX)
+            {
+                Log($"SKIP: dx {dx:F2} > triggerX {triggerX:F2}");
+                return;
+            }
+        }
 
         attackConsumed = true;
         _routine = StartCoroutine(BeamRoutine());
@@ -88,10 +115,12 @@ public class EnemySkillEnergyBeam : EnemySkillBase
             yield break;
         }
 
-        // держим мозг "занятым" (не стартуем другие атаки)
-        brain.SetExternalBusy(preBeamBlinkTime + revealDuration + beamDuration + 0.15f);
+        Log("START BeamRoutine");
 
-        // 1) telegraph
+        // во время луча ведьма может двигаться (на EnemyWalker у ведьмы allowMoveWhileExternallyBusy = true)
+        brain.SetExternalBusy(preBeamBlinkTime + revealDuration + beamChaseDuration + 0.2f);
+
+        // 1) Telegraph
         yield return TelegraphBlink(preBeamBlinkTime);
 
         if (brain == null || selfHP == null || selfHP.IsDead || brain.PlayerIsDead)
@@ -100,53 +129,68 @@ public class EnemySkillEnergyBeam : EnemySkillBase
             yield break;
         }
 
-        // 2) bounds
-        float topY = (beamTopYOverride != 999f) ? beamTopYOverride : brain.topLimit;
-        float bottomY = (beamBottomYOverride != -999f) ? beamBottomYOverride : brain.bottomLimit;
+        // ✅ держим спрайт атаки на время луча (если задан)
+        SpriteRenderer sr = spriteRenderer;
+        Sprite prevSprite = null;
+        if (sr != null)
+        {
+            prevSprite = sr.sprite;
+            if (brain.attackSprite != null)
+                sr.sprite = brain.attackSprite;
+        }
 
-        // 3) spawn runtime beam
-        GameObject go = new GameObject("EnergyBeam_Runtime");
-        _beam = go.AddComponent<EnergyBeamController>();
+        // 2) Спавним луч child-объектом ведьмы (X будет следовать за ведьмой)
+        _beam = Instantiate(beamPrefab, brain.transform);
+        _beam.name = "BeamSprite_Runtime";
 
+        float bottomY = (bottomYOverride != -999f) ? bottomYOverride : brain.bottomLimit;
+
+        float widthWorld = Mathf.Max(0.05f, beamWidthInCells * Mathf.Max(0.01f, cellSize));
+        float life = Mathf.Max(0.05f, revealDuration + beamChaseDuration);
+
+        // ВАЖНО: теперь луч строится от нижней границы спрайта ведьмы вниз до игрока.
         _beam.Setup(
             owner: brain.transform,
             player: brain.PlayerTransform,
-            topY: topY,
-            bottomYFinal: bottomY,
-            startX: brain.PlayerTransform.position.x,
-
-            cellSize: cellSize,
-            beamCellsWidth: beamWidthInCells,
-
+            bottomY: bottomY,
+            lifetime: life,
             revealDuration: revealDuration,
-            followSpeed: followSpeed,
-
+            widthWorld: widthWorld,
+            tint: beamTint,
             damagePerTick: damagePerTick,
             tickInterval: tickInterval,
             critChance: critChance,
             critMultiplier: critMultiplier,
-
-            color: beamTint
+            sortingLayer: sortingLayer,
+            sortingOrder: sortingOrder,
+            startBelowOwner: Mathf.Max(0f, startBelowWitch),
+            goBelowPlayerBy: Mathf.Max(0f, goBelowPlayerBy)
         );
 
-        // 4) wait total lifetime
-        float total = Mathf.Max(0.01f, revealDuration + beamDuration);
+        // 3) Пока горит — EnemyMoveBrainWitch будет выравниваться по X (по IsExternallyBusy)
         float t = 0f;
-        while (t < total)
+        while (t < beamChaseDuration)
         {
             if (brain == null || selfHP == null || selfHP.IsDead || brain.PlayerIsDead) break;
             t += Time.deltaTime;
             yield return null;
         }
 
-        // 5) cleanup
+        // 4) cleanup
         if (_beam != null)
         {
             Destroy(_beam.gameObject);
             _beam = null;
         }
 
+        if (sr != null)
+        {
+            if (brain != null && brain.idleSprite != null) sr.sprite = brain.idleSprite;
+            else if (prevSprite != null) sr.sprite = prevSprite;
+        }
+
         _routine = null;
+        Log("END BeamRoutine");
     }
 
     private IEnumerator TelegraphBlink(float totalTime)

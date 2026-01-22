@@ -82,9 +82,6 @@ public class EnemyWalker : MonoBehaviour
     // ---------------------------------------------------
 
     // -------- Movement Brain (optional SOLID extension) --------
-    // Если на враге есть компонент-наследник EnemyMoveBrainBase,
-    // то он будет управлять направлением движения.
-    // Если нет — враг ходит как раньше (рандом + legacy keep distance).
     private EnemyMoveBrainBase moveBrain;
     // ----------------------------------------------------------
 
@@ -153,8 +150,6 @@ public class EnemyWalker : MonoBehaviour
         // вышли из freeze/stagger -> форсим новое решение, чтобы не "залип"
         if ((!frozenNow && _wasFrozen) || (!staggerNow && _wasStaggered))
         {
-            // если есть moveBrain — пусть он решит на следующем decide tick
-            // но чтобы не стоял совсем, можно дернуть старое направление:
             if (moveBrain == null) ForceNewDecisionDirection();
         }
 
@@ -168,7 +163,7 @@ public class EnemyWalker : MonoBehaviour
             return;
         }
 
-        // обновление скиллов (только когда НЕ freeze/stagger)
+        // обновление скиллов
         float dt = Time.deltaTime;
         if (skills != null)
         {
@@ -241,6 +236,8 @@ public class EnemyWalker : MonoBehaviour
         Vector2 clamped = ClampToBounds(next);
 
         rb.MovePosition(clamped);
+
+        // ВАЖНО: возвращаем старое поведение — стабильная скорость для анимаций/флипа
         rb.linearVelocity = (clamped - cur) / Time.fixedDeltaTime;
 
         if (sr)
@@ -346,18 +343,11 @@ public class EnemyWalker : MonoBehaviour
             yield break;
         }
 
+        // Старое поведение: attackSprite показывается на каждую атаку (совместимость)
         if (sr && attackSprite)
             sr.sprite = attackSprite;
 
-        yield return new WaitForSeconds(0.25f);
-
-        if (!CanAttackNow() || IsExternallyBusy)
-        {
-            isAttacking = false;
-            RestoreSprite();
-            _attackRoutine = null;
-            yield break;
-        }
+        yield return new WaitForSeconds(0.10f);
 
         attackIndex++;
         bool attackConsumed = false;
@@ -412,9 +402,6 @@ public class EnemyWalker : MonoBehaviour
         RestoreSprite();
     }
 
-    /// <summary>
-    /// Вызывается EnemyHealth в момент крита/стаггера — чтобы мгновенно прервать уже начатую атаку.
-    /// </summary>
     public void ForceInterruptFromExternalStagger()
     {
         InterruptAttackAndSkills();
@@ -438,14 +425,9 @@ public class EnemyWalker : MonoBehaviour
         return new Vector2(x, y);
     }
 
-    /// <summary>
-    /// Вспомогательный публичный clamp (для move-brain'ов при snapToGrid).
-    /// Не меняет логику, просто даёт доступ.
-    /// </summary>
     public Vector2 DebugClampToBounds(Vector2 pos) => ClampToBounds(pos);
 
     // -------------------- DESYNC SUPPORT (FOR SPAWNER) --------------------
-
     public void ApplyDesync(float decideJitter, float attackJitter, float firstDecisionDelay, float firstAttackDelay)
     {
         decideJitter = Mathf.Clamp01(decideJitter);
@@ -465,7 +447,6 @@ public class EnemyWalker : MonoBehaviour
     {
         if (t > 0f) yield return new WaitForSeconds(t);
     }
-
     // ----------------------------------------------------------------------
 
     public void OnDeathExternal()

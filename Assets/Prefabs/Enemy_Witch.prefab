@@ -138,8 +138,8 @@ GameObject:
   - component: {fileID: 8790624284461993527}
   - component: {fileID: 7940338018053444041}
   - component: {fileID: 2267719154632461664}
-  - component: {fileID: 8248994567051235468}
-  - component: {fileID: -3950659250718089924}
+  - component: {fileID: -2271719932286014153}
+  - component: {fileID: 2798679163837818787}
   m_Layer: 0
   m_Name: Enemy_Witch
   m_TagString: Enemy
@@ -509,7 +509,7 @@ MonoBehaviour:
   fanAngle: 40
   speedOverride: -1
   damageOverride: -1
---- !u!114 &8248994567051235468
+--- !u!114 &-2271719932286014153
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -521,27 +521,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd7e64793b79bd147ac088f1df2dd455, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemySkillEnergyBeam
-  priority: 0
+  priority: 1
   useChance: 1
   everyNthAttack: 0
-  desiredCellsFromPlayerX: 2
-  cellsTolerance: 0.6
+  beamPrefab: {fileID: 529549750115584288, guid: 766f6636f4f0d7f439d5c67713392e6b, type: 3}
+  triggerDistanceInCells: 4
   cellSize: 1
-  preBeamBlinkTime: 1
+  preBeamBlinkTime: 0.6
   blinkInterval: 0.12
-  telegraphBlinkColor: {r: 1, g: 0.2, b: 1, a: 1}
-  revealDuration: 0.35
-  beamDuration: 4
-  followSpeed: 12
+  telegraphBlinkColor: {r: 1, g: 0.78320396, b: 0.19999999, a: 1}
+  revealDuration: 0.2
+  beamChaseDuration: 3.5
   beamWidthInCells: 1
   damagePerTick: 4
   tickInterval: 0.12
   critChance: 0.25
   critMultiplier: 3
-  beamTint: {r: 0.9, g: 0.2, b: 1, a: 1}
-  beamTopYOverride: 999
-  beamBottomYOverride: -999
---- !u!114 &-3950659250718089924
+  beamTint: {r: 1, g: 0.47563925, b: 0.19999999, a: 1}
+  sortingLayer: Effects
+  sortingOrder: 250
+  topYOverride: 999
+  bottomYOverride: -999
+  debugLogs: 1
+--- !u!114 &2798679163837818787
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -550,13 +552,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 2190363753510580647}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5be0f720d59aa954799786b2f5764931, type: 3}
+  m_Script: {fileID: 11500000, guid: 4d23229e45085d640a391c286d7f736b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyMoveBrainPreferredX
-  preferredCellsFromPlayerX: 2
-  toleranceCellsX: 0.35
-  addVerticalDrift: 1
-  driftChanceOnDecide: 0.35
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyMoveBrainWitch
+  yRecalcEvery: 0.8
+  changeXChance: 0.35
+  changeYChance: 0.55
+  beamChaseXWeight: 1
+  beamChaseYWeight: 0
 --- !u!1 &4328274707257310713
 GameObject:
   m_ObjectHideFlags: 0

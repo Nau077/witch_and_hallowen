@@ -60,10 +60,10 @@ TagManager:
   - name: FX
     uniqueID: 1432051405
     locked: 0
-  - name: UI
+  - name: Effects
     uniqueID: 176600781
     locked: 0
-  - name: 
+  - name: UI
     uniqueID: 3915592683
     locked: 0
   - name: 

@@ -525,24 +525,30 @@ MonoBehaviour:
   useChance: 1
   everyNthAttack: 2
   beamPrefab: {fileID: 529549750115584288, guid: 766f6636f4f0d7f439d5c67713392e6b, type: 3}
-  cellSize: 1
+  cellSize: 0.74
   preBeamBlinkTime: 0.6
   blinkInterval: 0.12
   telegraphBlinkColor: {r: 1, g: 0.78320396, b: 0.19999999, a: 1}
   revealDuration: 0.2
   beamChaseDuration: 3.5
   beamMoveSpeedMultiplier: 0.55
-  beamWidthInCells: 3
+  beamWidthInCells: 0.52
   damagePerTick: 4
   tickInterval: 0.12
   critChance: 0.25
   critMultiplier: 3
-  beamTint: {r: 1, g: 0.47563925, b: 0.19999999, a: 1}
+  beamTint: {r: 0.053889267, g: 0.8160377, b: 0.8160377, a: 1}
   sortingLayer: Effects
   sortingOrder: 250
   bottomYOverride: -999
   startBelowWitch: 0.05
-  goBelowPlayerBy: 0.2
+  goBelowPlayerBy: 47.8
+  useGroundRaycast: 1
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 0
+  groundRayDistance: 60
+  groundOffsetY: 0
   debugLogs: 1
 --- !u!114 &2798679163837818787
 MonoBehaviour:
@@ -561,7 +567,7 @@ MonoBehaviour:
   beamXWeight: 2
   beamXDeadzoneCells: 0.35
   beamXHysteresisCells: 0.1
-  cellSize: 1
+  cellSize: 0.69
 --- !u!1 &4328274707257310713
 GameObject:
   m_ObjectHideFlags: 0

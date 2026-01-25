@@ -21,12 +21,11 @@ public class EnemySkillEnergyBeam : EnemySkillBase
     public float beamChaseDuration = 3.5f;
 
     [Header("Beam movement (speed while beaming)")]
-    [Tooltip("Множитель скорости ведьмы на время луча. 1 = без изменений, 0.5 = в 2 раза медленнее.")]
     [Range(0.1f, 1f)]
     public float beamMoveSpeedMultiplier = 0.55f;
 
     [Header("Beam size")]
-    [Tooltip("Толщина луча в клетках. По умолчанию 1.")]
+    [Tooltip("Толщина луча в клетках.")]
     public float beamWidthInCells = 1f;
 
     [Header("Beam damage")]
@@ -38,18 +37,30 @@ public class EnemySkillEnergyBeam : EnemySkillBase
     [Header("Beam look")]
     public Color beamTint = new Color(0.9f, 0.2f, 1f, 1f);
     public string sortingLayer = "Effects";
-    public int sortingOrder = 250;
+    public int sortingOrder = 3;
 
     [Header("Vertical bounds (world Y)")]
-    [Tooltip("Низ луча. Если -999 — берём brain.bottomLimit.")]
+    [Tooltip("Fallback-низ луча. Если -999 — берём brain.bottomLimit.")]
     public float bottomYOverride = -999f;
 
     [Header("Start under witch")]
-    [Tooltip("Насколько ниже нижней границы спрайта ведьмы начинать луч (world units).")]
     public float startBelowWitch = 0.05f;
 
-    [Tooltip("Насколько ниже игрока должен доходить луч (world units).")]
+    [Tooltip("Оставлено для совместимости, но геометрию мы теперь строим до ground.")]
     public float goBelowPlayerBy = 0.2f;
+
+    [Header("Ground reach")]
+    [Tooltip("Тянуть луч вниз до земли через Raycast.")]
+    public bool useGroundRaycast = true;
+
+    [Tooltip("Слой земли/пола. Если не выставишь — будет Raycast по всем слоям.")]
+    public LayerMask groundMask;
+
+    [Tooltip("Дальность Raycast вниз.")]
+    public float groundRayDistance = 60f;
+
+    [Tooltip("Смещение от точки хит-попадания (обычно 0).")]
+    public float groundOffsetY = 0f;
 
     [Header("Debug")]
     public bool debugLogs = false;
@@ -57,7 +68,6 @@ public class EnemySkillEnergyBeam : EnemySkillBase
     private Coroutine _routine;
     private BeamSpriteController _beam;
 
-    // speed override
     private float _prevMoveSpeed = -1f;
     private bool _moveSpeedOverridden = false;
 
@@ -73,8 +83,6 @@ public class EnemySkillEnergyBeam : EnemySkillBase
         if (beamPrefab == null) { Log("SKIP: beamPrefab is null"); return; }
         if (brain == null || brain.PlayerTransform == null) { Log("SKIP: no brain/player"); return; }
         if (_routine != null) { Log("SKIP: already running"); return; }
-
-        // ❌ УБРАНО: ограничение по расстоянию. Beam может стартовать всегда, если CanUse разрешил.
 
         attackConsumed = true;
         _routine = StartCoroutine(BeamRoutine());
@@ -111,7 +119,6 @@ public class EnemySkillEnergyBeam : EnemySkillBase
 
     private void StopAll()
     {
-        // ✅ всегда откатываем скорость
         RestoreMoveSpeed();
 
         if (_routine != null)
@@ -140,13 +147,9 @@ public class EnemySkillEnergyBeam : EnemySkillBase
 
         Log("START BeamRoutine");
 
-        // во время луча ведьма может двигаться (на EnemyWalker у ведьмы allowMoveWhileExternallyBusy = true)
         brain.SetExternalBusy(preBeamBlinkTime + revealDuration + beamChaseDuration + 0.2f);
-
-        // ✅ замедляем ведьму на всё время луча (включая телеграф)
         ApplyBeamMoveSpeed();
 
-        // 1) Telegraph
         yield return TelegraphBlink(preBeamBlinkTime);
 
         if (brain == null || selfHP == null || selfHP.IsDead || brain.PlayerIsDead)
@@ -155,7 +158,6 @@ public class EnemySkillEnergyBeam : EnemySkillBase
             yield break;
         }
 
-        // ✅ держим спрайт атаки на время луча (если задан)
         SpriteRenderer sr = spriteRenderer;
         Sprite prevSprite = null;
         if (sr != null)
@@ -165,16 +167,20 @@ public class EnemySkillEnergyBeam : EnemySkillBase
                 sr.sprite = brain.attackSprite;
         }
 
-        // 2) Спавним луч child-объектом ведьмы (X будет следовать за ведьмой)
         _beam = Instantiate(beamPrefab, brain.transform);
         _beam.name = "BeamSprite_Runtime";
+
+        // ✅ ВАЖНО: компенсируем scale родителя, иначе widthWorld "не ощущается".
+        Vector3 parentScale = _beam.transform.parent != null ? _beam.transform.parent.lossyScale : Vector3.one;
+        float invX = (Mathf.Abs(parentScale.x) > 0.0001f) ? (1f / parentScale.x) : 1f;
+        float invY = (Mathf.Abs(parentScale.y) > 0.0001f) ? (1f / parentScale.y) : 1f;
+        _beam.transform.localScale = new Vector3(invX, invY, 1f);
 
         float bottomY = (bottomYOverride != -999f) ? bottomYOverride : brain.bottomLimit;
 
         float widthWorld = Mathf.Max(0.05f, beamWidthInCells * Mathf.Max(0.01f, cellSize));
         float life = Mathf.Max(0.05f, revealDuration + beamChaseDuration);
 
-        // ВАЖНО: теперь луч строится от нижней границы спрайта ведьмы вниз до игрока.
         _beam.Setup(
             owner: brain.transform,
             player: brain.PlayerTransform,
@@ -190,10 +196,12 @@ public class EnemySkillEnergyBeam : EnemySkillBase
             sortingLayer: sortingLayer,
             sortingOrder: sortingOrder,
             startBelowOwner: Mathf.Max(0f, startBelowWitch),
-            goBelowPlayerBy: Mathf.Max(0f, goBelowPlayerBy)
+            useGroundRaycast: useGroundRaycast,
+            groundMask: groundMask,
+            groundRayDistance: groundRayDistance,
+            groundOffsetY: groundOffsetY
         );
 
-        // 3) Пока горит — EnemyMoveBrainWitch будет выравниваться по X (по IsExternallyBusy)
         float t = 0f;
         while (t < beamChaseDuration)
         {
@@ -202,7 +210,6 @@ public class EnemySkillEnergyBeam : EnemySkillBase
             yield return null;
         }
 
-        // 4) cleanup
         if (_beam != null)
         {
             Destroy(_beam.gameObject);
@@ -215,7 +222,6 @@ public class EnemySkillEnergyBeam : EnemySkillBase
             else if (prevSprite != null) sr.sprite = prevSprite;
         }
 
-        // ✅ откат скорости в норму
         RestoreMoveSpeed();
 
         _routine = null;

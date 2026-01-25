@@ -79,9 +79,9 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 176600781
-  m_SortingLayer: 6
-  m_SortingOrder: 250
+  m_SortingLayerID: 1824168087
+  m_SortingLayer: 3
+  m_SortingOrder: 1
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
   m_Color: {r: 1, g: 0.78912, b: 0.4666667, a: 1}
   m_FlipX: 0
@@ -137,7 +137,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 3, y: 1}
+  m_Size: {x: 7, y: 1}
   m_EdgeRadius: 0
 --- !u!50 &1389686720480702144
 Rigidbody2D:
@@ -183,6 +183,14 @@ MonoBehaviour:
   revealDuration: 0.2
   damagePerTick: 4
   tickInterval: 0.12
-  critChance: 0.25
-  critMultiplier: 3
+  critChance: 0.35
+  critMultiplier: 3.52
   widthWorld: 1
+  damageWidthWorld: 1.46
+  extraTopY: 0.09
+  extraBottomY: 6.92
+  enableFlicker: 1
+  flickerFrequency: 17.3
+  flickerIntensity: 0.35
+  flickerNoise: 0.23
+  widthPulseAmount: 0.12

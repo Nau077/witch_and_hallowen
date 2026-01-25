@@ -18,29 +18,57 @@ public class BeamSpriteController : MonoBehaviour
     [Range(0f, 1f)] public float critChance = 0.25f;
     public float critMultiplier = 3f;
 
-    [Header("Size")]
-    [Tooltip("Ширина луча в мире (world units).")]
+    [Header("Size (Visual)")]
+    [Tooltip("Толщина (ширина) СПРАЙТА луча в мире (world units).")]
     public float widthWorld = 1f;
+
+    [Header("Size (Damage)")]
+    [Tooltip("Толщина (ширина) ЗОНЫ УРОНА по X в мире (world units). Если 0 — берём widthWorld.")]
+    public float damageWidthWorld = 0f;
+
+    [Header("Y Padding (extra height)")]
+    [Tooltip("Добавить сверху к высоте луча (world units). Может быть отрицательным (чтобы укоротить).")]
+    public float extraTopY = 0f;
+
+    [Tooltip("Добавить снизу к высоте луча (world units). Может быть отрицательным (чтобы укоротить).")]
+    public float extraBottomY = 0f;
+
+    [Header("Beam flicker (energy look)")]
+    public bool enableFlicker = true;
+    [Range(0f, 60f)] public float flickerFrequency = 14f;
+    [Range(0f, 1f)] public float flickerIntensity = 0.35f;
+    [Range(0f, 1f)] public float flickerNoise = 0.15f;
+
+    [Tooltip("Пульсация ширины (доля от widthWorld). Влияет ТОЛЬКО на визуал, не на дамаг.")]
+    [Range(0f, 0.5f)]
+    public float widthPulseAmount = 0.12f;
 
     // runtime
     private Transform _owner;
     private Transform _player;
 
-    private float _bottomY;
+    private float _bottomYFallback;
     private float _aliveUntil;
     private float _revealT;
     private float _nextTickTime;
 
-    // config from skill
     private float _startBelowOwner = 0.05f;
-    private float _goBelowPlayerBy = 0.2f;
 
     // cached
     private SpriteRenderer _ownerSR;
     private PlayerHealth _playerHP;
-    private Collider2D _playerCol;
 
-    // ======= NEW SIGNATURE (same file, no new files) =======
+    // flicker runtime
+    private Color _baseTint;
+    private float _flickerSeed;
+
+    // ground raycast (minimal)
+    private bool _useGroundRaycast = false;
+    private LayerMask _groundMask;
+    private float _groundRayDistance = 60f;
+    private float _groundOffsetY = 0f;
+
+    // ========= BACKWARD-COMPAT SETUP (как у тебя сейчас) =========
     public void Setup(
         Transform owner,
         Transform player,
@@ -56,14 +84,47 @@ public class BeamSpriteController : MonoBehaviour
         string sortingLayer,
         int sortingOrder,
         float startBelowOwner,
-        float goBelowPlayerBy
+        float goBelowPlayerBy // оставили, но урон теперь X-only, а низ берём из ground
+    )
+    {
+        // по умолчанию без ground raycast
+        Setup(
+            owner, player, bottomY, lifetime, revealDuration, widthWorld, tint,
+            damagePerTick, tickInterval, critChance, critMultiplier,
+            sortingLayer, sortingOrder, startBelowOwner,
+            useGroundRaycast: false,
+            groundMask: default,
+            groundRayDistance: 60f,
+            groundOffsetY: 0f
+        );
+    }
+
+    // ========= NEW SETUP (для ground) =========
+    public void Setup(
+        Transform owner,
+        Transform player,
+        float bottomY,
+        float lifetime,
+        float revealDuration,
+        float widthWorld,
+        Color tint,
+        int damagePerTick,
+        float tickInterval,
+        float critChance,
+        float critMultiplier,
+        string sortingLayer,
+        int sortingOrder,
+        float startBelowOwner,
+        bool useGroundRaycast,
+        LayerMask groundMask,
+        float groundRayDistance,
+        float groundOffsetY
     )
     {
         _owner = owner;
         _player = player;
 
-        _bottomY = bottomY;
-
+        _bottomYFallback = bottomY;
         _aliveUntil = Time.time + Mathf.Max(0.05f, lifetime);
 
         this.revealDuration = Mathf.Max(0.01f, revealDuration);
@@ -75,16 +136,23 @@ public class BeamSpriteController : MonoBehaviour
         this.critMultiplier = Mathf.Max(1f, critMultiplier);
 
         _startBelowOwner = Mathf.Max(0f, startBelowOwner);
-        _goBelowPlayerBy = Mathf.Max(0f, goBelowPlayerBy);
+
+        _useGroundRaycast = useGroundRaycast;
+        _groundMask = groundMask;
+        _groundRayDistance = Mathf.Max(0.1f, groundRayDistance);
+        _groundOffsetY = groundOffsetY;
 
         if (!sr) sr = GetComponent<SpriteRenderer>();
         if (!col) col = GetComponent<BoxCollider2D>();
 
         sr.color = tint;
+        _baseTint = tint;
+        _flickerSeed = Random.Range(0f, 9999f);
+
         sr.sortingLayerName = sortingLayer;
         sr.sortingOrder = sortingOrder;
 
-        // ✅ рисуем "полосой" предсказуемо
+        // Важно для sr.size
         sr.drawMode = SpriteDrawMode.Tiled;
 
         col.isTrigger = true;
@@ -103,12 +171,10 @@ public class BeamSpriteController : MonoBehaviour
             _ownerSR = _owner.GetComponent<SpriteRenderer>();
 
         if (_player != null)
-        {
             _playerHP = _player.GetComponent<PlayerHealth>();
-            _playerCol = _player.GetComponent<Collider2D>();
-        }
 
         UpdateBeamGeometry(instant: true);
+        ApplyDamageColliderWidth();
     }
 
     private void Update()
@@ -126,7 +192,24 @@ public class BeamSpriteController : MonoBehaviour
         }
 
         UpdateBeamGeometry(instant: false);
-        TryDamageTick();
+        ApplyFlickerVisual();
+        TryDamageTick_XOnly();
+    }
+
+    private float ResolveBottomY()
+    {
+        if (_useGroundRaycast)
+        {
+            // если маска = 0, значит юзер не выставил — считаем "всё"
+            int mask = (_groundMask.value == 0) ? ~0 : _groundMask.value;
+
+            Vector2 origin = _owner.position;
+            RaycastHit2D hit = Physics2D.Raycast(origin, Vector2.down, _groundRayDistance, mask);
+            if (hit.collider != null)
+                return hit.point.y + _groundOffsetY;
+        }
+
+        return _bottomYFallback;
     }
 
     private void UpdateBeamGeometry(bool instant)
@@ -134,75 +217,102 @@ public class BeamSpriteController : MonoBehaviour
         // X всегда по ведьме
         float x = _owner.position.x;
 
-        // ✅ старт луча: чуть ниже спрайта ведьмы (или ниже позиции, если SR не найден)
-        float top = _owner.position.y;
+        float top;
         if (_ownerSR != null)
             top = _ownerSR.bounds.min.y - _startBelowOwner;
         else
             top = _owner.position.y - _startBelowOwner;
 
-        // ✅ низ: минимум до игрока (чуть ниже), но НЕ выше заданного bottomY (clamp)
-        float bottom = _bottomY;
-        if (_player != null)
-        {
-            float want = _player.position.y - _goBelowPlayerBy;
-            bottom = Mathf.Min(bottom, want);
-        }
+        float bottom = ResolveBottomY();
 
-        // гарантируем направление сверху вниз
         if (bottom > top - 0.01f)
             bottom = top - 0.01f;
 
-        // reveal 0..1
         if (instant) _revealT = revealDuration;
         else _revealT += Time.deltaTime;
 
         float reveal01 = Mathf.Clamp01(_revealT / Mathf.Max(0.0001f, revealDuration));
 
-        float fullLen = Mathf.Abs(top - bottom);
-        float curLen = Mathf.Max(0.05f, fullLen * reveal01);
-
-        // рост сверху вниз: текущий "низ" приближается к bottom
         float curBottom = Mathf.Lerp(top, bottom, reveal01);
 
-        // но если из-за clamp/ленты нужен строго по длине:
-        // (оставляем Lerp — визуально правильнее, без скачков)
-        float centerY = (top + curBottom) * 0.5f;
+        float topPadded = top + extraTopY;
+        float bottomPadded = curBottom - extraBottomY;
 
+        if (bottomPadded > topPadded - 0.01f)
+            bottomPadded = topPadded - 0.01f;
+
+        float centerY = (topPadded + bottomPadded) * 0.5f;
         transform.position = new Vector3(x, centerY, 0f);
 
-        // размер спрайта и коллайдера совпадает
-        float visibleLen = Mathf.Abs(top - curBottom);
+        float visibleLen = Mathf.Abs(topPadded - bottomPadded);
         visibleLen = Mathf.Max(0.05f, visibleLen);
 
         sr.size = new Vector2(widthWorld, visibleLen);
-        col.size = sr.size;
+
+        float dmgW = (damageWidthWorld > 0f) ? damageWidthWorld : widthWorld;
+        dmgW = Mathf.Max(0.05f, dmgW);
+
+        col.size = new Vector2(dmgW, visibleLen);
         col.offset = Vector2.zero;
     }
 
-    private void TryDamageTick()
+    private void ApplyDamageColliderWidth()
+    {
+        if (col == null) return;
+
+        float dmgW = (damageWidthWorld > 0f) ? damageWidthWorld : widthWorld;
+        dmgW = Mathf.Max(0.05f, dmgW);
+
+        col.size = new Vector2(dmgW, col.size.y);
+    }
+
+    private void ApplyFlickerVisual()
+    {
+        if (!enableFlicker || sr == null)
+        {
+            if (sr != null) sr.color = _baseTint;
+            return;
+        }
+
+        float freq = Mathf.Max(0f, flickerFrequency);
+        float t = Time.time;
+
+        float s01 = 0.5f + 0.5f * Mathf.Sin((t + _flickerSeed) * Mathf.PI * 2f * freq);
+        float n01 = Mathf.PerlinNoise(_flickerSeed, t * (freq * 0.35f + 0.01f));
+
+        float k = 1f + (s01 - 0.5f) * 2f * flickerIntensity;
+        k += (n01 - 0.5f) * 2f * flickerNoise * 0.5f;
+        k = Mathf.Clamp(k, 0.2f, 2.0f);
+
+        Color c = _baseTint;
+        c.r = Mathf.Clamp01(_baseTint.r * k);
+        c.g = Mathf.Clamp01(_baseTint.g * k);
+        c.b = Mathf.Clamp01(_baseTint.b * k);
+        sr.color = c;
+
+        if (widthPulseAmount > 0f)
+        {
+            float pulse = 1f + (s01 - 0.5f) * 2f * widthPulseAmount;
+            float w = Mathf.Max(0.05f, widthWorld * pulse);
+            sr.size = new Vector2(w, sr.size.y);
+        }
+    }
+
+    private void TryDamageTick_XOnly()
     {
         if (_playerHP == null || _playerHP.IsDead) return;
+        if (_player == null) return;
         if (Time.time < _nextTickTime) return;
 
-        Vector2 center = transform.position;
-        Vector2 size = sr.size;
+        float dmgW = (damageWidthWorld > 0f) ? damageWidthWorld : widthWorld;
+        dmgW = Mathf.Max(0.05f, dmgW);
 
-        bool hit = false;
+        float half = dmgW * 0.5f;
 
-        if (_playerCol != null)
-        {
-            // bounds пересечение — стабильно (не зависит от слоёв/матрицы коллизий)
-            hit = _playerCol.bounds.Intersects(new Bounds(center, new Vector3(size.x, size.y, 0.01f)));
-        }
-        else
-        {
-            // fallback
-            var c = Physics2D.OverlapBox(center, size, 0f);
-            hit = (c != null);
-        }
+        float beamX = _owner.position.x;
+        float playerX = _player.position.x;
 
-        if (!hit) return;
+        if (Mathf.Abs(playerX - beamX) > half) return;
 
         _nextTickTime = Time.time + tickInterval;
 
@@ -217,6 +327,12 @@ public class BeamSpriteController : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         if (sr == null) sr = GetComponent<SpriteRenderer>();
+        if (col == null) col = GetComponent<BoxCollider2D>();
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireCube(transform.position, new Vector3(col.size.x, 8f, 0.01f));
+
+        Gizmos.color = Color.yellow;
         Gizmos.DrawWireCube(transform.position, new Vector3(sr.size.x, sr.size.y, 0.01f));
     }
 #endif

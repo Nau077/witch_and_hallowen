@@ -474,7 +474,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2190363753510580647}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0ecd58158ac2d2c4fbe4fd90ec1c2608, type: 3}
   m_Name: 
@@ -485,9 +485,9 @@ MonoBehaviour:
   fireballPrefab: {fileID: 3777930235256885239, guid: 37786758cd9b4e24ebb7a082fed18c4d, type: 3}
   firePoint: {fileID: 1916380806874302606}
   overrideSpeed: 0
-  speed: 10
+  speed: 12
   overrideDamage: 0
-  damage: 10
+  damage: 12
 --- !u!114 &2267719154632461664
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -521,17 +521,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd7e64793b79bd147ac088f1df2dd455, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemySkillEnergyBeam
-  priority: 1
+  priority: 10
   useChance: 1
-  everyNthAttack: 0
+  everyNthAttack: 2
   beamPrefab: {fileID: 529549750115584288, guid: 766f6636f4f0d7f439d5c67713392e6b, type: 3}
-  triggerDistanceInCells: 4
   cellSize: 1
   preBeamBlinkTime: 0.6
   blinkInterval: 0.12
   telegraphBlinkColor: {r: 1, g: 0.78320396, b: 0.19999999, a: 1}
   revealDuration: 0.2
   beamChaseDuration: 3.5
+  beamMoveSpeedMultiplier: 0.55
   beamWidthInCells: 1
   damagePerTick: 4
   tickInterval: 0.12
@@ -540,8 +540,9 @@ MonoBehaviour:
   beamTint: {r: 1, g: 0.47563925, b: 0.19999999, a: 1}
   sortingLayer: Effects
   sortingOrder: 250
-  topYOverride: 999
   bottomYOverride: -999
+  startBelowWitch: 0.05
+  goBelowPlayerBy: 0.2
   debugLogs: 1
 --- !u!114 &2798679163837818787
 MonoBehaviour:
@@ -555,11 +556,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d23229e45085d640a391c286d7f736b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMoveBrainWitch
-  yRecalcEvery: 0.8
-  changeXChance: 0.35
-  changeYChance: 0.55
-  beamChaseXWeight: 1
-  beamChaseYWeight: 0
+  respectSnapToGrid: 1
+  edgeBias: 0.2
+  beamXWeight: 2
+  beamXDeadzoneCells: 0.35
+  beamXHysteresisCells: 0.1
+  cellSize: 1
 --- !u!1 &4328274707257310713
 GameObject:
   m_ObjectHideFlags: 0

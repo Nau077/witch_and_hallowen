@@ -7,10 +7,7 @@ public class EnemySkillEnergyBeam : EnemySkillBase
     [Header("Beam Prefab (REQUIRED)")]
     public BeamSpriteController beamPrefab;
 
-    [Header("Trigger (X distance to player)")]
-    [Tooltip("Если |X| до игрока меньше этого расстояния (в клетках) — ведьма включает луч. 0 = игнорировать дистанцию.")]
-    public float triggerDistanceInCells = 4f;
-
+    [Header("Cell size (for width etc.)")]
     [Tooltip("Размер клетки.")]
     public float cellSize = 1f;
 
@@ -22,6 +19,11 @@ public class EnemySkillEnergyBeam : EnemySkillBase
     [Header("Beam timings")]
     public float revealDuration = 0.20f;
     public float beamChaseDuration = 3.5f;
+
+    [Header("Beam movement (speed while beaming)")]
+    [Tooltip("Множитель скорости ведьмы на время луча. 1 = без изменений, 0.5 = в 2 раза медленнее.")]
+    [Range(0.1f, 1f)]
+    public float beamMoveSpeedMultiplier = 0.55f;
 
     [Header("Beam size")]
     [Tooltip("Толщина луча в клетках. По умолчанию 1.")]
@@ -55,6 +57,10 @@ public class EnemySkillEnergyBeam : EnemySkillBase
     private Coroutine _routine;
     private BeamSpriteController _beam;
 
+    // speed override
+    private float _prevMoveSpeed = -1f;
+    private bool _moveSpeedOverridden = false;
+
     private void Log(string msg)
     {
         if (!debugLogs) return;
@@ -68,17 +74,7 @@ public class EnemySkillEnergyBeam : EnemySkillBase
         if (brain == null || brain.PlayerTransform == null) { Log("SKIP: no brain/player"); return; }
         if (_routine != null) { Log("SKIP: already running"); return; }
 
-        // ✅ Триггер только по X
-        if (triggerDistanceInCells > 0f)
-        {
-            float dx = Mathf.Abs(brain.transform.position.x - brain.PlayerTransform.position.x);
-            float triggerX = Mathf.Max(0.1f, triggerDistanceInCells * Mathf.Max(0.01f, cellSize));
-            if (dx > triggerX)
-            {
-                Log($"SKIP: dx {dx:F2} > triggerX {triggerX:F2}");
-                return;
-            }
-        }
+        // ❌ УБРАНО: ограничение по расстоянию. Beam может стартовать всегда, если CanUse разрешил.
 
         attackConsumed = true;
         _routine = StartCoroutine(BeamRoutine());
@@ -89,8 +85,35 @@ public class EnemySkillEnergyBeam : EnemySkillBase
         StopAll();
     }
 
+    private void ApplyBeamMoveSpeed()
+    {
+        if (brain == null) return;
+        if (_moveSpeedOverridden) return;
+
+        _prevMoveSpeed = brain.moveSpeed;
+        float mult = Mathf.Clamp(beamMoveSpeedMultiplier, 0.1f, 1f);
+        brain.moveSpeed = _prevMoveSpeed * mult;
+
+        _moveSpeedOverridden = true;
+    }
+
+    private void RestoreMoveSpeed()
+    {
+        if (brain == null) return;
+        if (!_moveSpeedOverridden) return;
+
+        if (_prevMoveSpeed > 0f)
+            brain.moveSpeed = _prevMoveSpeed;
+
+        _prevMoveSpeed = -1f;
+        _moveSpeedOverridden = false;
+    }
+
     private void StopAll()
     {
+        // ✅ всегда откатываем скорость
+        RestoreMoveSpeed();
+
         if (_routine != null)
         {
             StopCoroutine(_routine);
@@ -119,6 +142,9 @@ public class EnemySkillEnergyBeam : EnemySkillBase
 
         // во время луча ведьма может двигаться (на EnemyWalker у ведьмы allowMoveWhileExternallyBusy = true)
         brain.SetExternalBusy(preBeamBlinkTime + revealDuration + beamChaseDuration + 0.2f);
+
+        // ✅ замедляем ведьму на всё время луча (включая телеграф)
+        ApplyBeamMoveSpeed();
 
         // 1) Telegraph
         yield return TelegraphBlink(preBeamBlinkTime);
@@ -188,6 +214,9 @@ public class EnemySkillEnergyBeam : EnemySkillBase
             if (brain != null && brain.idleSprite != null) sr.sprite = brain.idleSprite;
             else if (prevSprite != null) sr.sprite = prevSprite;
         }
+
+        // ✅ откат скорости в норму
+        RestoreMoveSpeed();
 
         _routine = null;
         Log("END BeamRoutine");

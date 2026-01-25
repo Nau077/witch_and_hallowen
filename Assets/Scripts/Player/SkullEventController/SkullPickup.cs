@@ -8,8 +8,16 @@ public class SkullPickup : MonoBehaviour
     public int clicksRequired = 5;
     public int soulsReward = 5;
 
-    [Header("Distance gate")]
-    public float requiredDistance = 1.6f;
+    [Header("Distance gate (in grid cells)")]
+    [Tooltip("Размер клетки в world units. Например, 1 = 1 юнит = 1 клетка.")]
+    public float cellSize = 1f;
+
+    [Tooltip("Сколько клеток по X разрешено от черепа (влево/вправо). 3 = 3 до + череп + 3 после.")]
+    public int rangeXCells = 3;
+
+    [Tooltip("Сколько клеток по Y разрешено от черепа (вверх/вниз). 1 = можно кликать на 1 клетку выше/ниже.")]
+    public int rangeYCells = 1;
+
     [Tooltip("Если пусто — возьмём RunLevelManager.Instance.playerTransform или найдём по тегу Player")]
     public Transform player;
 
@@ -80,13 +88,9 @@ public class SkullPickup : MonoBehaviour
     {
         if (_done) return;
 
-        // 1) дистанция
-        if (player != null)
-        {
-            float d = Vector2.Distance(player.position, transform.position);
-            if (d > requiredDistance)
-                return;
-        }
+        // 1) дистанция (прямоугольник в клетках)
+        if (player != null && !IsPlayerInCellGate())
+            return;
 
         // 2) съедаем клик, чтобы атака не сработала в этом кадре
         ConsumeClickThisFrame();
@@ -100,6 +104,23 @@ public class SkullPickup : MonoBehaviour
 
         if (_clicks >= clicksRequired)
             Complete();
+    }
+
+    private bool IsPlayerInCellGate()
+    {
+        if (cellSize <= 0.0001f) cellSize = 1f;
+
+        Vector2 skullPos = transform.position;
+        Vector2 playerPos = player.position;
+
+        float dxCells = Mathf.Abs(playerPos.x - skullPos.x) / cellSize;
+        float dyCells = Mathf.Abs(playerPos.y - skullPos.y) / cellSize;
+
+        int rx = Mathf.Max(0, rangeXCells);
+        int ry = Mathf.Max(0, rangeYCells);
+
+        // Включая клетку черепа: dxCells <= rx и dyCells <= ry
+        return dxCells <= (rx + 0.0001f) && dyCells <= (ry + 0.0001f);
     }
 
     private void FlashClick()
@@ -135,7 +156,6 @@ public class SkullPickup : MonoBehaviour
 
         if (SoulCounter.Instance != null)
         {
-            // ✅ даём перманентные SOULS
             SoulCounter.Instance.AddSouls(Mathf.Max(0, soulsReward));
             SoulCounter.Instance.RefreshUI();
 

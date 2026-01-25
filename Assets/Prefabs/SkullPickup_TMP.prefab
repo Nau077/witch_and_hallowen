@@ -157,7 +157,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 10
+  m_SortingOrder: 100
   m_Sprite: {fileID: 21300000, guid: 34ceee80a6c534f40ac7658b34cccf30, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -186,7 +186,7 @@ BoxCollider2D:
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
-  m_LayerOverridePriority: 0
+  m_LayerOverridePriority: 100
   m_ForceSendLayers:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -227,9 +227,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 677e3fee55e09a54ebe6013eac5d9827, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkullPickup
-  clicksRequired: 5
+  clicksRequired: 3
   soulsReward: 5
-  requiredDistance: 1.5
+  cellSize: 1
+  rangeXCells: 3
+  rangeYCells: 1
   player: {fileID: 0}
   targetRenderer: {fileID: 7693008229368721521}
   barFillImage: {fileID: 7614195764912416194}

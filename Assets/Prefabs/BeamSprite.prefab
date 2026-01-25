@@ -137,7 +137,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 3, y: 1}
   m_EdgeRadius: 0
 --- !u!50 &1389686720480702144
 Rigidbody2D:
@@ -180,13 +180,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BeamSpriteController
   sr: {fileID: 8377000438387419485}
   col: {fileID: 5276188164738303440}
-  spriteWorldHeight: 1
   revealDuration: 0.2
   damagePerTick: 4
   tickInterval: 0.12
   critChance: 0.25
   critMultiplier: 3
   widthWorld: 1
-  playerMask:
-    serializedVersion: 2
-    m_Bits: 0

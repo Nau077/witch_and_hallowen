@@ -1,5 +1,5 @@
-﻿using UnityEngine;
-using System;
+﻿using System;
+using UnityEngine;
 
 [DefaultExecutionOrder(-200)]
 public class SoulPerksManager : MonoBehaviour
@@ -9,8 +9,9 @@ public class SoulPerksManager : MonoBehaviour
     public event Action OnPerksChanged;
 
     // --- PlayerPrefs keys ---
-    private const string KEY_HP_LEVEL = "perk_hp_level";       // 0..hpMaxPurchases
-    private const string KEY_SOULS_SPENT = "perk_souls_spent"; // суммарно потрачено на перки
+    private const string KEY_HP_LEVEL = "perk_hp_level";         // 0..hpMaxPurchases
+    private const string KEY_DASH_LEVEL = "perk_dash_level";     // 0..dashMaxPurchases (0..2)
+    private const string KEY_SOULS_SPENT = "perk_souls_spent";   // суммарно потрачено на перки
 
     [Header("Perk: Max HP")]
     public int hpStep = 50;
@@ -18,10 +19,23 @@ public class SoulPerksManager : MonoBehaviour
     public int hpBasePrice = 50;
 
     public int HpLevel { get; private set; }       // 0..4
-    public int SoulsSpent { get; private set; }    // суммарно потрачено
+
+    [Header("Perk: Dash Level (1..3, but 1 is default)")]
+    [Tooltip("Максимум покупок для дэша. 2 покупки = уровни 2 и 3 (уровень 1 бесплатный по дефолту).")]
+    public int dashMaxPurchases = 2;
+
+    [Tooltip("Базовая цена улучшения дэша. Например: 60/120")]
+    public int dashBasePrice = 60;
+
+    /// <summary>
+    /// 0..2 (покупки). Реальный уровень = 1 + DashLevel -> 1..3.
+    /// </summary>
+    public int DashLevel { get; private set; }    // 0..2
 
     [Header("Perk: Reset")]
     public int resetPrice = 100;
+
+    public int SoulsSpent { get; private set; }    // суммарно потрачено
 
     private void Awake()
     {
@@ -46,15 +60,19 @@ public class SoulPerksManager : MonoBehaviour
     public void Load()
     {
         HpLevel = Mathf.Clamp(PlayerPrefs.GetInt(KEY_HP_LEVEL, 0), 0, hpMaxPurchases);
+        DashLevel = Mathf.Clamp(PlayerPrefs.GetInt(KEY_DASH_LEVEL, 0), 0, dashMaxPurchases);
         SoulsSpent = Mathf.Max(0, PlayerPrefs.GetInt(KEY_SOULS_SPENT, 0));
     }
 
     public void Save()
     {
         PlayerPrefs.SetInt(KEY_HP_LEVEL, HpLevel);
+        PlayerPrefs.SetInt(KEY_DASH_LEVEL, DashLevel);
         PlayerPrefs.SetInt(KEY_SOULS_SPENT, SoulsSpent);
         PlayerPrefs.Save();
     }
+
+    // ---------------- HP ----------------
 
     public int GetHealthUpgradePrice()
     {
@@ -73,11 +91,6 @@ public class SoulPerksManager : MonoBehaviour
         return sc.souls >= GetHealthUpgradePrice();
     }
 
-    public bool HasAnythingToReset()
-    {
-        return HpLevel > 0 || SoulsSpent > 0;
-    }
-
     public bool TryBuyHealthUpgrade()
     {
         if (HpLevel >= hpMaxPurchases) return false;
@@ -88,7 +101,6 @@ public class SoulPerksManager : MonoBehaviour
         int price = GetHealthUpgradePrice();
         if (sc.souls < price) return false;
 
-        // списали souls
         sc.SetSouls(sc.souls - price);
         sc.RefreshUI();
 
@@ -102,6 +114,71 @@ public class SoulPerksManager : MonoBehaviour
         return true;
     }
 
+    public int GetPermanentMaxHpBonus()
+    {
+        return HpLevel * hpStep;
+    }
+
+    // ---------------- DASH ----------------
+
+    /// <summary>
+    /// Реальный уровень дэша: 1..3 (уровень 1 всегда бесплатно).
+    /// </summary>
+    public int GetDashRealLevel()
+    {
+        return Mathf.Clamp(1 + DashLevel, 1, 3);
+    }
+
+    public int GetDashUpgradePrice()
+    {
+        // Например: 60/120 (зависит от dashBasePrice)
+        // Покупка #1: DashLevel=0 => nextIndex=0 => 60
+        // Покупка #2: DashLevel=1 => nextIndex=1 => 120
+        int nextIndex = DashLevel; // 0..1
+        return dashBasePrice * (nextIndex + 1);
+    }
+
+    public bool CanBuyDashUpgrade()
+    {
+        if (DashLevel >= dashMaxPurchases) return false;
+
+        var sc = SoulCounter.Instance;
+        if (sc == null) return false;
+
+        return sc.souls >= GetDashUpgradePrice();
+    }
+
+    public bool TryBuyDashUpgrade()
+    {
+        if (DashLevel >= dashMaxPurchases) return false;
+
+        var sc = SoulCounter.Instance;
+        if (sc == null) return false;
+
+        int price = GetDashUpgradePrice();
+        if (sc.souls < price) return false;
+
+        sc.SetSouls(sc.souls - price);
+        sc.RefreshUI();
+
+        SoulsSpent += price;
+        DashLevel++;
+
+        Save();
+        ApplyToPlayerIfPossible();
+        NotifyChanged();
+
+        return true;
+    }
+
+    // ---------------- RESET ----------------
+
+    public bool HasAnythingToReset()
+    {
+        // учитываем и HP и Dash
+        return HpLevel > 0 || DashLevel > 0 || SoulsSpent > 0;
+    }
+
     public bool ResetAllPerksWithRefund()
     {
         if (!HasAnythingToReset())
@@ -110,7 +187,6 @@ public class SoulPerksManager : MonoBehaviour
         var sc = SoulCounter.Instance;
         if (sc == null) return false;
 
-        // цена ресета = 100 souls
         if (sc.souls < resetPrice)
             return false;
 
@@ -121,6 +197,7 @@ public class SoulPerksManager : MonoBehaviour
         sc.RefreshUI();
 
         HpLevel = 0;
+        DashLevel = 0;
         SoulsSpent = 0;
 
         Save();
@@ -130,16 +207,17 @@ public class SoulPerksManager : MonoBehaviour
         return true;
     }
 
-    public int GetPermanentMaxHpBonus()
-    {
-        return HpLevel * hpStep;
-    }
+    // ---------------- APPLY ----------------
 
     public void ApplyToPlayerIfPossible()
     {
         var rlm = RunLevelManager.Instance;
-        if (rlm == null || rlm.playerHealth == null) return;
+        if (rlm == null) return;
 
-        rlm.playerHealth.ApplyPermanentMaxHpBonus(GetPermanentMaxHpBonus());
+        if (rlm.playerHealth != null)
+            rlm.playerHealth.ApplyPermanentMaxHpBonus(GetPermanentMaxHpBonus());
+
+        // Дэш применять напрямую не нужно — PlayerDash читает уровень из SoulPerksManager в рантайме.
+        // Но если у тебя будет UI, который зависит от перков, OnPerksChanged уже триггерит обновления.
     }
 }

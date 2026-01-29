@@ -74,11 +74,18 @@ public class ShopItemSlotUI : MonoBehaviour
     {
         if (_def == null) return 0;
 
+        var perks = SoulPerksManager.Instance;
+
         if (_def.effectType == ShopItemEffectType.IncreaseMaxHealth)
         {
-            var perks = SoulPerksManager.Instance;
             if (perks != null)
                 return perks.GetHealthUpgradePrice();
+        }
+
+        if (_def.effectType == ShopItemEffectType.IncreaseDashLevel)
+        {
+            if (perks != null)
+                return perks.GetDashUpgradePrice();
         }
 
         return _def.price;
@@ -97,6 +104,9 @@ public class ShopItemSlotUI : MonoBehaviour
 
             if (_def.effectType == ShopItemEffectType.IncreaseMaxHealth)
                 return perks != null && perks.CanBuyHealthUpgrade();
+
+            if (_def.effectType == ShopItemEffectType.IncreaseDashLevel)
+                return perks != null && perks.CanBuyDashUpgrade();
 
             if (_def.effectType == ShopItemEffectType.ResetSoulPerks)
                 return perks != null && perks.HasAnythingToReset();
@@ -129,6 +139,11 @@ public class ShopItemSlotUI : MonoBehaviour
             {
                 if (perks != null)
                     paidOrDone = perks.TryBuyHealthUpgrade();
+            }
+            else if (_def.effectType == ShopItemEffectType.IncreaseDashLevel)
+            {
+                if (perks != null)
+                    paidOrDone = perks.TryBuyDashUpgrade();
             }
             else if (_def.effectType == ShopItemEffectType.ResetSoulPerks)
             {

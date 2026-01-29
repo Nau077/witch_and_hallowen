@@ -6,7 +6,10 @@ public enum ShopItemEffectType
 
     // Перманентные покупки за души
     IncreaseMaxHealth = 10,   // +50 max hp, до 4 раз, цена растёт
-    ResetSoulPerks = 11       // сброс перков + возврат потраченных душ
+    ResetSoulPerks = 11,      // сброс перков + возврат потраченных душ
+
+    // NEW: Перманентный скилл дэш (уровни 1..3, но 1 всегда есть)
+    IncreaseDashLevel = 12
 }
 
 [CreateAssetMenu(fileName = "ShopItem", menuName = "Shop/Shop Item")]

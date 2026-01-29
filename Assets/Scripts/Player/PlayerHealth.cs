@@ -37,6 +37,10 @@ public class PlayerHealth : MonoBehaviour
     [Header("Debug / State")]
     public bool isDead = false;
 
+    [Header("Invulnerability")]
+    [SerializeField] private bool invulnerable = false;
+    public bool IsInvulnerable => invulnerable;
+
     private Rigidbody2D rb;
     private PlayerMovement movement;
     private PlayerSkillShooter shooter;
@@ -46,7 +50,6 @@ public class PlayerHealth : MonoBehaviour
     public bool IsDead => isDead;
     public int CurrentHealth => currentHealth;
 
-    // Процент хп для UI
     public float Normalized => maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
 
     [SerializeField] private int baseMaxHealth;
@@ -65,6 +68,8 @@ public class PlayerHealth : MonoBehaviour
         if (anim == null && sr != null) anim = sr.GetComponent<Animator>();
 
         isDead = false;
+        invulnerable = false;
+
         if (anim) anim.enabled = true;
 
         currentHealth = maxHealth;
@@ -73,7 +78,6 @@ public class PlayerHealth : MonoBehaviour
 
         UpdateBar();
 
-        // визуал "живая ведьма" на старте
         if (aliveSprite != null && sr != null)
             sr.sprite = aliveSprite;
     }
@@ -83,9 +87,15 @@ public class PlayerHealth : MonoBehaviour
         if (currentHealth <= 0) Die();
     }
 
+    public void SetInvulnerable(bool v)
+    {
+        invulnerable = v;
+    }
+
     public int TakeDamage(int amount)
     {
         if (isDead || amount <= 0) return 0;
+        if (invulnerable) return 0;
 
         int prev = currentHealth;
         currentHealth = Mathf.Max(0, currentHealth - amount);
@@ -157,12 +167,8 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Кат-сцена смерти игрока.
-    /// </summary>
     private System.Collections.IEnumerator DeathSequence()
     {
-        // --- GRAYSCALE FADE ---
         var camFx = Camera.main ? Camera.main.GetComponent<GrayscaleEffect>() : null;
 
         if (camFx)
@@ -190,10 +196,8 @@ public class PlayerHealth : MonoBehaviour
         if (camFx)
             camFx.intensity = 0f;
 
-        // ✅ ВОТ ОН: сброс ран-монет (coins) при смерти
         PlayerWallet.Instance?.ResetRunCoins();
 
-        // вернуть игрока на базу
         if (RunLevelManager.Instance != null)
         {
             RunLevelManager.Instance.ReturnToBaseAfterDeath();
@@ -204,13 +208,11 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Полный респавн ведьмы (для возврата на базу).
-    /// Вызывается из RunLevelManager.
-    /// </summary>
     public void RespawnFull()
     {
         isDead = false;
+        invulnerable = false;
+
         currentHealth = maxHealth;
         UpdateBar();
 

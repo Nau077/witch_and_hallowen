@@ -152,9 +152,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 12
-        y: 272
+        y: 244
         width: 398
-        height: 490
+        height: 518
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -173,10 +173,10 @@ TextureImporter:
       name: witch_sprite_1_1
       rect:
         serializedVersion: 2
-        x: 470
-        y: 269
+        x: 472
+        y: 233
         width: 436
-        height: 492
+        height: 528
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -218,9 +218,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 993
-        y: 272
+        y: 230
         width: 495
-        height: 486
+        height: 528
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}

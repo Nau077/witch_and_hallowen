@@ -1,16 +1,10 @@
 fileFormatVersion: 2
-guid: 3e1877fd24e435c4680c56fe7b304dfd
+guid: 5538f3d3e067b9e428c354095ebe7ef6
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -5007276879233255147
-    second: Enemy1_1_0
-  - first:
-      213: -6328051917553211350
-    second: Enemy1_1_1
-  - first:
-      213: 7396482167666171185
-    second: Enemy1_1_2
+      213: -3200027871604659900
+    second: enemy_zone_gr_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -145,67 +139,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Enemy1_1_0
+      name: enemy_zone_gr_0
       rect:
         serializedVersion: 2
-        x: 86
-        y: 134
-        width: 417
-        height: 665
+        x: 0
+        y: 0
+        width: 1536
+        height: 1024
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 51976414534928ab0800000000000000
-      internalID: -5007276879233255147
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Enemy1_1_1
-      rect:
-        serializedVersion: 2
-        x: 561
-        y: 136
-        width: 463
-        height: 673
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 74, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: a28e206fe4e3e28a0800000000000000
-      internalID: -6328051917553211350
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Enemy1_1_2
-      rect:
-        serializedVersion: 2
-        x: 1082
-        y: 129
-        width: 504
-        height: 315
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 13dd04fd75595a660800000000000000
-      internalID: 7396482167666171185
+      spriteID: 449a7a1fa973793d0800000000000000
+      internalID: -3200027871604659900
       vertices: []
       indices: 
       edges: []
@@ -214,7 +164,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 4bf935490ce9e6e499720267d9ef92b2
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -222,13 +172,9 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries:
-      - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
+      entries: []
     nameFileIdTable:
-      Enemy1_1_0: -5007276879233255147
-      Enemy1_1_1: -6328051917553211350
-      Enemy1_1_2: 7396482167666171185
+      enemy_zone_gr_0: -3200027871604659900
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

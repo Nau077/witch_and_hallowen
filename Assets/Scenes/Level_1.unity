@@ -9293,6 +9293,7 @@ GameObject:
   - component: {fileID: 670000872}
   - component: {fileID: 670000874}
   - component: {fileID: 670000873}
+  - component: {fileID: 670000875}
   m_Layer: 0
   m_Name: SoulShopKeeper
   m_TagString: Untagged
@@ -9432,6 +9433,26 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 3.9, y: 8.77}
   m_EdgeRadius: 0
+--- !u!114 &670000875
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 670000870}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 586226ff445add042aeb327e7304ab80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ClickableShineSprite
+  target: {fileID: 670000872}
+  glowColor: {r: 1, g: 1, b: 1, a: 1}
+  minAlpha: 0.15
+  maxAlpha: 0.75
+  pulseSpeed: 2.2
+  glowScale: 1.1
+  sortingOrderOffset: 5
+  forceUnlit: 1
 --- !u!1 &680936308
 GameObject:
   m_ObjectHideFlags: 0

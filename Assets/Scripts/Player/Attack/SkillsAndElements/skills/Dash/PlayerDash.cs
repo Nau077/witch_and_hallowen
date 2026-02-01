@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -48,6 +49,13 @@ public class PlayerDash : MonoBehaviour
     public float EnergyNormalized => maxEnergy <= 0 ? 0 : Mathf.Clamp01(currentEnergy / maxEnergy);
 
     private float currentEnergy;
+
+    // UI: минимальные геттеры для текста 35/50 (или округления)
+    public float CurrentEnergy => currentEnergy; // UI
+    public float MaxEnergy => maxEnergy;          // UI
+
+    // UI: событие "попытался дэшнуться без энергии"
+    public event Action OnDashNoEnergy; // UI
 
     private Sprite originalSprite;
     private Color originalColor;
@@ -118,7 +126,20 @@ public class PlayerDash : MonoBehaviour
 
     public void TryDash()
     {
-        if (!CanDashNow()) return;
+        // UI: если нажали, но дэша нельзя (в т.ч. из-за энергии) — дернём событие только для "не хватило энергии"
+        if (!CanDashNow())
+        {
+            // Сигналим UI только когда причина — именно нехватка энергии.
+            // (если пауза/смерть/уже дэшится — флэш не нужен)
+            bool blockedByGameplay = (hp != null && hp.IsDead) ||
+                                     (RunLevelManager.Instance != null && !RunLevelManager.Instance.CanProcessGameplayInput()) ||
+                                     IsDashing;
+
+            if (!blockedByGameplay && currentEnergy < dashCost)
+                OnDashNoEnergy?.Invoke();
+
+            return;
+        }
 
         currentEnergy = Mathf.Max(0f, currentEnergy - dashCost);
 

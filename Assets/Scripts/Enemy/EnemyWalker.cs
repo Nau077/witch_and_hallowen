@@ -46,6 +46,39 @@ public class EnemyWalker : MonoBehaviour
     private const float GLOBAL_TOP = 3.4f;
     private const float GLOBAL_BOTTOM = -2.76f;
 
+    // -------------------- NEW: Anti-clump (NO collision matrix changes) --------------------
+    [Header("Anti-clump (script only, keeps damage working)")]
+    [Tooltip("Включить мягкое 'расталкивание' врагов друг от друга.")]
+    public bool enableAntiClump = true;
+
+    [Tooltip("С какого расстояния начинаем раздвигать (в клетках).")]
+    public float clumpStartDistanceCells = 0.85f;
+
+    [Tooltip("На каком расстоянии считаем, что уже 'разошлись' (в клетках). Должно быть чуть меньше start.")]
+    public float clumpStopDistanceCells = 0.70f;
+
+    [Tooltip("Сколько секунд держим выбранное направление расталкивания (чтобы не дёргалось).")]
+    public float clumpStickTime = 0.20f;
+
+    [Tooltip("Кулдаун между пересчётами расталкивания (сек).")]
+    public float clumpRecalcCooldown = 0.12f;
+
+    [Tooltip("Насколько сильно добавлять push к текущему движению (0..1.5).")]
+    public float clumpPushWeight = 1.0f;
+
+    [Tooltip("Радиус поиска соседей (в клетках).")]
+    public float clumpSearchRadiusCells = 1.35f;
+
+    [Tooltip("Сколько коллайдеров максимум проверяем.")]
+    public int clumpMaxHits = 24;
+
+    // внутреннее состояние анти-скучивания
+    private Vector2 _pushDir = Vector2.zero;
+    private float _pushUntilTime = 0f;
+    private float _nextClumpRecalcTime = 0f;
+    private Collider2D[] _clumpHits;
+    // ----------------------------------------------------------------------
+
     private Rigidbody2D rb;
     private SpriteRenderer sr;
     private Vector2 desiredDir = Vector2.zero;
@@ -107,6 +140,10 @@ public class EnemyWalker : MonoBehaviour
             topLimit = GLOBAL_TOP;
             bottomLimit = GLOBAL_BOTTOM;
         }
+
+        // NEW
+        int n = Mathf.Clamp(clumpMaxHits, 4, 64);
+        _clumpHits = new Collider2D[n];
     }
 
     private void Start()
@@ -232,7 +269,34 @@ public class EnemyWalker : MonoBehaviour
             return;
 
         Vector2 cur = rb.position;
-        Vector2 next = cur + desiredDir * moveSpeed * Time.fixedDeltaTime;
+
+        // NEW: анти-скучивание (НЕ трогаем коллизии, только добавляем push-dir)
+        Vector2 push = Vector2.zero;
+        if (enableAntiClump)
+        {
+            UpdateClumpPush(cur);
+            if (Time.time < _pushUntilTime)
+                push = _pushDir;
+            else
+                _pushDir = Vector2.zero;
+        }
+
+        // складываем направления так, чтобы не ломать твою логику маршрута
+        Vector2 finalDir = desiredDir;
+
+        if (push != Vector2.zero)
+        {
+            // чтобы не было "кружений": push строго осевой
+            Vector2 weightedPush = push * Mathf.Max(0f, clumpPushWeight);
+            finalDir = finalDir + weightedPush;
+        }
+
+        if (finalDir.sqrMagnitude > 0.000001f)
+            finalDir = finalDir.normalized;
+        else
+            finalDir = Vector2.zero;
+
+        Vector2 next = cur + finalDir * moveSpeed * Time.fixedDeltaTime;
         Vector2 clamped = ClampToBounds(next);
 
         rb.MovePosition(clamped);
@@ -247,6 +311,86 @@ public class EnemyWalker : MonoBehaviour
             else if (mx < -flipDeadzone) sr.flipX = true;
         }
     }
+
+    // -------------------- NEW: anti-clump helpers --------------------
+    private void UpdateClumpPush(Vector2 curPos)
+    {
+        if (Time.time < _nextClumpRecalcTime) return;
+        _nextClumpRecalcTime = Time.time + Mathf.Max(0.02f, clumpRecalcCooldown);
+
+        float step = Mathf.Max(0.01f, cellSize);
+        float searchR = clumpSearchRadiusCells * step;
+
+        // ищем ближайшего врага рядом (по коллайдерам), фильтруя по EnemyWalker
+        int count = Physics2D.OverlapCircleNonAlloc(curPos, searchR, _clumpHits);
+        if (count <= 0) return;
+
+        EnemyWalker closest = null;
+        float bestSqr = float.PositiveInfinity;
+
+        for (int i = 0; i < count; i++)
+        {
+            var col = _clumpHits[i];
+            if (col == null) continue;
+
+            var other = col.GetComponentInParent<EnemyWalker>();
+            if (other == null || other == this) continue;
+
+            Vector2 op = other.rb ? other.rb.position : (Vector2)other.transform.position;
+            float sqr = (op - curPos).sqrMagnitude;
+            if (sqr < bestSqr)
+            {
+                bestSqr = sqr;
+                closest = other;
+            }
+        }
+
+        if (closest == null) return;
+
+        Vector2 otherPos = closest.rb ? closest.rb.position : (Vector2)closest.transform.position;
+        float dist = Vector2.Distance(curPos, otherPos);
+
+        float startD = Mathf.Max(0.01f, clumpStartDistanceCells) * step;
+        float stopD = Mathf.Max(0.00f, clumpStopDistanceCells) * step;
+
+        // гистерезис: если push уже активен, держим его пока не разойдёмся до stopD
+        bool pushActive = Time.time < _pushUntilTime;
+
+        if (!pushActive)
+        {
+            if (dist >= startD) return; // не близко — ничего
+        }
+        else
+        {
+            if (dist >= stopD)
+            {
+                // уже разошлись — отпускаем
+                _pushDir = Vector2.zero;
+                _pushUntilTime = 0f;
+                return;
+            }
+        }
+
+        // вычисляем осевое направление "от соседа"
+        Vector2 away = curPos - otherPos;
+
+        Vector2 axisDir;
+        if (Mathf.Abs(away.x) >= Mathf.Abs(away.y))
+            axisDir = new Vector2(Mathf.Sign(away.x == 0 ? 1f : away.x), 0f);
+        else
+            axisDir = new Vector2(0f, Mathf.Sign(away.y == 0 ? 1f : away.y));
+
+        // если почти в одной точке, выбираем стабильное направление по instanceID (чтобы не дергалось)
+        if (away.sqrMagnitude < 0.000001f)
+        {
+            axisDir = (GetInstanceID() & 1) == 0 ? Vector2.right : Vector2.left;
+        }
+
+        // продлеваем “липкость” push’а
+        _pushDir = axisDir;
+        _pushUntilTime = Time.time + Mathf.Max(0.05f, clumpStickTime);
+    }
+    // ----------------------------------------------------------------------
 
     private IEnumerator DecideLoop()
     {

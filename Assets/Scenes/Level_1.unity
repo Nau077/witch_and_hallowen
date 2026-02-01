@@ -1057,7 +1057,7 @@ Transform:
   m_GameObject: {fileID: 66548601}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.0301, y: -1.4665, z: 0}
+  m_LocalPosition: {x: 0.0301, y: -0.48, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -7330,7 +7330,7 @@ GameObject:
   m_Component:
   - component: {fileID: 275834032}
   - component: {fileID: 275834034}
-  - component: {fileID: 275834033}
+  - component: {fileID: 275834035}
   m_Layer: 5
   m_Name: Content
   m_TagString: Untagged
@@ -7357,37 +7357,6 @@ RectTransform:
   m_AnchoredPosition: {x: 13, y: -20}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 1}
---- !u!114 &275834033
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 275834031}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bfde20cb5bc7d1143a7bb33180dc0b99, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SoulPerksPanelUI
-  content: {fileID: 275834032}
-  iconPrefab: {fileID: 7410972412674622390, guid: be03e409c2f5218448661187775a7523, type: 3}
-  hpStickSprite: {fileID: 7910273412404247695, guid: 8091c7e48a78b444eb6bb8b6b85231cb, type: 3}
-  innerTopPaddingPx: 0
-  bottomPaddingPx: 0
-  leftPaddingPx: 26
-  rightPaddingPx: 0
-  spacingPx: 3
-  horizontalOffsetPx: 0
-  enforceLayoutEveryFrame: 1
-  forceIconSize: 1
-  forceIconWidth: 24
-  forceIconHeight: 24
-  breatheAmplitude: 0.06
-  breatheSpeed: 1.2
-  breatheUseUnscaledTime: 0
-  newHeartPopScale: 4.71
-  popDownDuration: 0.369
-  popUseUnscaledTime: 1
 --- !u!114 &275834034
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7414,6 +7383,32 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!114 &275834035
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 275834031}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f0abdda2d38fad4ebdaa8c648294c84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DashPerkPanelUI
+  content: {fileID: 275834032}
+  iconPrefab: {fileID: 7410972412674622390, guid: be03e409c2f5218448661187775a7523, type: 3}
+  dashLevel1Sprite: {fileID: 5008351202182229973, guid: 934d0322d8fc2604ba5d05623a7084b5, type: 3}
+  dashLevel2Sprite: {fileID: 1241804233763794454, guid: 934d0322d8fc2604ba5d05623a7084b5, type: 3}
+  dashLevel3Sprite: {fileID: 7934363338480237024, guid: 934d0322d8fc2604ba5d05623a7084b5, type: 3}
+  forceIconSize: 1
+  forceIconWidth: 24
+  forceIconHeight: 24
+  breatheAmplitude: 0.06
+  breatheSpeed: 1.2
+  breatheUseUnscaledTime: 1
+  popScale: 2.6
+  popDownDuration: 0.12
+  popUseUnscaledTime: 1
 --- !u!1 &288798577
 GameObject:
   m_ObjectHideFlags: 0
@@ -8072,8 +8067,11 @@ MonoBehaviour:
   enemyPrefab: {fileID: 0}
   enemyPrefabs:
   - {fileID: 2190363753510580647, guid: 8c5fabf80594ede488e74fa628609ef6, type: 3}
+  - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
+  - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
+  - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
   spawnMode: 0
-  initialCount: 1
+  initialCount: 4
   spawnInterval: 0
   container: {fileID: 0}
   xInset: 0.05
@@ -8489,7 +8487,7 @@ Transform:
   m_GameObject: {fileID: 519420028}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.0301, y: -1.4665, z: -10}
+  m_LocalPosition: {x: 0.0301, y: -0.48, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -8511,7 +8509,7 @@ MonoBehaviour:
   backgroundRenderer: {fileID: 965562846}
   fitInPlay: 1
   adjustInEditor: 1
-  autoCenterCamera: 1
+  autoCenterCamera: 0
   fitWholeBackground: 1
 --- !u!114 &519420035
 MonoBehaviour:
@@ -9450,7 +9448,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!212 &680936309
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -9519,7 +9517,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -8.09127, y: -1.86406, z: 0}
-  m_LocalScale: {x: 1.2456137, y: 1.4606674, z: 1}
+  m_LocalScale: {x: 1.2456137, y: 1.69, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1308866351}
@@ -11496,7 +11494,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 1
-  m_Sprite: {fileID: 8027563751245715597, guid: e7bde4b39c9938247bff1f44894e09ec, type: 3}
+  m_Sprite: {fileID: 7163427986330032876, guid: 4f317c4a906216d47af1c919e761de23, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -11516,8 +11514,8 @@ Transform:
   m_GameObject: {fileID: 843212265}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.41707015, y: 4.4548936, z: 0}
-  m_LocalScale: {x: 2.3331373, y: 1, z: 1}
+  m_LocalPosition: {x: -2.25, y: -1.18, z: 0}
+  m_LocalScale: {x: 3.05, y: 1.9, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1308866351}
@@ -12784,10 +12782,10 @@ MonoBehaviour:
   cameraSizeWU: {x: 30.085775, y: 16.923248}
   leftGapWU: 4.9627876
   rightGapWU: 5.1229877
-  topGapWU: 3.5939682
+  topGapWU: 4.580468
   leftGapPX: 496
   rightGapPX: 512
-  topGapPX: 359
+  topGapPX: 458
 --- !u!212 &1050190538
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -13910,7 +13908,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!212 &1238830090
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -13979,7 +13977,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 4.49293, y: -1.6896601, z: 0}
-  m_LocalScale: {x: 1.0096, y: 1.4642, z: 1}
+  m_LocalScale: {x: 1.0096, y: 2.22, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1308866351}
@@ -15187,7 +15185,7 @@ GameObject:
   - component: {fileID: 1448406669}
   - component: {fileID: 1448406668}
   m_Layer: 5
-  m_Name: PerkPanel (1)
+  m_Name: PerkPanel_2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -18368,7 +18366,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2083657062
 RectTransform:
   m_ObjectHideFlags: 0

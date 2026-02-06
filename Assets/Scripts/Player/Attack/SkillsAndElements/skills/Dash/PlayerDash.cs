@@ -103,6 +103,10 @@ public class PlayerDash : MonoBehaviour
 
         if (IsDashing) return;
 
+        // Запрещаем дэш, если игрок заряжает атаку
+        var shooter = GetComponent<PlayerSkillShooter>();
+        if (shooter != null && shooter.IsCharging) return;
+
         if (Input.GetKeyDown(dashKey))
             TryDash();
     }

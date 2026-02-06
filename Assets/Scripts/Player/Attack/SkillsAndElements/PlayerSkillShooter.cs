@@ -220,6 +220,10 @@ public class PlayerSkillShooter : MonoBehaviour
         if (s == null || s.def == null) return;
         if (!loadout.IsActiveReadyToUse()) return;
 
+        // Запрещаем замах, если игрок дэшит
+        var dash = GetComponent<PlayerDash>();
+        if (dash != null && dash.IsDashing) return;
+
         int manaCost = s.def.manaCostPerShot;
         if (manaBarUI != null)
             manaBarUI.minCastCost = manaCost;

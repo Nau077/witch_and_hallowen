@@ -188,7 +188,7 @@ MonoBehaviour:
   widthWorld: 1
   damageWidthWorld: 1.46
   extraTopY: 0.09
-  extraBottomY: 6.92
+  extraBottomY: 10.92
   enableFlicker: 1
   flickerFrequency: 17.3
   flickerIntensity: 0.35

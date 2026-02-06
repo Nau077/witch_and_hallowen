@@ -128,6 +128,15 @@ public class DialogueUI : MonoBehaviour
         HideImmediate();
     }
 
+    private void Update()
+    {
+        // Активируем кнопку "продолжить" по пробелу, если она интерактивна
+        if (Input.GetKeyDown(KeyCode.Space) && continueButton != null && continueButton.interactable)
+        {
+            OnContinuePressed?.Invoke();
+        }
+    }
+
     void EnsureGroupCanvasGroup(ref DialogueGroup g)
     {
         if (g == null || g.root == null) return;

@@ -5,7 +5,7 @@ public class RunLevelManager : MonoBehaviour
     public static RunLevelManager Instance { get; private set; }
 
     [Header("Stages (logical levels)")]
-    public int maxStages = 8;
+    public int maxStages = 9;
 
     [SerializeField] private int currentStage = 0;
     public int CurrentStage => currentStage;
@@ -17,9 +17,10 @@ public class RunLevelManager : MonoBehaviour
     {
         get
         {
-            int bySpawners = (stageSpawners != null) ? stageSpawners.Length : 0;
-            if (bySpawners <= 0) return maxStages;
-            return Mathf.Min(maxStages, bySpawners);
+            // Always present totalStages as configured by `maxStages` so UI shows
+            // the intended number of logical stages (e.g. 9), even if not all
+            // spawner entries are assigned in the inspector.
+            return maxStages;
         }
     }
 
@@ -58,6 +59,13 @@ public class RunLevelManager : MonoBehaviour
         }
 
         Instance = this;
+
+        // Ensure runtime maxStages respects minimum of 9 so UI shows all stages
+        if (maxStages < 9)
+        {
+            Debug.LogWarning($"[RunLevelManager] maxStages was {maxStages} in inspector — forcing to 9 at runtime so UI shows all stages.");
+            maxStages = 9;
+        }
 
         EnsurePlayerMana();
 
@@ -240,8 +248,25 @@ public class RunLevelManager : MonoBehaviour
         }
         else
         {
-            // прошли всё — снова база
-            InitializeRun();
+            // прошли всё — переход на 1-й уровень (сброс прогресса на stage 1)
+            currentStage = 1;
+
+            music?.SetStage(currentStage);
+
+            stagePopup?.Hide();
+
+            ResetVictoryController();
+            ResetPlayerPosition();
+            DeactivateAllSpawners();
+            ActivateSpawnerForStage(currentStage);
+            UpdateHudProgress();
+
+            FillManaToMaxSafe($"Enter stage {currentStage}");
+
+            ShopKeeperManager.Instance?.OnStageChanged(currentStage);
+
+            // ✅ SKULL EVENT: новый stage -> стартуем расписание спавна на этот stage
+            skullEvent?.SetStage(currentStage);
         }
     }
 

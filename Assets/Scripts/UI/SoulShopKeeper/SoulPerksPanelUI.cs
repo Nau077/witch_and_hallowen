@@ -4,23 +4,42 @@ using System.Collections;
 using System.Collections.Generic;
 
 /// <summary>
-/// SoulPerksPanelUI
-/// ----------------
-/// ✔ Сердца идут сверху вниз (VerticalLayoutGroup UpperCenter)
-/// ✔ Нормальная высота детей (childControlHeight = true) -> не "1px и пропали"
-/// ✔ Настраиваемые spacing/padding/сдвиг X
-/// ✔ Постоянное "дыхание" всех активных сердец
+/// SoulPerksPanelUI (объединённая панель для HP, Mana, Stamina)
+/// --------
+/// ✔ Отображает 3 типа сердец вертикально стопкой:
+///   - Красные (HP) сверху
+///   - Синие (Mana) посередине
+///   - Жёлтые (Stamina) снизу
+/// ✔ Каждый тип имеет свою строку (VerticalLayoutGroup)
 /// ✔ При добавлении нового сердца: POP x7 и схлопывание
-/// ✔ Пулл объектов
+/// ✔ Пулл объектов для каждого типа
+/// ✔ Дыхание всех активных сердец
 /// </summary>
 public class SoulPerksPanelUI : MonoBehaviour
 {
-    [Header("UI")]
-    public RectTransform content;     // Content (где стоит VerticalLayoutGroup)
-    public GameObject iconPrefab;     // PerkIcon prefab
+    [Header("UI Containers")]
+    public RectTransform hpContent;
+    public RectTransform manaContent;
+    public RectTransform staminaContent;
 
-    [Header("Icons")]
-    public Sprite hpStickSprite;
+    public GameObject iconPrefab;
+
+    [Header("Heart Appearance")]
+    [Tooltip("Optional override sprite for all hearts. If empty, prefab's Image.sprite will be used.")]
+    public Sprite heartSpriteOverride;
+
+    [Tooltip("Tint color for HP hearts (red)")]
+    public Color hpColor = new Color(0.85f, 0.12f, 0.12f, 1f);
+
+    [Tooltip("Tint color for Mana hearts (blue)")]
+    public Color manaColor = new Color(0.18f, 0.55f, 1f, 1f);
+
+    [Tooltip("Tint color for Stamina hearts (yellow)")]
+    public Color staminaColor = new Color(0.95f, 0.78f, 0.16f, 1f);
+    [Tooltip("Optional: name of the Image GameObject inside the prefab to tint (exact match). If empty, script picks first Image with a sprite.")]
+    public string heartImageName = "";
+    [Tooltip("Enable debug logs for container arrangement")]
+    public bool debugArrange = false;
 
     [Header("Layout tuning")]
     [Tooltip("Отступ сверху ВНУТРИ VerticalLayoutGroup (px).")]
@@ -38,21 +57,19 @@ public class SoulPerksPanelUI : MonoBehaviour
     [Tooltip("Расстояние между сердцами (px).")]
     public float spacingPx = 2f;
 
-    [Tooltip("Доп. сдвиг всего Content по X (px).")]
+    [Tooltip("Доп. сдвиг по X (px).")]
     public float horizontalOffsetPx = 0f;
 
-    [Tooltip("Если true — каждый кадр дожимает LayoutGroup настройки (на случай, если что-то их меняет).")]
+    [Tooltip("Вертикальный отступ между группами контейнеров (HP->Mana->Stamina)")]
+    public float containerSpacingPx = 6f;
+
+    [Tooltip("Если true — каждый кадр дожимает LayoutGroup настройки.")]
     public bool enforceLayoutEveryFrame = true;
 
     [Header("Force icon size (recommended)")]
-    [Tooltip("Если включено — добавит/обновит LayoutElement на иконках и задаст preferred size.")]
     public bool forceIconSize = true;
-
-    [Tooltip("Preferred width для сердца. 0 = взять из sprite.rect.width.")]
-    public float forceIconWidth = 0f;
-
-    [Tooltip("Preferred height для сердца. 0 = взять из sprite.rect.height.")]
-    public float forceIconHeight = 0f;
+    public float forceIconWidth = 0f;   // 0 = взять из sprite
+    public float forceIconHeight = 0f;  // 0 = взять из sprite
 
     [Header("Breathing (all hearts)")]
     [Range(0f, 0.25f)] public float breatheAmplitude = 0.06f;
@@ -64,19 +81,29 @@ public class SoulPerksPanelUI : MonoBehaviour
     [Range(0.01f, 0.5f)] public float popDownDuration = 0.12f;
     public bool popUseUnscaledTime = true;
 
-    private VerticalLayoutGroup vlg;
+    // --- Enums for perk types ---
+    private enum PerkType { HP, Mana, Stamina }
 
-    private readonly List<GameObject> pool = new();
-    private readonly Dictionary<GameObject, Coroutine> popRoutines = new();
+    // --- Perk data ---
+    private class PerkData
+    {
+        public PerkType type;
+        public RectTransform content;
+        public VerticalLayoutGroup vlg;
+        public List<GameObject> pool = new();
+        public Dictionary<GameObject, Coroutine> popRoutines = new();
+        public int lastTotalAmount = -1;
+        public Color color;
+    }
 
-    private int lastTotalHearts = -1;
+    private PerkData[] perks;
     private float breatheT;
 
     private void Awake()
     {
-        CacheRefs();
-        ApplyLayoutNow();
-        ApplyContentOffset();
+        InitPerksArray();
+        ApplyAllLayouts();
+        ApplyAllOffsets();
     }
 
     private void OnEnable()
@@ -84,9 +111,9 @@ public class SoulPerksPanelUI : MonoBehaviour
         if (SoulPerksManager.Instance != null)
             SoulPerksManager.Instance.OnPerksChanged += Refresh;
 
-        CacheRefs();
-        ApplyLayoutNow();
-        ApplyContentOffset();
+        InitPerksArray();
+        ApplyAllLayouts();
+        ApplyAllOffsets();
         Refresh();
     }
 
@@ -100,119 +127,300 @@ public class SoulPerksPanelUI : MonoBehaviour
     {
         if (enforceLayoutEveryFrame)
         {
-            ApplyLayoutNow();
-            ApplyContentOffset();
+            ApplyAllLayouts();
+            ApplyAllOffsets();
         }
 
         TickBreathing();
     }
 
+    // ============ INIT ============
+
+    private void InitPerksArray()
+    {
+        if (perks != null) return;
+
+        perks = new PerkData[3];
+
+        perks[0] = new PerkData
+        {
+            type = PerkType.HP,
+            content = hpContent ?? GetComponent<RectTransform>(),
+            color = hpColor
+        };
+
+        perks[1] = new PerkData
+        {
+            type = PerkType.Mana,
+            content = manaContent,
+            color = manaColor
+        };
+
+        perks[2] = new PerkData
+        {
+            type = PerkType.Stamina,
+            content = staminaContent,
+            color = staminaColor
+        };
+
+        foreach (var perk in perks)
+        {
+            if (perk.content != null && perk.vlg == null)
+                perk.vlg = perk.content.GetComponent<VerticalLayoutGroup>();
+        }
+    }
+
+    // ============ LAYOUT ============
+
+    private void ApplyAllLayouts()
+    {
+        foreach (var perk in perks)
+            ApplyLayoutToPane(perk);
+    }
+
+    private void ApplyLayoutToPane(PerkData perk)
+    {
+        if (perk.content == null) return;
+        if (perk.vlg == null && perk.content != null)
+            perk.vlg = perk.content.GetComponent<VerticalLayoutGroup>();
+
+        if (perk.vlg == null) return;
+
+        perk.vlg.childAlignment = TextAnchor.UpperCenter;
+        perk.vlg.childControlWidth = true;
+        perk.vlg.childControlHeight = true;
+        perk.vlg.childForceExpandWidth = false;
+        perk.vlg.childForceExpandHeight = false;
+
+        perk.vlg.spacing = spacingPx;
+
+        var p = perk.vlg.padding;
+        p.left = leftPaddingPx;
+        p.right = rightPaddingPx;
+        p.top = innerTopPaddingPx;
+        p.bottom = bottomPaddingPx;
+        perk.vlg.padding = p;
+    }
+
+    private void ApplyAllOffsets()
+    {
+        foreach (var perk in perks)
+            ApplyOffsetToPane(perk);
+    }
+
+    private void ApplyOffsetToPane(PerkData perk)
+    {
+        if (perk.content == null) return;
+
+        var pos = perk.content.anchoredPosition;
+        pos.x = horizontalOffsetPx;
+        perk.content.anchoredPosition = pos;
+    }
+
+    // ============ REFRESH ============
+
     public void Refresh()
     {
-        CacheRefs();
-        ApplyLayoutNow();
-        ApplyContentOffset();
+        InitPerksArray();
+        ApplyAllLayouts();
+        ApplyAllOffsets();
 
-        var perks = SoulPerksManager.Instance;
-        int totalHearts = perks == null ? 0 : (1 + perks.HpLevel);
+        RefreshPane(perks[0], GetHpLevelSafe());
+        RefreshPane(perks[1], GetManaLevelSafe());
+        RefreshPane(perks[2], GetStaminaLevelSafe());
 
-        if (lastTotalHearts < 0)
-            lastTotalHearts = totalHearts;
+        // After refreshing panes, ensure containers are stacked properly
+        ArrangeContainerStack();
+    }
 
-        EnsurePoolSize(totalHearts);
+    private void RefreshPane(PerkData perk, int totalAmount)
+    {
+        if (perk.content == null) return;
 
-        for (int i = 0; i < totalHearts; i++)
+        if (perk.lastTotalAmount < 0)
+            perk.lastTotalAmount = totalAmount;
+
+        EnsurePoolSize(perk, totalAmount);
+
+        for (int i = 0; i < totalAmount; i++)
         {
-            var go = pool[i];
+            var go = perk.pool[i];
             if (go == null) continue;
 
             bool wasInactive = !go.activeSelf;
             go.SetActive(true);
 
-            var img = go.GetComponent<Image>();
-            if (img != null)
+            // Find the most likely Image to tint: prefer Image components that have a sprite
+            Image img = null;
+            var imgs = go.GetComponentsInChildren<Image>(true);
+            if (imgs != null && imgs.Length > 0)
             {
-                img.sprite = hpStickSprite;
-                img.preserveAspect = true;
-                img.enabled = (hpStickSprite != null);
+                // prefer Image that already has a sprite
+                foreach (var ii in imgs)
+                {
+                    if (ii.sprite != null)
+                    {
+                        img = ii;
+                        break;
+                    }
+                }
+
+                // fallback to first Image
+                if (img == null) img = imgs[0];
             }
 
-            // ВАЖНО: сброс масштаба, иначе после POP/дыхания может накопиться
+            // If a specific heartImageName is provided, try to find that child Image first
+            if (!string.IsNullOrEmpty(heartImageName))
+            {
+                var named = go.transform.Find(heartImageName);
+                if (named != null)
+                {
+                    var namedImg = named.GetComponent<Image>();
+                    if (namedImg != null) img = namedImg;
+                }
+            }
+
+            if (img != null)
+            {
+                // If an override sprite is provided in inspector, use it.
+                if (heartSpriteOverride != null)
+                    img.sprite = heartSpriteOverride;
+
+                img.preserveAspect = true;
+                img.enabled = true;
+
+                // Apply tint color to the heart image
+                img.color = perk.color;
+            }
+
             go.transform.localScale = Vector3.one;
 
-            // Размер (чтобы не было 1x1 иконок)
             if (forceIconSize)
                 EnsureLayoutElementSize(go, img);
 
-            // POP только на новые сердца (когда количество выросло)
-            bool isNew = (totalHearts > lastTotalHearts) && (i >= lastTotalHearts);
+            bool isNew = (totalAmount > perk.lastTotalAmount) && (i >= perk.lastTotalAmount);
             if (isNew)
-                Pop(go);
+                Pop(perk, go);
         }
 
-        for (int i = totalHearts; i < pool.Count; i++)
+        for (int i = totalAmount; i < perk.pool.Count; i++)
         {
-            if (pool[i] != null) pool[i].SetActive(false);
+            if (perk.pool[i] != null) perk.pool[i].SetActive(false);
         }
 
-        lastTotalHearts = totalHearts;
+        perk.lastTotalAmount = totalAmount;
     }
 
-    private void CacheRefs()
+    // Arrange containers vertically so Mana is below HP and Stamina below Mana
+    private void ArrangeContainerStack()
     {
-        if (content == null)
-            content = GetComponent<RectTransform>();
+        if (perks == null || perks.Length == 0) return;
 
-        if (vlg == null && content != null)
-            vlg = content.GetComponent<VerticalLayoutGroup>();
-    }
-
-    private void ApplyLayoutNow()
-    {
-        if (vlg == null) return;
-
-        // Ключевой фикс: одно сердце должно быть СВЕРХУ, не по центру
-        vlg.childAlignment = TextAnchor.UpperCenter;
-
-        // Ключевой фикс: иначе дети остаются Height=1 и "пропадают"
-        vlg.childControlWidth = true;
-        vlg.childControlHeight = true;
-
-        // Не растягиваем детей по высоте/ширине "в бесконечность"
-        vlg.childForceExpandWidth = false;
-        vlg.childForceExpandHeight = false;
-
-        vlg.spacing = spacingPx;
-
-        var p = vlg.padding;
-        p.left = leftPaddingPx;
-        p.right = rightPaddingPx;
-        p.top = innerTopPaddingPx;
-        p.bottom = bottomPaddingPx;
-        vlg.padding = p;
-    }
-
-    private void ApplyContentOffset()
-    {
-        if (content == null) return;
-
-        // НЕ ТРОГАЕМ anchors/pivot (чтобы не улетало за пределы)
-        var pos = content.anchoredPosition;
-        pos.x = horizontalOffsetPx;
-        content.anchoredPosition = pos;
-    }
-
-    private void EnsurePoolSize(int need)
-    {
-        if (iconPrefab == null || content == null) return;
-
-        while (pool.Count < need)
+        // Rebuild layouts so sizes are up-to-date and set container heights to their preferred heights
+        foreach (var p in perks)
         {
-            var go = Instantiate(iconPrefab, content);
+            if (p.content == null) continue;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(p.content);
+            // set RectTransform height to preferred height so stacking is predictable
+            float preferH = LayoutUtility.GetPreferredHeight(p.content);
+            if (!float.IsNaN(preferH) && preferH > 0f)
+                p.content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, preferH);
+        }
+
+        // Apply container bottom padding according to containerSpacingPx so groups separate visually
+        int pad = Mathf.RoundToInt(containerSpacingPx);
+        if (pad > 0)
+        {
+            // HP container bottom padding
+            if (perks[0].vlg != null)
+            {
+                var pp = perks[0].vlg.padding;
+                pp.bottom = pad;
+                perks[0].vlg.padding = pp;
+            }
+
+            // Mana container bottom padding
+            if (perks[1].vlg != null)
+            {
+                var pp = perks[1].vlg.padding;
+                pp.bottom = pad;
+                perks[1].vlg.padding = pp;
+            }
+        }
+
+        // Start from HP container anchoredPosition.y as top baseline
+        float spacingBetweenGroups = (containerSpacingPx > 0f) ? containerSpacingPx : spacingPx; // use inspector spacing between containers (fallback to spacingPx)
+
+        // Use anchoredPosition.y values; assume anchors/pivots are top (Y=1) for predictable stacking
+        var hp = perks[0];
+        if (hp.content == null) return;
+
+        float hpHeight = hp.content.rect.height;
+        Vector2 hpPos = hp.content.anchoredPosition;
+
+        // Mana below HP
+        var mana = perks[1];
+        if (mana.content != null)
+        {
+            float manaY = hpPos.y - (hpHeight + spacingBetweenGroups);
+            var pos = mana.content.anchoredPosition;
+            pos.y = manaY;
+            mana.content.anchoredPosition = pos;
+            // ensure layout is rebuilt for mana and set its height
+            LayoutRebuilder.ForceRebuildLayoutImmediate(mana.content);
+            float newManaH = LayoutUtility.GetPreferredHeight(mana.content);
+            if (!float.IsNaN(newManaH) && newManaH > 0f)
+                mana.content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, newManaH);
+        }
+
+        // compute mana height after rebuild
+        float manaHeight = mana.content != null ? mana.content.rect.height : 0f;
+
+        // Stamina below Mana
+        var sta = perks[2];
+        if (sta.content != null)
+        {
+            float manaPosY = mana.content != null ? mana.content.anchoredPosition.y : hpPos.y;
+            float staY = manaPosY - (manaHeight + spacingBetweenGroups);
+            var pos = sta.content.anchoredPosition;
+            pos.y = staY;
+            sta.content.anchoredPosition = pos;
+        }
+    }
+
+    private int GetHpLevelSafe()
+    {
+        var perks = SoulPerksManager.Instance;
+        return perks != null ? (1 + perks.HpLevel) : 1;
+    }
+
+    private int GetManaLevelSafe()
+    {
+        var perks = SoulPerksManager.Instance;
+        // Show one base Mana heart plus purchased levels (1 + ManaLevel)
+        return perks != null ? (1 + perks.ManaLevel) : 1;
+    }
+
+    private int GetStaminaLevelSafe()
+    {
+        var perks = SoulPerksManager.Instance;
+        // Show one base Stamina heart plus purchased levels (1 + StaminaLevel)
+        return perks != null ? (1 + perks.StaminaLevel) : 1;
+    }
+
+    // ============ POOL ============
+
+    private void EnsurePoolSize(PerkData perk, int need)
+    {
+        if (iconPrefab == null || perk.content == null) return;
+
+        while (perk.pool.Count < need)
+        {
+            var go = Instantiate(iconPrefab, perk.content);
             go.SetActive(false);
             go.transform.localScale = Vector3.one;
 
-            pool.Add(go);
+            perk.pool.Add(go);
         }
     }
 
@@ -226,7 +434,6 @@ public class SoulPerksPanelUI : MonoBehaviour
         float w = forceIconWidth;
         float h = forceIconHeight;
 
-        // Если не задано — пытаемся взять из спрайта
         if ((w <= 0f || h <= 0f) && img != null && img.sprite != null)
         {
             var r = img.sprite.rect;
@@ -234,14 +441,14 @@ public class SoulPerksPanelUI : MonoBehaviour
             if (h <= 0f) h = r.height;
         }
 
-        // Если вообще нечего взять — оставим как есть (не ставим 0)
         if (w > 0f) le.preferredWidth = w;
         if (h > 0f) le.preferredHeight = h;
 
-        // Также можно зафиксить min, чтобы LayoutGroup не схлопнул
         if (w > 0f) le.minWidth = w;
         if (h > 0f) le.minHeight = h;
     }
+
+    // ============ ANIMATIONS ============
 
     private void TickBreathing()
     {
@@ -250,26 +457,29 @@ public class SoulPerksPanelUI : MonoBehaviour
 
         float s = 1f + Mathf.Sin(breatheT * Mathf.PI * 2f) * breatheAmplitude;
 
-        foreach (var go in pool)
+        foreach (var perk in perks)
         {
-            if (go == null || !go.activeSelf) continue;
-            if (popRoutines.ContainsKey(go)) continue; // пока POP — не дышим
+            foreach (var go in perk.pool)
+            {
+                if (go == null || !go.activeSelf) continue;
+                if (perk.popRoutines.ContainsKey(go)) continue;
 
-            go.transform.localScale = new Vector3(s, s, 1f);
+                go.transform.localScale = new Vector3(s, s, 1f);
+            }
         }
     }
 
-    private void Pop(GameObject go)
+    private void Pop(PerkData perk, GameObject go)
     {
         if (go == null) return;
 
-        if (popRoutines.TryGetValue(go, out var c) && c != null)
+        if (perk.popRoutines.TryGetValue(go, out var c) && c != null)
             StopCoroutine(c);
 
-        popRoutines[go] = StartCoroutine(PopRoutine(go));
+        perk.popRoutines[go] = StartCoroutine(PopRoutine(perk, go));
     }
 
-    private IEnumerator PopRoutine(GameObject go)
+    private IEnumerator PopRoutine(PerkData perk, GameObject go)
     {
         if (go == null) yield break;
         var t = go.transform;
@@ -287,13 +497,13 @@ public class SoulPerksPanelUI : MonoBehaviour
             time += dt;
 
             float k = Mathf.Clamp01(time / dur);
-            k = Mathf.Pow(k, 0.35f); // резче к концу
+            k = Mathf.Pow(k, 0.35f);
 
             t.localScale = Vector3.LerpUnclamped(start, end, k);
             yield return null;
         }
 
         if (t != null) t.localScale = Vector3.one;
-        popRoutines.Remove(go);
+        perk.popRoutines.Remove(go);
     }
 }

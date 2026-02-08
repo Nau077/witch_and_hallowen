@@ -7330,7 +7330,6 @@ GameObject:
   m_Component:
   - component: {fileID: 275834032}
   - component: {fileID: 275834034}
-  - component: {fileID: 275834035}
   m_Layer: 5
   m_Name: Content
   m_TagString: Untagged
@@ -7383,32 +7382,6 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
---- !u!114 &275834035
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 275834031}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f0abdda2d38fad4ebdaa8c648294c84, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DashPerkPanelUI
-  content: {fileID: 275834032}
-  iconPrefab: {fileID: 7410972412674622390, guid: be03e409c2f5218448661187775a7523, type: 3}
-  dashLevel1Sprite: {fileID: 5008351202182229973, guid: 934d0322d8fc2604ba5d05623a7084b5, type: 3}
-  dashLevel2Sprite: {fileID: 1241804233763794454, guid: 934d0322d8fc2604ba5d05623a7084b5, type: 3}
-  dashLevel3Sprite: {fileID: 7934363338480237024, guid: 934d0322d8fc2604ba5d05623a7084b5, type: 3}
-  forceIconSize: 1
-  forceIconWidth: 24
-  forceIconHeight: 24
-  breatheAmplitude: 0.06
-  breatheSpeed: 1.2
-  breatheUseUnscaledTime: 1
-  popScale: 2.6
-  popDownDuration: 0.12
-  popUseUnscaledTime: 1
 --- !u!1 &288798577
 GameObject:
   m_ObjectHideFlags: 0
@@ -9221,6 +9194,12 @@ MonoBehaviour:
   hpBasePrice: 50
   dashMaxPurchases: 2
   dashBasePrice: 60
+  manaMaxPurchases: 2
+  manaStep: 20
+  manaBasePrice: 60
+  staminaMaxPurchases: 2
+  staminaStep: 15
+  staminaBasePrice: 60
   resetPrice: 100
 --- !u!4 &669322080
 Transform:
@@ -11521,6 +11500,68 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1308866351}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &850170243
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 850170244}
+  - component: {fileID: 850170245}
+  m_Layer: 5
+  m_Name: ManaContainer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &850170244
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 850170243}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1617022333}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 1}
+--- !u!114 &850170245
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 850170243}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59f8146938fff824cb5fd77236b75775, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.VerticalLayoutGroup
+  m_Padding:
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 1
+  m_Spacing: 3
+  m_ChildForceExpandWidth: 0
+  m_ChildForceExpandHeight: 0
+  m_ChildControlWidth: 0
+  m_ChildControlHeight: 0
+  m_ChildScaleWidth: 0
+  m_ChildScaleHeight: 0
+  m_ReverseArrangement: 0
 --- !u!114 &860650694 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4666159610224280295, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}
@@ -11732,7 +11773,7 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
-  perksPanelUI: {fileID: 1029167812}
+  perksPanelUI: {fileID: 0}
   enableCoinSection: 1
   enableSoulSection: 1
   _mode: 0
@@ -12734,9 +12775,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1029167811}
   - component: {fileID: 1029167814}
-  - component: {fileID: 1029167812}
   m_Layer: 5
-  m_Name: Content
+  m_Name: HPContainer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -12749,49 +12789,18 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1029167810}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1510070784}
+  m_Father: {fileID: 1617022333}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 13, y: -20}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 1}
---- !u!114 &1029167812
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1029167810}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bfde20cb5bc7d1143a7bb33180dc0b99, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SoulPerksPanelUI
-  content: {fileID: 1029167811}
-  iconPrefab: {fileID: 7410972412674622390, guid: be03e409c2f5218448661187775a7523, type: 3}
-  hpStickSprite: {fileID: 7910273412404247695, guid: 8091c7e48a78b444eb6bb8b6b85231cb, type: 3}
-  innerTopPaddingPx: 0
-  bottomPaddingPx: 0
-  leftPaddingPx: 26
-  rightPaddingPx: 0
-  spacingPx: 3
-  horizontalOffsetPx: 0
-  enforceLayoutEveryFrame: 1
-  forceIconSize: 1
-  forceIconWidth: 24
-  forceIconHeight: 24
-  breatheAmplitude: 0.06
-  breatheSpeed: 1.2
-  breatheUseUnscaledTime: 0
-  newHeartPopScale: 4.71
-  popDownDuration: 0.369
-  popUseUnscaledTime: 1
 --- !u!114 &1029167814
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15595,7 +15604,7 @@ RectTransform:
   m_LocalScale: {x: 1.368414, y: 0.87873966, z: 1.1646076}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1029167811}
+  - {fileID: 1617022333}
   m_Father: {fileID: 2143260458}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -16077,6 +16086,84 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1608077750}
   m_CullTransparentMesh: 1
+--- !u!1 &1617022332
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1617022333}
+  - component: {fileID: 1617022334}
+  m_Layer: 5
+  m_Name: container
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1617022333
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1617022332}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1029167811}
+  - {fileID: 850170244}
+  - {fileID: 1843427095}
+  m_Father: {fileID: 1510070784}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 49.53869, y: 170}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1617022334
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1617022332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfde20cb5bc7d1143a7bb33180dc0b99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoulPerksPanelUI
+  hpContent: {fileID: 1029167811}
+  manaContent: {fileID: 850170244}
+  staminaContent: {fileID: 1843427095}
+  iconPrefab: {fileID: 7410972412674622390, guid: be03e409c2f5218448661187775a7523, type: 3}
+  heartSpriteOverride: {fileID: 0}
+  hpColor: {r: 0.8509804, g: 0.12156862, b: 0.29658067, a: 1}
+  manaColor: {r: 0.5707547, g: 0.76381224, b: 1, a: 1}
+  staminaColor: {r: 0.95, g: 0.78, b: 0.16, a: 1}
+  heartImageName: 
+  debugArrange: 0
+  innerTopPaddingPx: 0
+  bottomPaddingPx: 0
+  leftPaddingPx: 0
+  rightPaddingPx: 0
+  spacingPx: 3
+  horizontalOffsetPx: 0
+  containerSpacingPx: 8
+  enforceLayoutEveryFrame: 1
+  forceIconSize: 1
+  forceIconWidth: 24
+  forceIconHeight: 24
+  breatheAmplitude: 0.06
+  breatheSpeed: 1.2
+  breatheUseUnscaledTime: 1
+  newHeartPopScale: 7
+  popDownDuration: 0.12
+  popUseUnscaledTime: 1
 --- !u!114 &1629597136 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4666159610224280295, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}
@@ -17969,6 +18056,108 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1839817742}
   m_CullTransparentMesh: 1
+--- !u!1 &1843427094
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1843427095}
+  - component: {fileID: 1843427097}
+  - component: {fileID: 1843427096}
+  m_Layer: 5
+  m_Name: StaminaContainer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1843427095
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1843427094}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1617022333}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 1}
+--- !u!114 &1843427096
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1843427094}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfde20cb5bc7d1143a7bb33180dc0b99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoulPerksPanelUI
+  hpContent: {fileID: 0}
+  manaContent: {fileID: 0}
+  staminaContent: {fileID: 0}
+  iconPrefab: {fileID: 7410972412674622390, guid: be03e409c2f5218448661187775a7523, type: 3}
+  heartSpriteOverride: {fileID: 0}
+  hpColor: {r: 0.85, g: 0.12, b: 0.12, a: 1}
+  manaColor: {r: 0.18, g: 0.55, b: 1, a: 1}
+  staminaColor: {r: 0.95, g: 0.78, b: 0.16, a: 1}
+  heartImageName: 
+  debugArrange: 0
+  innerTopPaddingPx: 0
+  bottomPaddingPx: 0
+  leftPaddingPx: 26
+  rightPaddingPx: 0
+  spacingPx: 3
+  horizontalOffsetPx: 0
+  containerSpacingPx: 6
+  enforceLayoutEveryFrame: 1
+  forceIconSize: 1
+  forceIconWidth: 24
+  forceIconHeight: 24
+  breatheAmplitude: 0.06
+  breatheSpeed: 1.2
+  breatheUseUnscaledTime: 0
+  newHeartPopScale: 4.71
+  popDownDuration: 0.369
+  popUseUnscaledTime: 1
+--- !u!114 &1843427097
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1843427094}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59f8146938fff824cb5fd77236b75775, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.VerticalLayoutGroup
+  m_Padding:
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 1
+  m_Spacing: 3
+  m_ChildForceExpandWidth: 0
+  m_ChildForceExpandHeight: 0
+  m_ChildControlWidth: 0
+  m_ChildControlHeight: 0
+  m_ChildScaleWidth: 0
+  m_ChildScaleHeight: 0
+  m_ReverseArrangement: 0
 --- !u!1 &1858550423
 GameObject:
   m_ObjectHideFlags: 0
@@ -18781,7 +18970,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2083657062
 RectTransform:
   m_ObjectHideFlags: 0

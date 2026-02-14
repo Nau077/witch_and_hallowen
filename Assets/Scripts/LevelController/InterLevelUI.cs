@@ -224,7 +224,8 @@ public class InterLevelUI : MonoBehaviour
             bool wasInactive = !img.gameObject.activeSelf;
             if (wasInactive) img.gameObject.SetActive(true);
 
-            img.sprite = (mode == ShopCurrencyMode.CoinsOnly) ? coinsMarkerSprite : coinsAndSoulsMarkerSprite;
+            // По ТЗ: в interlevel всегда показываем только иконку монетки.
+            img.sprite = coinsMarkerSprite;
 
             // scale по умолчанию
             img.rectTransform.localScale = Vector3.one;

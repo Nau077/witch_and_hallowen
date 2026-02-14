@@ -7130,6 +7130,7 @@ MonoBehaviour:
   rb: {fileID: 201944539}
   movement: {fileID: 201944540}
   hp: {fileID: 201944542}
+  shooter: {fileID: 0}
   sr: {fileID: 1792579273}
   anim: {fileID: 0}
   dashKey: 32
@@ -12016,7 +12017,6 @@ MonoBehaviour:
   appearOnBase: 1
   appearAfterStageClear: 0
   shopsInForestCount: 3
-  guaranteedForestStage: 7
   coinsOnlyChance: 0.5
 --- !u!1 &938277022
 GameObject:

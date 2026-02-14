@@ -9,15 +9,35 @@ Keep this file updated when logic changes.
 
 ## Core runtime flow
 
-1. `RunLevelManager` opens shop popup (`SoulShopKeeperPopup`) in base or stage-clear mode.
-2. `SoulShopKeeperPopup` builds slots from `coinItems[]` and `soulItems[]`.
-3. `ShopItemSlotUI` reads a `ShopItemDefinition` and:
+1. `ShopKeeperManager` generates a per-run shop schedule for between-level stages.
+2. `RunLevelManager` opens shop popup (`SoulShopKeeperPopup`) in base or stage-clear mode.
+3. `SoulShopKeeperPopup` builds slots from `coinItems[]` and `soulItems[]`.
+4. `ShopItemSlotUI` reads a `ShopItemDefinition` and:
    - shows icon/name/price
    - validates purchase availability
    - performs purchase on click
-4. Permanent soul perks are managed by `SoulPerksManager`.
-5. `SoulPerksPanelUI` listens to `SoulPerksManager.OnPerksChanged` and redraws hearts.
-6. Tooltip triggers on hover use shared runtime tooltip UI (`HoverTooltipUI`).
+5. Permanent soul perks are managed by `SoulPerksManager`.
+6. `SoulPerksPanelUI` listens to `SoulPerksManager.OnPerksChanged` and redraws hearts.
+7. Tooltip triggers on hover use shared runtime tooltip UI (`HoverTooltipUI`).
+
+## Current interlevel shop schedule (updated 2026-02-14)
+
+- Base (`stage 0`) has a shop entry in schedule.
+- Between-level shop stages are limited to `1..(totalStages - 1)` (for 9 stages: `1..8`).
+- Fixed guaranteed shop points:
+  - after stage `3` (shop on `stage 3`)
+  - before last level (shop on `stage totalStages - 1`, for 9 stages this is `8`)
+- Total between-level shop count uses a hard minimum of `4`:
+  - `forestNeed = max(4, shopsInForestCount)`
+  - remaining points are selected randomly from non-fixed stages.
+
+## Current shop visibility / currency behavior (updated 2026-02-14)
+
+- `InterLevelUI` marker icon is always coins-only sprite (`coinsMarkerSprite`) for all scheduled shop points.
+- Stage-clear shop popup (`SoulShopKeeperPopup.OpenAsStageClearShop`) always enables both sections:
+  - coin section (skill charges/items)
+  - soul section (perks/soul upgrades)
+- Practical result: when stage-clear shop appears, both skills/charges and perks are available in the same popup.
 
 ## Combat input interaction note (dash + windup)
 

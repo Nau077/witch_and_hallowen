@@ -81,7 +81,8 @@ public class SoulShopKeeperPopup : MonoBehaviour
     public void OpenAsStageClearShop(bool allowCoins, bool allowSouls)
     {
         _mode = OpenMode.StageClearShop;
-        SetCurrencyAvailability(allowCoins, allowSouls);
+        // По ТЗ: между уровнями всегда доступны и скиллы (монеты), и перки (души).
+        SetCurrencyAvailability(allowCoins: true, allowSouls: true);
         Show(forceOpen: true);
     }
 

@@ -69,7 +69,7 @@ public class StageTransitionPopup : MonoBehaviour
             nextButton.interactable = hasNext;
         }
 
-        // --- SHOP UI: показываем только на этапах 1..7 где запланирован магазин ---
+        // --- SHOP UI: показываем только на этапах, где запланирован магазин ---
         var mode = ShopKeeperManager.Instance != null
             ? ShopKeeperManager.Instance.GetShopModeForStage(currentStage)
             : ShopCurrencyMode.None;
@@ -95,7 +95,7 @@ public class StageTransitionPopup : MonoBehaviour
             // настроить доступность секций и открыть магазин автоматически
             if (shopPopup != null)
             {
-                bool allowSouls = (mode == ShopCurrencyMode.CoinsAndSouls);
+                bool allowSouls = true;
                 shopPopup.SetCurrencyAvailability(allowCoins: true, allowSouls: allowSouls);
 
                 // по ТЗ: "автоматически открывается магазин после победы, в тех местах где он есть"

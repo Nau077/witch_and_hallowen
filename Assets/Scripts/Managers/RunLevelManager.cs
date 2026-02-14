@@ -201,7 +201,7 @@ public class RunLevelManager : MonoBehaviour
             stagePopup?.HideImmediate();
 
             bool allowCoins = true;
-            bool allowSouls = (mode == ShopCurrencyMode.CoinsAndSouls);
+            bool allowSouls = true;
 
             shopPopup.OpenAsStageClearShop(allowCoins, allowSouls);
             return;

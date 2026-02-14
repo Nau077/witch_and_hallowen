@@ -4,8 +4,8 @@ using UnityEngine;
 /// <summary>
 /// Отвечает за:
 /// 1) появление/скрытие NPC на базе (stage=0)
-/// 2) расписание магазина на ран: в лесу (1..7) магазин появляется 3 раза, stage 7 обязателен,
-///    ещё 2 раза случайно среди 1..6. В эти 2 появления режим либо CoinsOnly, либо CoinsAndSouls.
+/// 2) расписание магазина на ран: между уровнями (stage 1..totalStages-1) магазин появляется N раз,
+///    фиксированно после stage 3 и перед последним уровнем, остальное — случайно.
 /// 3) выдаёт режим магазина для StageTransitionPopup / InterLevelUI.
 /// </summary>
 public class ShopKeeperManager : MonoBehaviour
@@ -23,12 +23,9 @@ public class ShopKeeperManager : MonoBehaviour
     [Tooltip("Появляется ли NPC сразу после победы на этапе (для комнат награды).")]
     public bool appearAfterStageClear = false;
 
-    [Header("Run shop schedule (stages 1..7)")]
-    [Tooltip("Сколько раз магазин должен появиться в лесу (stage 1..7) за один ран. ДОЛЖНО быть 3 по ТЗ.")]
-    public int shopsInForestCount = 3;
-
-    [Tooltip("Этаж, где магазин появляется всегда (по ТЗ = 7).")]
-    public int guaranteedForestStage = 7;
+    [Header("Run shop schedule (between levels)")]
+    [Tooltip("Сколько раз магазин должен появиться между уровнями за один ран. По ТЗ = 4 (минимум 4).")]
+    public int shopsInForestCount = 4;
 
     [Tooltip("Вероятность, что магазин в лесу будет только за монеты. Иначе будет за монеты+души.")]
     [Range(0f, 1f)] public float coinsOnlyChance = 0.5f;
@@ -54,24 +51,34 @@ public class ShopKeeperManager : MonoBehaviour
         // База (0) — всегда есть магазин и ВСЕГДА CoinsAndSouls
         _shopByStage[0] = ShopCurrencyMode.CoinsAndSouls;
 
-        // Если стадий мало — выходим
-        if (totalStages < 1) return;
+        // Для магазина "между уровнями" нужен хотя бы один переход.
+        // Пример: totalStages=9 -> валидные stage для магазина: 1..8.
+        int maxBetweenStage = totalStages - 1;
+        if (maxBetweenStage < 1) return;
 
-        // Гарантированный stage 7 должен быть достижим
-        int guaranteed = Mathf.Clamp(guaranteedForestStage, 1, totalStages);
+        // Фиксированные появления:
+        // 1) после 3-го уровня (stage 3)
+        // 2) перед последним уровнем (stage totalStages-1)
+        if (3 <= maxBetweenStage)
+            _shopByStage[3] = RollForestMode();
 
-        // 7-й всегда магазин (если достижим)
-        _shopByStage[guaranteed] = RollForestMode();
+        _shopByStage[maxBetweenStage] = RollForestMode();
 
-        // Добираем до нужного количества появлений в лесу
-        int forestNeed = Mathf.Max(0, shopsInForestCount);
+        // Добираем до нужного количества появлений в лесу.
+        // По ТЗ минимум 4 появления, даже если в инспекторе осталось старое значение (например 3).
+        int forestNeed = Mathf.Max(4, shopsInForestCount);
         int alreadyForest = CountForestShops();
         int needMore = Mathf.Max(0, forestNeed - alreadyForest);
 
-        // Кандидаты для случайных: 1..(guaranteed-1)
-        int maxRandom = Mathf.Min(guaranteed - 1, totalStages);
+        // Кандидаты для случайных: только промежуточные стадии 1..(totalStages-1),
+        // исключая фиксированные.
+        int maxRandom = maxBetweenStage;
         List<int> candidates = new List<int>();
-        for (int st = 1; st <= maxRandom; st++) candidates.Add(st);
+        for (int st = 1; st <= maxRandom; st++)
+        {
+            if (_shopByStage.ContainsKey(st)) continue;
+            candidates.Add(st);
+        }
 
         while (needMore > 0 && candidates.Count > 0)
         {

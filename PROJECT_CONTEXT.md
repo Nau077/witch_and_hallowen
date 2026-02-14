@@ -19,6 +19,31 @@ Keep this file updated when logic changes.
 5. `SoulPerksPanelUI` listens to `SoulPerksManager.OnPerksChanged` and redraws hearts.
 6. Tooltip triggers on hover use shared runtime tooltip UI (`HoverTooltipUI`).
 
+## Combat input interaction note (dash + windup)
+
+Latest fix (added in this context on 2026-02-14):
+- issue: player could sometimes remain visually/state-wise in windup after pressing dash (`Space`) during/around attack charge.
+- current behavior:
+  - dash is allowed to start even if charge was active;
+  - dash now force-cancels current charge/windup state before dash motion starts;
+  - windup sprite is reset to idle during this forced cancel.
+
+Implementation points:
+- `Assets/Scripts/Player/Attack/SkillsAndElements/skills/Dash/PlayerDash.cs`
+  - added serialized cached link to `PlayerSkillShooter`.
+  - removed early return that blocked dash when shooter was charging.
+  - in `TryDash()`, before spending dash energy, calls:
+    - `shooter.CancelAllImmediate(resetToIdleSprite: true);`
+- `Assets/Scripts/Player/Attack/SkillsAndElements/PlayerSkillShooter.cs`
+  - `CancelAllImmediate(...)` extended with optional parameter:
+    - `bool resetToIdleSprite = false`
+  - method remains backward compatible for existing callers.
+
+If this area is changed later, verify these scenarios:
+- hold LMB (charge) -> press Space -> run left/right after dash
+- quick alternating LMB/Space inputs
+- ensure no persistent windup sprite after dash
+
 ## Key scripts and responsibilities
 
 - `Assets/Scripts/UI/SoulShopKeeper/SoulShopKeeperPopup.cs`

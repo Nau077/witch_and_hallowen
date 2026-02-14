@@ -6926,6 +6926,8 @@ MonoBehaviour:
   maxMana: 50
   currentMana: 50
   regenPerSecond: 2
+  baseMaxMana: 0
+  permanentMaxManaBonus: 0
 --- !u!114 &201944546
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7147,6 +7149,8 @@ MonoBehaviour:
   blinkSpeed: 22
   blinkIntensity: 0.65
   enemyProjectileTag: EnemyProjectile
+  baseMaxEnergy: 0
+  permanentMaxEnergyBonus: 0
 --- !u!1 &206836989
 GameObject:
   m_ObjectHideFlags: 0
@@ -9337,7 +9341,7 @@ MonoBehaviour:
   staminaMaxPurchases: 2
   staminaStep: 15
   staminaBasePrice: 60
-  resetPrice: 100
+  resetPrice: 1
 --- !u!4 &669322080
 Transform:
   m_ObjectHideFlags: 0
@@ -11902,8 +11906,8 @@ MonoBehaviour:
   soulItems:
   - {fileID: 11400000, guid: 9166967a969876c42b0dff384eb831bd, type: 2}
   - {fileID: 11400000, guid: 81032a3255baa124abb5be1b11e0a7ae, type: 2}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 11400000, guid: 1094bab1e0bad474889d48131fa8d868, type: 2}
+  - {fileID: 11400000, guid: 9a5a6a2217415764a9b88fb4d69c0f5b, type: 2}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
@@ -19478,7 +19482,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &2083657062
 RectTransform:
   m_ObjectHideFlags: 0

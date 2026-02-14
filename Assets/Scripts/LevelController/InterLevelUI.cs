@@ -67,8 +67,8 @@ public class InterLevelUI : MonoBehaviour
     public bool markerPopUseUnscaledTime = true;
 
     [Header("Debug")]
-    public bool debugLogs = true;
-    public bool debugLogTimings = true;
+    public bool debugLogs = false;
+    public bool debugLogTimings = false;
     public float logIfMethodTookMsMoreThan = 2f;
 
     RectTransform _progressRect;
@@ -97,21 +97,14 @@ public class InterLevelUI : MonoBehaviour
     {
         _id = GetInstanceID();
         EnsureRefs();
-
-        if (debugLogs)
-            UnityEngine.Debug.Log($"[InterLevelUI] Awake id={_id} scene={gameObject.scene.name}");
     }
 
     void OnEnable()
     {
-        if (debugLogs)
-            UnityEngine.Debug.Log($"[InterLevelUI] OnEnable id={_id} timeScale={Time.timeScale}");
     }
 
     void OnDisable()
     {
-        if (debugLogs)
-            UnityEngine.Debug.Log($"[InterLevelUI] OnDisable id={_id} timeScale={Time.timeScale}");
     }
 
     public void SetProgress(int currentStage, int totalStages)
@@ -127,8 +120,6 @@ public class InterLevelUI : MonoBehaviour
         // если реально ничего не менялось — НЕ трогаем TMP
         if (_cachedText == txt && _cachedTotalStages == totalStages && _cachedCurrentStage == currentStage)
         {
-            if (debugLogs)
-                UnityEngine.Debug.Log($"[InterLevelUI] SetProgress SKIP (no changes) stage={currentStage}/{totalStages}");
             return;
         }
 
@@ -451,20 +442,7 @@ public class InterLevelUI : MonoBehaviour
 
     void LogTimingIfNeeded(string method, Stopwatch sw)
     {
-        if (!debugLogTimings) return;
-
-        float ms = (float)sw.Elapsed.TotalMilliseconds;
-        if (ms >= logIfMethodTookMsMoreThan)
-        {
-            UnityEngine.Debug.LogWarning(
-                $"[InterLevelUI] {method} took {ms:0.00} ms | " +
-                $"stage={_cachedCurrentStage}/{_cachedTotalStages} id={_id}"
-            );
-        }
-        else if (debugLogs)
-        {
-            UnityEngine.Debug.Log($"[InterLevelUI] {method} {ms:0.00} ms");
-        }
+        return;
     }
 
     // ---------------- POP animation ----------------

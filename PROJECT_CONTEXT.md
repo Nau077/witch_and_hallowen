@@ -1,31 +1,44 @@
-# Shop + Soul Perks Context (Codex Handoff)
+# Shop + Soul Perks + Tooltips Context (Codex Handoff)
 
-This document is a quick handoff for future Codex chats working on the shop/perk system.
-Keep this file updated when shop logic changes.
+This document is a quick handoff for future Codex chats working on:
+- shop popup flow
+- soul perks and hearts UI
+- hover tooltip system
+
+Keep this file updated when logic changes.
 
 ## Core runtime flow
 
 1. `RunLevelManager` opens shop popup (`SoulShopKeeperPopup`) in base or stage-clear mode.
 2. `SoulShopKeeperPopup` builds slots from `coinItems[]` and `soulItems[]`.
-3. Each `ShopItemSlotUI` reads a `ShopItemDefinition` and:
+3. `ShopItemSlotUI` reads a `ShopItemDefinition` and:
    - shows icon/name/price
-   - validates if purchase is available now
+   - validates purchase availability
    - performs purchase on click
-4. Permanent soul perks are applied via `SoulPerksManager`.
+4. Permanent soul perks are managed by `SoulPerksManager`.
 5. `SoulPerksPanelUI` listens to `SoulPerksManager.OnPerksChanged` and redraws hearts.
+6. Tooltip triggers on hover use shared runtime tooltip UI (`HoverTooltipUI`).
 
 ## Key scripts and responsibilities
 
 - `Assets/Scripts/UI/SoulShopKeeper/SoulShopKeeperPopup.cs`
-  - Shop popup controller, modes, section toggles, slot setup.
+  - shop popup controller, modes, currency section toggles, slot setup.
 - `Assets/Scripts/UI/SoulShopKeeper/ShopItemDefinition.cs`
-  - ScriptableObject data for shop items (`effectType`, price, icon, etc).
+  - item data SO (display, price, effect type, optional skill effect data).
 - `Assets/Scripts/UI/SoulShopKeeper/ShopItemSlotUI.cs`
-  - Slot visual + purchase logic.
+  - slot visual + purchase logic + tooltip text for shop items.
 - `Assets/Scripts/UI/SoulShopKeeper/SoulPerksManager.cs`
-  - Permanent perk levels, pricing, buy/reset logic, PlayerPrefs persistence.
+  - permanent perk levels, pricing, buy/reset logic, persistence via PlayerPrefs.
 - `Assets/Scripts/UI/SoulShopKeeper/SoulPerksPanelUI.cs`
-  - Heart UI for HP/Mana/Stamina. Shows `1 + level` hearts per type.
+  - hearts UI (HP/Mana/Stamina), pooling, pop animation, heart tooltips.
+- `Assets/Scripts/Player/Attack/SkillsAndElements/SkillBarUI.cs`
+  - skill bar visuals and skill slot tooltips.
+- `Assets/Scripts/Player/Attack/SkillsAndElements/DashPerkPanelUI.cs`
+  - dash perk icon UI and tooltip.
+- `Assets/Scripts/UI/Tooltip/HoverTooltipUI.cs`
+  - shared tooltip runtime UI + hover trigger component.
+- `Assets/Scripts/UI/Tooltip/HoverTooltipData.cs`
+  - tooltip data struct (title/level/price/description).
 
 Related gameplay stat targets:
 - `Assets/Scripts/Player/Attack/Mana/PlayerMana.cs` (max mana)
@@ -37,66 +50,120 @@ Related gameplay stat targets:
 From `ShopItemEffectType`:
 
 - `IncreaseMaxHealth` (10)
-  - Uses `SoulPerksManager` HP upgrade.
+  - uses `SoulPerksManager` HP upgrade.
 - `ResetSoulPerks` (11)
-  - Resets all perk levels to `0`, recalculates stats, returns refund logic.
+  - resets perk levels and applies refund logic.
 - `IncreaseDashLevel` (12)
-  - In shop logic this is used for **Stamina hearts/energy** upgrades.
-  - Calls stamina buy path (`TryBuyStaminaUpgrade`).
+  - currently used as stamina hearts / dash energy upgrade path.
+  - calls stamina buy logic (`TryBuyStaminaUpgrade`).
 - `IncreaseManaLevel` (13)
-  - Calls mana buy path (`TryBuyManaUpgrade`).
+  - calls mana buy logic (`TryBuyManaUpgrade`).
 
-Important: `IncreaseDashLevel` enum name is legacy; currently used as stamina perk in shop slots.
+Important:
+- `IncreaseDashLevel` enum name is legacy; in current shop usage it maps to stamina upgrade.
 
 ## Current perk progression rules
 
 HP:
-- `HpLevel` starts at `0`
-- UI shows `1 + HpLevel` hearts
-- Price: linear from `GetHealthUpgradePrice()`
+- `HpLevel` range `0..hpMaxPurchases` (default max purchases: 4)
+- UI hearts shown: `1 + HpLevel`
+- price model: linear (`base * (index+1)`)
 
 Mana:
 - `ManaLevel` range `0..3`
-- UI shows `1 + ManaLevel` hearts
-- Per purchase: `+25` max mana
-- Prices: `50 -> 100 -> 200`
+- UI hearts shown: `1 + ManaLevel`
+- stat bonus: `+25` max mana per level
+- prices: `50 -> 100 -> 200` (default)
 
 Stamina:
 - `StaminaLevel` range `0..3`
-- UI shows `1 + StaminaLevel` hearts
-- Per purchase: `+25` max dash energy
-- Prices: `50 -> 100 -> 200`
+- UI hearts shown: `1 + StaminaLevel`
+- stat bonus: `+25` max dash energy per level
+- prices: `50 -> 100 -> 200` (default)
 
 Reset:
-- Sets `HpLevel`, `DashLevel`, `ManaLevel`, `StaminaLevel` to `0`
-- Therefore heart UI returns to one base heart for each type.
+- resets `HpLevel`, `DashLevel`, `ManaLevel`, `StaminaLevel` to `0`
+- hearts UI returns to one base heart per type
 
 ## Applying perk values to player
 
-`SoulPerksManager.ApplyToPlayerIfPossible()` currently applies:
+`SoulPerksManager.ApplyToPlayerIfPossible()` applies:
 - HP bonus -> `PlayerHealth.ApplyPermanentMaxHpBonus(...)`
 - Mana bonus -> `PlayerMana.ApplyPermanentMaxManaBonus(...)`
 - Stamina bonus -> `PlayerDash.ApplyPermanentMaxEnergyBonus(...)`
 
 If gameplay stat behavior changes, update this mapping first.
 
-## How to add a new soul perk item (ScriptableObject)
+## Tooltip system (current)
+
+### Overview
+
+- Tooltip UI is created entirely at runtime by `HoverTooltipUI` (no prefab setup required).
+- Shared format uses `HoverTooltipData` with 4 lines:
+  - `title`
+  - `levelLine`
+  - `priceLine`
+  - `description`
+- Show delay is currently `0.6` sec by default.
+
+### Where tooltips are attached
+
+- Shop slots: `ShopItemSlotUI.EnsureTooltip()`
+- Skill slots: `SkillBarUI.EnsureTooltips()`
+- Hearts (HP/Mana/Stamina): `SoulPerksPanelUI.EnsureHeartTooltip(...)`
+- Dash perk icon: `DashPerkPanelUI.EnsureIconExists()` binds tooltip
+
+### Where tooltip text is edited
+
+- Shop item tooltips:
+  - `ShopItemSlotUI.BuildTooltipData()`
+  - `ShopItemSlotUI.GetCurrentLevelLine()`
+  - `ShopItemSlotUI.GetEffectDescription()`
+- Skill tooltips:
+  - `SkillBarUI.BuildSkillTooltipData(int index)`
+- Heart tooltips:
+  - `SoulPerksPanelUI.BuildPerkTooltipData(PerkType type)`
+- Dash perk tooltip:
+  - `DashPerkPanelUI.BuildTooltipData()`
+
+### Global tooltip look/behavior knobs
+
+In `Assets/Scripts/UI/Tooltip/HoverTooltipUI.cs`:
+- position near cursor: `mouseOffset`
+- default show delay: `showDelayDefault`
+- background color: `bg.color` in `EnsureView()`
+- text styling: `CreateLine(...)` calls in `EnsureView()`
+
+### Current style defaults
+
+- delay: `0.6s`
+- offset: `(10, -10)` from cursor
+- background: dark blue (`new Color(0.04f, 0.08f, 0.17f, 0.96f)`)
+
+## How to add a new soul perk shop item
 
 1. Create `Shop Item` asset.
 2. Set:
    - `currency = Souls`
-   - `effectType = one of soul perk effects`
+   - `effectType = desired soul perk effect`
 3. Add SO to `SoulShopKeeperPopup.soulItems[]`.
-4. Ensure `ShopItemSlotUI` has corresponding branches in:
+4. Ensure `ShopItemSlotUI` includes branches for this effect in:
    - `GetCurrentPrice()`
    - `CanPurchaseNow()`
    - `OnClickBuy()`
-5. If UI hearts/stat must change, wire it through `SoulPerksManager`.
+5. If hearts/stat behavior changes, wire through `SoulPerksManager`.
+6. If tooltip text must be special, update `GetEffectDescription()` / tooltip builder logic.
 
-## Maintenance checklist (update this doc when changed)
+## Notes about logs / debugging
 
-When editing shop/perks, update:
-- Effect mapping section (if enum/use meaning changes)
-- Progression rules section (steps, caps, prices)
-- Applied-to-player section (which runtime stats are modified)
-- Any renamed or moved key script paths
+- `InterLevelUI` timing logs are currently effectively disabled in code (`LogTimingIfNeeded` early return).
+- `RunLevelManager` and `ShopKeeperManager` noisy startup logs were reduced.
+
+## Maintenance checklist
+
+When editing shop/perks/tooltips, update:
+- effect mapping section (if enum meaning/use changes)
+- progression rules (caps/prices/bonuses)
+- player-apply mapping
+- tooltip attachment points and text edit locations
+- any moved/renamed key script paths

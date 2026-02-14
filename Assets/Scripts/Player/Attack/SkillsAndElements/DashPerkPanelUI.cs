@@ -35,6 +35,7 @@ public class DashPerkPanelUI : MonoBehaviour
     private int lastLevel = -1;
     private float breatheT;
     private Coroutine popRoutine;
+    private HoverTooltipTrigger tooltipTrigger;
 
     private void Awake()
     {
@@ -140,6 +141,12 @@ public class DashPerkPanelUI : MonoBehaviour
         // Сброс в адекватное состояние
         iconRect.localScale = Vector3.one;
         iconImg.color = Color.white;
+
+        tooltipTrigger = iconGO.GetComponent<HoverTooltipTrigger>();
+        if (tooltipTrigger == null)
+            tooltipTrigger = iconGO.AddComponent<HoverTooltipTrigger>();
+
+        tooltipTrigger.Bind(BuildTooltipData, 0.6f);
     }
 
     private void ForceSize()
@@ -210,5 +217,21 @@ public class DashPerkPanelUI : MonoBehaviour
             iconRect.localScale = Vector3.one;
 
         popRoutine = null;
+    }
+
+    private HoverTooltipData BuildTooltipData()
+    {
+        var perks = SoulPerksManager.Instance;
+        if (perks == null) return default;
+
+        return new HoverTooltipData
+        {
+            title = "Перк дэша",
+            levelLine = "Уровень: " + perks.GetDashRealLevel() + "/3",
+            priceLine = perks.DashLevel >= perks.dashMaxPurchases
+                ? "Цена: MAX"
+                : ("Цена: " + perks.GetDashUpgradePrice() + " души"),
+            description = "Улучшает дальность и эффективность дэша."
+        };
     }
 }

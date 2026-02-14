@@ -305,6 +305,7 @@ public class SoulPerksPanelUI : MonoBehaviour
             }
 
             go.transform.localScale = Vector3.one;
+            EnsureHeartTooltip(perk.type, go);
 
             if (forceIconSize)
                 EnsureLayoutElementSize(go, img);
@@ -417,6 +418,59 @@ public class SoulPerksPanelUI : MonoBehaviour
         var perks = SoulPerksManager.Instance;
         // Show one base Stamina heart plus purchased levels (1 + StaminaLevel)
         return perks != null ? (1 + perks.StaminaLevel) : 1;
+    }
+
+    private void EnsureHeartTooltip(PerkType type, GameObject heartGO)
+    {
+        if (heartGO == null) return;
+
+        var trigger = heartGO.GetComponent<HoverTooltipTrigger>();
+        if (trigger == null)
+            trigger = heartGO.AddComponent<HoverTooltipTrigger>();
+
+        trigger.Bind(() => BuildPerkTooltipData(type), 0.6f);
+    }
+
+    private HoverTooltipData BuildPerkTooltipData(PerkType type)
+    {
+        var perks = SoulPerksManager.Instance;
+        if (perks == null) return default;
+
+        switch (type)
+        {
+            case PerkType.HP:
+                return new HoverTooltipData
+                {
+                    title = "Сердце здоровья",
+                    levelLine = "Уровень: " + (1 + perks.HpLevel) + "/" + (1 + perks.hpMaxPurchases),
+                    priceLine = perks.HpLevel >= perks.hpMaxPurchases
+                        ? "Цена: MAX"
+                        : ("Цена: " + perks.GetHealthUpgradePrice() + " души"),
+                    description = "Перманентный бонус HP: +" + perks.GetPermanentMaxHpBonus()
+                };
+
+            case PerkType.Mana:
+                return new HoverTooltipData
+                {
+                    title = "Сердце маны",
+                    levelLine = "Уровень: " + (1 + perks.ManaLevel) + "/" + (1 + perks.manaMaxPurchases),
+                    priceLine = perks.ManaLevel >= perks.manaMaxPurchases
+                        ? "Цена: MAX"
+                        : ("Цена: " + perks.GetManaUpgradePrice() + " души"),
+                    description = "Перманентный бонус маны: +" + perks.GetPermanentManaBonus()
+                };
+
+            default:
+                return new HoverTooltipData
+                {
+                    title = "Сердце выносливости",
+                    levelLine = "Уровень: " + (1 + perks.StaminaLevel) + "/" + (1 + perks.staminaMaxPurchases),
+                    priceLine = perks.StaminaLevel >= perks.staminaMaxPurchases
+                        ? "Цена: MAX"
+                        : ("Цена: " + perks.GetStaminaUpgradePrice() + " души"),
+                    description = "Перманентный бонус выносливости: +" + perks.GetPermanentStaminaBonus()
+                };
+        }
     }
 
     // ============ POOL ============

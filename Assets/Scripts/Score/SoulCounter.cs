@@ -60,7 +60,12 @@ public class SoulCounter : MonoBehaviour
             return;
         }
         Instance = this;
-        DontDestroyOnLoad(gameObject);
+
+        Transform root = transform.root;
+        if (root != null)
+            DontDestroyOnLoad(root.gameObject);
+        else
+            DontDestroyOnLoad(gameObject);
 
         // базовый масштаб текстов
         if (soulsText)

@@ -86,7 +86,6 @@ public class ShopKeeperManager : MonoBehaviour
             }
         }
 
-        Debug.Log("[ShopKeeperManager] Run schedule: " + DebugScheduleToString());
     }
 
     private int CountForestShops()

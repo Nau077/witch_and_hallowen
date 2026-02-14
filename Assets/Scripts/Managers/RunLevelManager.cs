@@ -63,7 +63,6 @@ public class RunLevelManager : MonoBehaviour
         // Ensure runtime maxStages respects minimum of 9 so UI shows all stages
         if (maxStages < 9)
         {
-            Debug.LogWarning($"[RunLevelManager] maxStages was {maxStages} in inspector — forcing to 9 at runtime so UI shows all stages.");
             maxStages = 9;
         }
 
@@ -77,8 +76,6 @@ public class RunLevelManager : MonoBehaviour
             skullEvent = GetComponent<SkullEventController>();
         if (skullEvent == null)
             skullEvent = FindObjectOfType<SkullEventController>(true);
-
-        Debug.Log($"[RunLevelManager] Awake. shopPopup={(shopPopup ? shopPopup.name : "NULL")}, skullEvent={(skullEvent ? skullEvent.name : "NULL")}");
     }
 
     private void Start()
@@ -105,7 +102,6 @@ public class RunLevelManager : MonoBehaviour
         EnsurePlayerMana();
         if (playerMana == null)
         {
-            Debug.LogWarning($"[RunLevelManager] FillManaToMaxSafe skipped ({reason}) — playerMana is NULL");
             return;
         }
 

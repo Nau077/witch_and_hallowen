@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShopItemDefinition
   itemId: 
   displayName: 
-  icon: {fileID: -9088952373934807646, guid: 07619bd03aa27b64ba48f6e727cfdf70, type: 3}
+  icon: {fileID: 2784468965456250579, guid: 0a9421a2d8f402d4c9c2eb721336f8ea, type: 3}
   currency: 1
   price: 50
-  effectType: 12
+  effectType: 13
   skillDef: {fileID: 0}
   skillId: 0
   unlockSkill: 0

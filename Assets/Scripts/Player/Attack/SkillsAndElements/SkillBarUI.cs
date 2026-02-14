@@ -1,47 +1,50 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
 
 public class SkillBarUI : MonoBehaviour
 {
     [System.Serializable]
     public class SlotUI
     {
-        public Button button;          // <- повесь сюда Button на корневой объект слота
-        public Image icon;             // иконка навыка
-        public Image cooldown;         // радиальная заливка
-        public TMP_Text countText;     // "∞" или число
-        public Image selectedFrame;    // рамка/подсветка активного
+        public Button button;
+        public Image icon;
+        public Image cooldown;
+        public TMP_Text countText;
+        public Image selectedFrame;
 
         [Header("Cooldown Visual")]
         [Range(0f, 1f)] public float startAlpha = 0.65f;
         [Range(0f, 1f)] public float endAlpha = 0f;
         public Image.Origin360 origin = Image.Origin360.Top;
     }
+
     public PlayerSkillShooter shooter;
     public SkillLoadout loadout;
     public SlotUI[] slotsUI = new SlotUI[SkillLoadout.SlotsCount];
 
     [Header("Colors")]
     public Color activeColor = Color.white;
-    public Color inactiveColor = new Color(1, 1, 1, 0.5f);
+    public Color inactiveColor = new Color(1f, 1f, 1f, 0.5f);
 
-    void Awake()
+    private HoverTooltipTrigger[] _tooltipTriggers;
+
+    private void Awake()
     {
         if (!shooter)
             shooter = FindObjectOfType<PlayerSkillShooter>();
 
         SetupCooldownImages();
         WireButtons();
+        EnsureTooltips();
     }
 
-    void OnEnable()
+    private void OnEnable()
     {
-        // на всякий — подтянуть валидный актив
         if (loadout) loadout.EnsureValidActive();
     }
 
-    void Update()
+    private void Update()
     {
         if (loadout == null || loadout.slots == null) return;
 
@@ -52,19 +55,16 @@ public class SkillBarUI : MonoBehaviour
             bool isUsable = (s?.def != null);
             bool isActive = (i == loadout.ActiveIndex);
 
-            // icon
             if (sUI.icon)
             {
                 sUI.icon.sprite = isUsable ? s.def.icon : null;
                 sUI.icon.color = (isUsable && isActive) ? activeColor :
-                                 (isUsable ? inactiveColor : new Color(1, 1, 1, 0.2f));
+                    (isUsable ? inactiveColor : new Color(1f, 1f, 1f, 0.2f));
             }
 
-            // selected frame
             if (sUI.selectedFrame)
                 sUI.selectedFrame.enabled = isActive && isUsable;
 
-            // text
             if (sUI.countText)
             {
                 if (!isUsable) sUI.countText.text = "";
@@ -72,7 +72,6 @@ public class SkillBarUI : MonoBehaviour
                 else sUI.countText.text = s.charges.ToString();
             }
 
-            // cooldown
             if (sUI.cooldown)
             {
                 if (!isUsable || !s.IsOnCooldown)
@@ -82,7 +81,7 @@ public class SkillBarUI : MonoBehaviour
                 else
                 {
                     sUI.cooldown.enabled = true;
-                    float t = s.CooldownNormalized; // 1..0
+                    float t = s.CooldownNormalized;
                     sUI.cooldown.fillAmount = t;
 
                     var c = sUI.cooldown.color;
@@ -91,12 +90,11 @@ public class SkillBarUI : MonoBehaviour
                 }
             }
 
-            // кнопка должна быть кликабельной только если там есть навык
             if (sUI.button) sUI.button.interactable = isUsable;
         }
     }
 
-    void SetupCooldownImages()
+    private void SetupCooldownImages()
     {
         foreach (var sUI in slotsUI)
         {
@@ -108,11 +106,13 @@ public class SkillBarUI : MonoBehaviour
             img.fillClockwise = true;
             img.fillOrigin = (int)sUI.origin;
             img.fillAmount = 0f;
-            var c = img.color; c.a = 0f; img.color = c;
+            var c = img.color;
+            c.a = 0f;
+            img.color = c;
         }
     }
 
-    void WireButtons()
+    private void WireButtons()
     {
         for (int i = 0; i < slotsUI.Length; i++)
         {
@@ -126,14 +126,58 @@ public class SkillBarUI : MonoBehaviour
         }
     }
 
-    void OnSlotClicked(int index)
+    private void EnsureTooltips()
+    {
+        if (slotsUI == null) return;
+
+        if (_tooltipTriggers == null || _tooltipTriggers.Length != slotsUI.Length)
+            _tooltipTriggers = new HoverTooltipTrigger[slotsUI.Length];
+
+        for (int i = 0; i < slotsUI.Length; i++)
+        {
+            var sUI = slotsUI[i];
+            if (sUI == null || sUI.button == null) continue;
+
+            int captured = i;
+            var trigger = sUI.button.GetComponent<HoverTooltipTrigger>();
+            if (trigger == null)
+                trigger = sUI.button.gameObject.AddComponent<HoverTooltipTrigger>();
+
+            trigger.Bind(() => BuildSkillTooltipData(captured), 0.6f);
+            _tooltipTriggers[i] = trigger;
+        }
+    }
+
+    private HoverTooltipData BuildSkillTooltipData(int index)
+    {
+        if (loadout == null || loadout.slots == null || index < 0 || index >= loadout.slots.Length)
+            return default;
+
+        var slot = loadout.slots[index];
+        if (slot == null || slot.def == null) return default;
+
+        int level = 1;
+        if (PlayerSkills.Instance != null)
+            level = Mathf.Max(1, PlayerSkills.Instance.GetSkillLevel(slot.def.skillId));
+
+        string chargesLine = slot.def.infiniteCharges ? "Заряды: бесконечно" : ("Заряды: " + slot.charges);
+        string extraLine = "КД: " + slot.def.cooldown.ToString("0.##") + " сек | Мана: " + slot.def.manaCostPerShot;
+
+        return new HoverTooltipData
+        {
+            title = slot.def.displayName,
+            levelLine = "Уровень навыка: " + level,
+            priceLine = "Цена заряда: " + slot.def.coinCostPerCharge + " монеты",
+            description = chargesLine + "\n" + extraLine
+        };
+    }
+
+    private void OnSlotClicked(int index)
     {
         if (!loadout) return;
 
-        // 1) переключаем активный слот
         loadout.SetActiveIndex(index);
 
-        // 2) говорим шутеру: этот клик был по UI, замах не начинать
         if (shooter != null)
             shooter.SkipNextClickFromUI();
     }

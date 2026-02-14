@@ -1,6 +1,6 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
 
 public class ShopItemSlotUI : MonoBehaviour
 {
@@ -13,6 +13,7 @@ public class ShopItemSlotUI : MonoBehaviour
 
     private ShopItemDefinition _def;
     private SoulShopKeeperPopup _ownerPopup;
+    private HoverTooltipTrigger _tooltipTrigger;
 
     public void Setup(SoulShopKeeperPopup owner, ShopItemDefinition def)
     {
@@ -21,6 +22,7 @@ public class ShopItemSlotUI : MonoBehaviour
 
         RefreshVisual();
         HookButton();
+        EnsureTooltip();
     }
 
     private void HookButton()
@@ -50,7 +52,7 @@ public class ShopItemSlotUI : MonoBehaviour
 
         int shownPrice = GetCurrentPrice();
         if (priceText != null)
-            priceText.text = $"{shownPrice}";
+            priceText.text = shownPrice.ToString();
 
         bool requirementsMet = true;
         if (PlayerSkills.Instance != null)
@@ -94,6 +96,12 @@ public class ShopItemSlotUI : MonoBehaviour
                 return perks.GetManaUpgradePrice();
         }
 
+        if (_def.effectType == ShopItemEffectType.ResetSoulPerks)
+        {
+            if (perks != null)
+                return perks.resetPrice;
+        }
+
         return _def.price;
     }
 
@@ -101,7 +109,6 @@ public class ShopItemSlotUI : MonoBehaviour
     {
         if (_def == null) return false;
 
-        // --- SOULS (перманентно) ---
         if (_def.currency == ShopCurrency.Souls)
         {
             var perks = SoulPerksManager.Instance;
@@ -120,15 +127,11 @@ public class ShopItemSlotUI : MonoBehaviour
             if (_def.effectType == ShopItemEffectType.ResetSoulPerks)
                 return perks != null && perks.HasAnythingToReset();
 
-            // обычные товары за souls
             return sc.souls >= GetCurrentPrice();
         }
 
-        // --- COINS (только ран) ---
         if (_def.currency == ShopCurrency.Coins)
-        {
             return PlayerWallet.Instance != null && PlayerWallet.Instance.CanSpend(_def.price);
-        }
 
         return false;
     }
@@ -139,7 +142,6 @@ public class ShopItemSlotUI : MonoBehaviour
 
         bool paidOrDone = false;
 
-        // --- SOULS PERKS / SOULS покупки ---
         if (_def.currency == ShopCurrency.Souls)
         {
             var perks = SoulPerksManager.Instance;
@@ -166,7 +168,6 @@ public class ShopItemSlotUI : MonoBehaviour
             }
             else
             {
-                // обычная покупка за souls
                 var sc = SoulCounter.Instance;
                 int price = GetCurrentPrice();
                 if (sc != null && sc.souls >= price)
@@ -179,7 +180,6 @@ public class ShopItemSlotUI : MonoBehaviour
                 }
             }
         }
-        // --- COINS ---
         else if (_def.currency == ShopCurrency.Coins)
         {
             if (PlayerWallet.Instance != null)
@@ -199,7 +199,6 @@ public class ShopItemSlotUI : MonoBehaviour
 
     private void ApplyEffect_RegularShopItem()
     {
-        // 1) Прогресс/разблокировка скиллов
         if (PlayerSkills.Instance != null && _def.skillId != SkillId.None)
         {
             if (_def.unlockSkill)
@@ -212,10 +211,91 @@ public class ShopItemSlotUI : MonoBehaviour
                 PlayerSkills.Instance.AddCharges(_def.skillId, _def.addCharges);
         }
 
-        // 2) Заряды прямо в инвентарь (панель скиллов)
         if (_def.addCharges > 0 && _def.skillDef != null && SkillLoadout.Instance != null)
-        {
             SkillLoadout.Instance.AddChargesToSkill(_def.skillDef, _def.addCharges);
-        }
+    }
+
+    private void EnsureTooltip()
+    {
+        var target = (buyButton != null) ? buyButton.gameObject : gameObject;
+        if (target == null) return;
+
+        _tooltipTrigger = target.GetComponent<HoverTooltipTrigger>();
+        if (_tooltipTrigger == null)
+            _tooltipTrigger = target.AddComponent<HoverTooltipTrigger>();
+
+        _tooltipTrigger.Bind(BuildTooltipData, 0.6f);
+    }
+
+    private HoverTooltipData BuildTooltipData()
+    {
+        if (_def == null) return default;
+
+        int price = GetCurrentPrice();
+        string currency = (_def.currency == ShopCurrency.Souls) ? "души" : "монеты";
+
+        return new HoverTooltipData
+        {
+            title = _def.displayName,
+            levelLine = GetCurrentLevelLine(),
+            priceLine = "Цена: " + price + " " + currency,
+            description = GetEffectDescription()
+        };
+    }
+
+    private string GetCurrentLevelLine()
+    {
+        var perks = SoulPerksManager.Instance;
+
+        if (_def.effectType == ShopItemEffectType.IncreaseMaxHealth && perks != null)
+            return "Уровень: " + (1 + perks.HpLevel) + "/" + (1 + perks.hpMaxPurchases);
+
+        if (_def.effectType == ShopItemEffectType.IncreaseManaLevel && perks != null)
+            return "Уровень: " + (1 + perks.ManaLevel) + "/" + (1 + perks.manaMaxPurchases);
+
+        if (_def.effectType == ShopItemEffectType.IncreaseDashLevel && perks != null)
+            return "Уровень: " + (1 + perks.StaminaLevel) + "/" + (1 + perks.staminaMaxPurchases);
+
+        SkillId skillId = ResolveSkillId();
+        if (skillId != SkillId.None && PlayerSkills.Instance != null)
+            return "Уровень навыка: " + PlayerSkills.Instance.GetSkillLevel(skillId);
+
+        return "Уровень: -";
+    }
+
+    private string GetEffectDescription()
+    {
+        if (_def == null) return "";
+
+        if (_def.effectType == ShopItemEffectType.IncreaseMaxHealth)
+            return "Перманентно повышает максимум HP.";
+
+        if (_def.effectType == ShopItemEffectType.IncreaseManaLevel)
+            return "Перманентно повышает максимум маны.";
+
+        if (_def.effectType == ShopItemEffectType.IncreaseDashLevel)
+            return "Перманентно повышает запас выносливости для дэша.";
+
+        if (_def.effectType == ShopItemEffectType.ResetSoulPerks)
+            return "Сбрасывает перки и возвращает потраченные души с комиссией.";
+
+        if (_def.addCharges > 0)
+            return "Добавляет заряды: +" + _def.addCharges + ".";
+
+        if (_def.unlockSkill && ResolveSkillId() != SkillId.None)
+            return "Открывает навык.";
+
+        if (_def.upgradeToLevel > 0 && ResolveSkillId() != SkillId.None)
+            return "Повышает навык до уровня " + _def.upgradeToLevel + ".";
+
+        return "Покупка в магазине.";
+    }
+
+    private SkillId ResolveSkillId()
+    {
+        if (_def == null) return SkillId.None;
+        if (_def.skillId != SkillId.None) return _def.skillId;
+        if (_def.skillDef != null) return _def.skillDef.skillId;
+        return SkillId.None;
     }
 }

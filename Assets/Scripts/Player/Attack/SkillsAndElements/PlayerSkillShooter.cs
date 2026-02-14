@@ -471,9 +471,9 @@ public class PlayerSkillShooter : MonoBehaviour
         _chargeElapsed = 0f;
     }
 
-    public void CancelAllImmediate(bool keepAnimatorDisabled = false)
+    public void CancelAllImmediate(bool keepAnimatorDisabled = false, bool resetToIdleSprite = false)
     {
-        CancelCharge(changeSprite: false);
+        CancelCharge(changeSprite: resetToIdleSprite);
         if (!keepAnimatorDisabled && bodyAnimator) bodyAnimator.enabled = true;
     }
 

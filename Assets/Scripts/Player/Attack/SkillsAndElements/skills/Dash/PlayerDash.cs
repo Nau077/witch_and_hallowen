@@ -9,6 +9,7 @@ public class PlayerDash : MonoBehaviour
     [SerializeField] private Rigidbody2D rb;
     [SerializeField] private PlayerMovement movement;
     [SerializeField] private PlayerHealth hp;
+    [SerializeField] private PlayerSkillShooter shooter;
     [SerializeField] private SpriteRenderer sr;
     [SerializeField] private Animator anim;
 
@@ -71,6 +72,7 @@ public class PlayerDash : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         movement = GetComponent<PlayerMovement>();
         hp = GetComponent<PlayerHealth>();
+        shooter = GetComponent<PlayerSkillShooter>();
         sr = GetComponentInChildren<SpriteRenderer>(true);
         anim = sr ? sr.GetComponent<Animator>() : null;
     }
@@ -80,6 +82,7 @@ public class PlayerDash : MonoBehaviour
         if (!rb) rb = GetComponent<Rigidbody2D>();
         if (!movement) movement = GetComponent<PlayerMovement>();
         if (!hp) hp = GetComponent<PlayerHealth>();
+        if (!shooter) shooter = GetComponent<PlayerSkillShooter>();
         if (!sr) sr = GetComponentInChildren<SpriteRenderer>(true);
         if (!anim && sr) anim = sr.GetComponent<Animator>();
 
@@ -107,10 +110,6 @@ public class PlayerDash : MonoBehaviour
         RegenEnergy();
 
         if (IsDashing) return;
-
-        // Запрещаем дэш, если игрок заряжает атаку
-        var shooter = GetComponent<PlayerSkillShooter>();
-        if (shooter != null && shooter.IsCharging) return;
 
         if (Input.GetKeyDown(dashKey))
             TryDash();
@@ -149,6 +148,11 @@ public class PlayerDash : MonoBehaviour
 
             return;
         }
+
+        // Сбрасываем визуал/состояние замаха перед дэшем, чтобы
+        // после рывка не остаться в windup-кадре.
+        if (shooter != null)
+            shooter.CancelAllImmediate(resetToIdleSprite: true);
 
         currentEnergy = Mathf.Max(0f, currentEnergy - dashCost);
 

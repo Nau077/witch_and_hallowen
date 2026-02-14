@@ -58,6 +58,7 @@ public class PlayerSkillShooter : MonoBehaviour
 
     private Rigidbody2D _rb;
     private PlayerMovement _movement;
+    private PlayerHealth _health;
 
     private bool _isCharging;
     private int _currentDots;
@@ -69,6 +70,7 @@ public class PlayerSkillShooter : MonoBehaviour
     {
         _rb = GetComponent<Rigidbody2D>();
         _movement = GetComponent<PlayerMovement>();
+        _health = GetComponent<PlayerHealth>();
 
         if (!loadout)
             loadout = GetComponent<SkillLoadout>();
@@ -429,6 +431,13 @@ public class PlayerSkillShooter : MonoBehaviour
 
         yield return new WaitForSeconds(throwSpriteTime);
 
+        if (_health != null && _health.IsDead)
+        {
+            throwFlashRenderer.enabled = false;
+            _lockWindupSpriteWhileCharging = true;
+            yield break;
+        }
+
         throwFlashRenderer.enabled = false;
         BackToIdle();
 
@@ -441,6 +450,13 @@ public class PlayerSkillShooter : MonoBehaviour
         _lockWindupSpriteWhileCharging = false;
 
         yield return new WaitForSeconds(throwSpriteTime);
+
+        if (_health != null && _health.IsDead)
+        {
+            if (throwFlashRenderer) throwFlashRenderer.enabled = false;
+            _lockWindupSpriteWhileCharging = true;
+            yield break;
+        }
 
         BackToIdle();
 

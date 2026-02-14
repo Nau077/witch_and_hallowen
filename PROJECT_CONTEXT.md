@@ -64,6 +64,30 @@ If this area is changed later, verify these scenarios:
 - quick alternating LMB/Space inputs
 - ensure no persistent windup sprite after dash
 
+## Death visual priority note (updated 2026-02-14)
+
+Latest fix (added in this context on 2026-02-14):
+- issue: if player died during movement/attack transitions (especially during dash throw/exit coroutines),
+  throw/dash code could restore non-death visuals after `PlayerHealth.Die()`.
+- required behavior:
+  - death sprite must have priority over run/attack/dash visuals;
+  - after death, no coroutine should re-enable animator or restore previous sprite.
+
+Implementation points:
+- `Assets/Scripts/Player/Attack/SkillsAndElements/PlayerSkillShooter.cs`
+  - cached `PlayerHealth` reference.
+  - in `FlashRoutine()` and `ThrowRoutine()`, after wait:
+    - if `IsDead` is true, stop routine early without `BackToIdle()` and without animator re-enable.
+- `Assets/Scripts/Player/Attack/SkillsAndElements/skills/Dash/PlayerDash.cs`
+  - in `DashRoutine()` visual exit block:
+    - checks `isDeadNow = hp != null && hp.IsDead`.
+    - skips restore of sprite/color/scale/animator and movement re-enable when dead.
+
+If this area is changed later, verify these scenarios:
+- die while running (must keep dead sprite)
+- die during charge/windup (must keep dead sprite)
+- die during dash (must keep dead sprite, no post-dash restore)
+
 ## Key scripts and responsibilities
 
 - `Assets/Scripts/UI/SoulShopKeeper/SoulShopKeeperPopup.cs`

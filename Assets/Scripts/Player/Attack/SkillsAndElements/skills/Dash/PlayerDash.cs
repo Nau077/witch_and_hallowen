@@ -248,20 +248,25 @@ public class PlayerDash : MonoBehaviour
 
         rb.collisionDetectionMode = prevCd;
 
+        bool isDeadNow = hp != null && hp.IsDead;
+
         // ===== VISUAL EXIT =====
-        sr.color = originalColor;
-        sr.transform.localScale = originalScale;
+        if (!isDeadNow)
+        {
+            sr.color = originalColor;
+            sr.transform.localScale = originalScale;
 
-        if (restoreSpriteAfterDash)
-            sr.sprite = originalSprite;
+            if (restoreSpriteAfterDash)
+                sr.sprite = originalSprite;
 
-        if (anim != null)
-            anim.enabled = originalAnimEnabled;
+            if (anim != null)
+                anim.enabled = originalAnimEnabled;
+        }
 
         if (hp != null)
             hp.SetInvulnerable(false);
 
-        if (disableMovementWhileDashing && movement != null)
+        if (!isDeadNow && disableMovementWhileDashing && movement != null)
             movement.enabled = true;
 
         IsDashing = false;

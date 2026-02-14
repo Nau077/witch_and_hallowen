@@ -85,7 +85,13 @@ public class ShopItemSlotUI : MonoBehaviour
         if (_def.effectType == ShopItemEffectType.IncreaseDashLevel)
         {
             if (perks != null)
-                return perks.GetDashUpgradePrice();
+                return perks.GetStaminaUpgradePrice();
+        }
+
+        if (_def.effectType == ShopItemEffectType.IncreaseManaLevel)
+        {
+            if (perks != null)
+                return perks.GetManaUpgradePrice();
         }
 
         return _def.price;
@@ -106,7 +112,10 @@ public class ShopItemSlotUI : MonoBehaviour
                 return perks != null && perks.CanBuyHealthUpgrade();
 
             if (_def.effectType == ShopItemEffectType.IncreaseDashLevel)
-                return perks != null && perks.CanBuyDashUpgrade();
+                return perks != null && perks.CanBuyStaminaUpgrade();
+
+            if (_def.effectType == ShopItemEffectType.IncreaseManaLevel)
+                return perks != null && perks.CanBuyManaUpgrade();
 
             if (_def.effectType == ShopItemEffectType.ResetSoulPerks)
                 return perks != null && perks.HasAnythingToReset();
@@ -143,7 +152,12 @@ public class ShopItemSlotUI : MonoBehaviour
             else if (_def.effectType == ShopItemEffectType.IncreaseDashLevel)
             {
                 if (perks != null)
-                    paidOrDone = perks.TryBuyDashUpgrade();
+                    paidOrDone = perks.TryBuyStaminaUpgrade();
+            }
+            else if (_def.effectType == ShopItemEffectType.IncreaseManaLevel)
+            {
+                if (perks != null)
+                    paidOrDone = perks.TryBuyManaUpgrade();
             }
             else if (_def.effectType == ShopItemEffectType.ResetSoulPerks)
             {

@@ -9,9 +9,14 @@ public class PlayerMana : MonoBehaviour
     [Min(0f)] public float regenPerSecond = 2f;
 
     private float _manaExact;
+    [SerializeField] private int baseMaxMana;
+    [SerializeField] private int permanentMaxManaBonus;
 
     private void Awake()
     {
+        if (baseMaxMana <= 0)
+            baseMaxMana = Mathf.Max(1, maxMana);
+
         _manaExact = Mathf.Clamp(currentMana, 0, maxMana);
         currentMana = Mathf.FloorToInt(_manaExact);
     }
@@ -50,6 +55,13 @@ public class PlayerMana : MonoBehaviour
     {
         _manaExact = maxMana;
         currentMana = maxMana;
+    }
+
+    public void ApplyPermanentMaxManaBonus(int bonus)
+    {
+        permanentMaxManaBonus = Mathf.Max(0, bonus);
+        maxMana = Mathf.Max(1, baseMaxMana + permanentMaxManaBonus);
+        FillToMax();
     }
 
     // для UI

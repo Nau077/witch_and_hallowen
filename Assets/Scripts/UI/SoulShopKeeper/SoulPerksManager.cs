@@ -35,28 +35,28 @@ public class SoulPerksManager : MonoBehaviour
     public int DashLevel { get; private set; }    // 0..2
 
     [Header("Perk: Mana Level")]
-    [Tooltip("Максимум покупок для маны. 2 покупки по +20 маны каждая.")]
-    public int manaMaxPurchases = 2;
+    [Tooltip("Максимум покупок для маны. 3 покупки по +25 маны каждая.")]
+    public int manaMaxPurchases = 3;
 
-    [Tooltip("Прирост маны за каждый уровень (+20 за уровень).")]
-    public int manaStep = 20;
+    [Tooltip("Прирост маны за каждый уровень (+25 за уровень).")]
+    public int manaStep = 25;
 
-    [Tooltip("Базовая цена улучшения маны. Например: 60/120")]
-    public int manaBasePrice = 60;
+    [Tooltip("Базовая цена улучшения маны. Цены: 50/100/200")]
+    public int manaBasePrice = 50;
 
-    public int ManaLevel { get; private set; }    // 0..2
+    public int ManaLevel { get; private set; }    // 0..3
 
     [Header("Perk: Stamina Level (для Dash выносливости)")]
-    [Tooltip("Максимум покупок для выносливости. 2 покупки по +15 выносливости каждая.")]
-    public int staminaMaxPurchases = 2;
+    [Tooltip("Максимум покупок для выносливости. 3 покупки по +25 выносливости каждая.")]
+    public int staminaMaxPurchases = 3;
 
-    [Tooltip("Прирост выносливости за каждый уровень (+15 за уровень).")]
-    public int staminaStep = 15;
+    [Tooltip("Прирост выносливости за каждый уровень (+25 за уровень).")]
+    public int staminaStep = 25;
 
-    [Tooltip("Базовая цена улучшения выносливости. Например: 60/120")]
-    public int staminaBasePrice = 60;
+    [Tooltip("Базовая цена улучшения выносливости. Цены: 50/100/200")]
+    public int staminaBasePrice = 50;
 
-    public int StaminaLevel { get; private set; } // 0..2
+    public int StaminaLevel { get; private set; } // 0..3
 
     [Header("Perk: Reset")]
     public int resetPrice = 100;
@@ -205,11 +205,10 @@ public class SoulPerksManager : MonoBehaviour
 
     public int GetManaUpgradePrice()
     {
-        // 60/120 (зависит от manaBasePrice)
-        // Покупка #1: ManaLevel=0 => nextIndex=0 => 60
-        // Покупка #2: ManaLevel=1 => nextIndex=1 => 120
-        int nextIndex = ManaLevel; // 0..1
-        return manaBasePrice * (nextIndex + 1);
+        // 50/100/200 (зависит от manaBasePrice)
+        int nextIndex = Mathf.Max(0, ManaLevel); // 0..2
+        int mult = 1 << Mathf.Min(30, nextIndex);
+        return manaBasePrice * mult;
     }
 
     public bool CanBuyManaUpgrade()
@@ -254,11 +253,10 @@ public class SoulPerksManager : MonoBehaviour
 
     public int GetStaminaUpgradePrice()
     {
-        // 60/120 (зависит от staminaBasePrice)
-        // Покупка #1: StaminaLevel=0 => nextIndex=0 => 60
-        // Покупка #2: StaminaLevel=1 => nextIndex=1 => 120
-        int nextIndex = StaminaLevel; // 0..1
-        return staminaBasePrice * (nextIndex + 1);
+        // 50/100/200 (зависит от staminaBasePrice)
+        int nextIndex = Mathf.Max(0, StaminaLevel); // 0..2
+        int mult = 1 << Mathf.Min(30, nextIndex);
+        return staminaBasePrice * mult;
     }
 
     public bool CanBuyStaminaUpgrade()
@@ -346,6 +344,17 @@ public class SoulPerksManager : MonoBehaviour
 
         if (rlm.playerHealth != null)
             rlm.playerHealth.ApplyPermanentMaxHpBonus(GetPermanentMaxHpBonus());
+
+        if (rlm.playerMana != null)
+            rlm.playerMana.ApplyPermanentMaxManaBonus(GetPermanentManaBonus());
+
+        PlayerDash dash = null;
+        if (rlm.playerTransform != null)
+            dash = rlm.playerTransform.GetComponent<PlayerDash>();
+        if (dash == null && rlm.playerHealth != null)
+            dash = rlm.playerHealth.GetComponent<PlayerDash>();
+        if (dash != null)
+            dash.ApplyPermanentMaxEnergyBonus(GetPermanentStaminaBonus());
 
         // Дэш применять напрямую не нужно — PlayerDash читает уровень из SoulPerksManager в рантайме.
         // Но если у тебя будет UI, который зависит от перков, OnPerksChanged уже триггерит обновления.

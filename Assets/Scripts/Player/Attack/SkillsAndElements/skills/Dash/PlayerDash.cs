@@ -49,6 +49,8 @@ public class PlayerDash : MonoBehaviour
     public float EnergyNormalized => maxEnergy <= 0 ? 0 : Mathf.Clamp01(currentEnergy / maxEnergy);
 
     private float currentEnergy;
+    [SerializeField] private float baseMaxEnergy;
+    [SerializeField] private float permanentMaxEnergyBonus;
 
     // UI: минимальные геттеры для текста 35/50 (или округления)
     public float CurrentEnergy => currentEnergy; // UI
@@ -87,6 +89,9 @@ public class PlayerDash : MonoBehaviour
             originalColor = sr.color;
             originalScale = sr.transform.localScale;
         }
+
+        if (baseMaxEnergy <= 0f)
+            baseMaxEnergy = Mathf.Max(1f, maxEnergy);
 
         currentEnergy = maxEnergy;
     }
@@ -279,6 +284,13 @@ public class PlayerDash : MonoBehaviour
             if (reflectable != null)
                 reflectable.ReflectBackToSender(transform.position);
         }
+    }
+
+    public void ApplyPermanentMaxEnergyBonus(int bonus)
+    {
+        permanentMaxEnergyBonus = Mathf.Max(0f, bonus);
+        maxEnergy = Mathf.Max(1f, baseMaxEnergy + permanentMaxEnergyBonus);
+        currentEnergy = maxEnergy;
     }
 }
 

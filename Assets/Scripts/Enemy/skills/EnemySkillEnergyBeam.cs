@@ -74,7 +74,6 @@ public class EnemySkillEnergyBeam : EnemySkillBase
     private void Log(string msg)
     {
         if (!debugLogs) return;
-        Debug.Log($"[EnemySkillEnergyBeam] {msg}", this);
     }
 
     public override void OnBrainAttackTick(int attackIndex, ref bool attackConsumed)

@@ -152,8 +152,9 @@ public class BeamSpriteController : MonoBehaviour
         sr.sortingLayerName = sortingLayer;
         sr.sortingOrder = sortingOrder;
 
-        // Важно для sr.size
-        sr.drawMode = SpriteDrawMode.Tiled;
+        // Tiled draw mode требует Full Rect mesh; иначе Unity спамит warning.
+        // Для tight-mesh спрайтов безопасно падаем в Sliced.
+        sr.drawMode = CanUseTiledDrawMode(sr.sprite) ? SpriteDrawMode.Tiled : SpriteDrawMode.Sliced;
 
         col.isTrigger = true;
 
@@ -264,6 +265,12 @@ public class BeamSpriteController : MonoBehaviour
         dmgW = Mathf.Max(0.05f, dmgW);
 
         col.size = new Vector2(dmgW, col.size.y);
+    }
+
+    private bool CanUseTiledDrawMode(Sprite sprite)
+    {
+        if (sprite == null) return true;
+        return sprite.vertices != null && sprite.vertices.Length <= 4;
     }
 
     private void ApplyFlickerVisual()

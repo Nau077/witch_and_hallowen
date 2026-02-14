@@ -47,7 +47,6 @@ public class StageTransitionPopup : MonoBehaviour
         if (mainMenuButton != null)
             mainMenuButton.onClick.AddListener(OnMainMenuClicked);
 
-        Debug.Log("[StageTransitionPopup] Awake. root=" + (root != null ? root.name : "NULL"));
     }
 
     public void Show(int currentStage, int totalStages, bool hasNext)
@@ -110,7 +109,6 @@ public class StageTransitionPopup : MonoBehaviour
                 shopPopup.HideImmediate();
         }
 
-        Debug.Log($"[StageTransitionPopup] Show() stage={currentStage}/{totalStages}, hasNext={hasNext}, shopMode={mode}");
         root.SetActive(true);
     }
 
@@ -137,7 +135,6 @@ public class StageTransitionPopup : MonoBehaviour
             return;
         }
 
-        Debug.Log("[StageTransitionPopup] Next clicked → GoDeeper");
         runManager.GoDeeper();
     }
 
@@ -152,7 +149,6 @@ public class StageTransitionPopup : MonoBehaviour
             return;
         }
 
-        Debug.Log("[StageTransitionPopup] MainMenu clicked → ReturnToMenu");
         runManager.ReturnToMenu();
     }
 }

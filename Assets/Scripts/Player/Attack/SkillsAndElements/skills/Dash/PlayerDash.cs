@@ -282,7 +282,7 @@ public class PlayerDash : MonoBehaviour
         if (other == null) return;
 
         if (!string.IsNullOrEmpty(enemyProjectileTag) &&
-            other.CompareTag(enemyProjectileTag))
+            string.Equals(other.tag, enemyProjectileTag, StringComparison.Ordinal))
         {
             var reflectable = other.GetComponent<IReflectableProjectile>();
             if (reflectable != null)

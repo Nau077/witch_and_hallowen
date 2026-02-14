@@ -27,6 +27,12 @@ public class SoulPerksPanelUI : MonoBehaviour
     [Header("Heart Appearance")]
     [Tooltip("Optional override sprite for all hearts. If empty, prefab's Image.sprite will be used.")]
     public Sprite heartSpriteOverride;
+    [Tooltip("Optional override sprite for HP hearts. If empty, falls back to global override/prefab sprite.")]
+    public Sprite hpHeartSpriteOverride;
+    [Tooltip("Optional override sprite for Mana hearts. If empty, falls back to global override/prefab sprite.")]
+    public Sprite manaHeartSpriteOverride;
+    [Tooltip("Optional override sprite for Stamina hearts. If empty, falls back to global override/prefab sprite.")]
+    public Sprite staminaHeartSpriteOverride;
 
     [Tooltip("Tint color for HP hearts (red)")]
     public Color hpColor = new Color(0.85f, 0.12f, 0.12f, 1f);
@@ -94,6 +100,7 @@ public class SoulPerksPanelUI : MonoBehaviour
         public Dictionary<GameObject, Coroutine> popRoutines = new();
         public int lastTotalAmount = -1;
         public Color color;
+        public Sprite spriteOverride;
     }
 
     private PerkData[] perks;
@@ -146,21 +153,24 @@ public class SoulPerksPanelUI : MonoBehaviour
         {
             type = PerkType.HP,
             content = hpContent ?? GetComponent<RectTransform>(),
-            color = hpColor
+            color = hpColor,
+            spriteOverride = hpHeartSpriteOverride
         };
 
         perks[1] = new PerkData
         {
             type = PerkType.Mana,
             content = manaContent,
-            color = manaColor
+            color = manaColor,
+            spriteOverride = manaHeartSpriteOverride
         };
 
         perks[2] = new PerkData
         {
             type = PerkType.Stamina,
             content = staminaContent,
-            color = staminaColor
+            color = staminaColor,
+            spriteOverride = staminaHeartSpriteOverride
         };
 
         foreach (var perk in perks)
@@ -282,9 +292,10 @@ public class SoulPerksPanelUI : MonoBehaviour
 
             if (img != null)
             {
-                // If an override sprite is provided in inspector, use it.
-                if (heartSpriteOverride != null)
-                    img.sprite = heartSpriteOverride;
+                // Prefer per-type sprite override. Fallback to global override for backward compatibility.
+                Sprite spriteToUse = perk.spriteOverride != null ? perk.spriteOverride : heartSpriteOverride;
+                if (spriteToUse != null)
+                    img.sprite = spriteToUse;
 
                 img.preserveAspect = true;
                 img.enabled = true;

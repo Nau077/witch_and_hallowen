@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7f63957faed2dd47a02d50eb09a4404, type: 3}
+  m_Name: SKILL_LIGHTNING
+  m_EditorClassIdentifier: Assembly-CSharp::SkillDefinition
+  skillId: 1
+  displayName: 
+  icon: {fileID: 1922991287, guid: 0f490d568767fa044b52e7c6cc5ead8b, type: 3}
+  element: 0
+  projectilePrefab: {fileID: 1307152648960653708, guid: eb3d196157db6664c932db571ad78970, type: 3}
+  damage: 10
+  cooldown: 0.6
+  xpPerUse: 1
+  manaCostPerShot: 10
+  infiniteCharges: 0
+  startCharges: 0
+  coinCostPerCharge: 30
+  tag: 0
+  freezeSeconds: 0
+  slowPercent: 0
+  slowSeconds: 0

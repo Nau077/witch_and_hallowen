@@ -131,7 +131,7 @@ public class ShopItemSlotUI : MonoBehaviour
         }
 
         if (_def.currency == ShopCurrency.Coins)
-            return PlayerWallet.Instance != null && PlayerWallet.Instance.CanSpend(_def.price);
+            return PlayerWallet.Instance != null && PlayerWallet.Instance.CanSpend(GetCurrentPrice());
 
         return false;
     }
@@ -184,7 +184,8 @@ public class ShopItemSlotUI : MonoBehaviour
         {
             if (PlayerWallet.Instance != null)
             {
-                paidOrDone = PlayerWallet.Instance.TrySpend(_def.price);
+                int price = GetCurrentPrice();
+                paidOrDone = PlayerWallet.Instance.TrySpend(price);
                 if (paidOrDone)
                     ApplyEffect_RegularShopItem();
             }
@@ -279,14 +280,31 @@ public class ShopItemSlotUI : MonoBehaviour
         if (_def.effectType == ShopItemEffectType.ResetSoulPerks)
             return "Сбрасывает перки и возвращает потраченные души с комиссией.";
 
+        SkillId skillId = ResolveSkillId();
+
         if (_def.addCharges > 0)
+        {
+            if (skillId == SkillId.Lightning)
+                return "Добавляет заряды молнии: +" + _def.addCharges + ".";
+
             return "Добавляет заряды: +" + _def.addCharges + ".";
+        }
 
-        if (_def.unlockSkill && ResolveSkillId() != SkillId.None)
+        if (_def.unlockSkill && skillId != SkillId.None)
+        {
+            if (skillId == SkillId.Lightning)
+                return "Открывает навык молнии: прямой выстрел и разряд в стороны.";
+
             return "Открывает навык.";
+        }
 
-        if (_def.upgradeToLevel > 0 && ResolveSkillId() != SkillId.None)
+        if (_def.upgradeToLevel > 0 && skillId != SkillId.None)
+        {
+            if (skillId == SkillId.Lightning)
+                return "Повышает уровень молнии до " + _def.upgradeToLevel + ".";
+
             return "Повышает навык до уровня " + _def.upgradeToLevel + ".";
+        }
 
         return "Покупка в магазине.";
     }

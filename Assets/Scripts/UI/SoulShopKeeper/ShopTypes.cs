@@ -17,5 +17,6 @@ public enum SkillId
     None = 0,
     Fireball = 1,
     IceShard = 2,
-    // дальше добавишь ещё
+    Lightning = 3,
+    // add more skills below if needed
 }

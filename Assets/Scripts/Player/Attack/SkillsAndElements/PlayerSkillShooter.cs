@@ -329,7 +329,7 @@ public class PlayerSkillShooter : MonoBehaviour
         if (firePoint && slot.def.projectilePrefab)
         {
             var go = Object.Instantiate(slot.def.projectilePrefab, firePoint.position, Quaternion.identity);
-            var proj = go.GetComponent<IProjectile>();
+            var proj = ResolveProjectileForSkill(go, slot.def);
             if (proj != null)
             {
                 Vector2 dir = Vector2.up;
@@ -351,7 +351,13 @@ public class PlayerSkillShooter : MonoBehaviour
                     dir = _movement.FacingLeft ? Vector2.left : Vector2.right;
                 }
 
+                ApplySkillLevelToProjectile(go, slot.def);
                 proj.Init(dir, distance, -1f, ignoreFirstMeters);
+            }
+            else
+            {
+                Debug.LogError("[PlayerSkillShooter] Projectile prefab has no valid IProjectile for skill: " +
+                               (slot.def != null ? slot.def.skillId.ToString() : "null"));
             }
         }
 
@@ -491,6 +497,68 @@ public class PlayerSkillShooter : MonoBehaviour
     {
         CancelCharge(changeSprite: resetToIdleSprite);
         if (!keepAnimatorDisabled && bodyAnimator) bodyAnimator.enabled = true;
+    }
+
+    private void ApplySkillLevelToProjectile(GameObject projectile, SkillDefinition def)
+    {
+        if (projectile == null || def == null || PlayerSkills.Instance == null)
+            return;
+
+        int skillLevel = Mathf.Clamp(PlayerSkills.Instance.GetSkillLevel(def.skillId), 1, 3);
+
+        var iceShard = projectile.GetComponent<PlayerIceShard>();
+        if (iceShard != null)
+            iceShard.currentIceSkillLevel = skillLevel;
+
+        var lightning = projectile.GetComponent<PlayerLightningBolt>();
+        if (lightning != null)
+            lightning.SetSkillLevel(skillLevel);
+    }
+
+    private IProjectile ResolveProjectileForSkill(GameObject projectileGo, SkillDefinition def)
+    {
+        if (projectileGo == null) return null;
+
+        // Если на префаб случайно повесили несколько projectile-скриптов,
+        // выбираем корректный для текущего навыка и отключаем остальные,
+        // чтобы не было двойного движения/урона.
+        var all = projectileGo.GetComponents<PlayerProjectileDamageBase>();
+        if (all != null && all.Length > 1)
+        {
+            PlayerProjectileDamageBase keep = null;
+
+            if (def != null && def.skillId == SkillId.Lightning)
+                keep = projectileGo.GetComponent<PlayerLightningBolt>();
+            else if (def != null && def.skillId == SkillId.IceShard)
+                keep = projectileGo.GetComponent<PlayerIceShard>();
+            else
+                keep = projectileGo.GetComponent<PlayerFireball>();
+
+            if (keep == null)
+                keep = all[0];
+
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i] != keep)
+                    all[i].enabled = false;
+            }
+
+            return keep;
+        }
+
+        if (def != null && def.skillId == SkillId.Lightning)
+        {
+            var lightning = projectileGo.GetComponent<PlayerLightningBolt>();
+            if (lightning != null) return lightning;
+        }
+
+        if (def != null && def.skillId == SkillId.IceShard)
+        {
+            var ice = projectileGo.GetComponent<PlayerIceShard>();
+            if (ice != null) return ice;
+        }
+
+        return projectileGo.GetComponent<IProjectile>();
     }
 
     void EnsureThrowFlashRenderer()

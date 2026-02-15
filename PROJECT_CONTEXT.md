@@ -253,3 +253,32 @@ When editing shop/perks/tooltips, update:
 - player-apply mapping
 - tooltip attachment points and text edit locations
 - any moved/renamed key script paths
+
+## Lightning skill notes (updated 2026-02-15)
+
+Implemented gameplay additions for new `Lightning` player skill:
+
+- `SkillId.Lightning = 3` added in:
+  - `Assets/Scripts/UI/SoulShopKeeper/ShopTypes.cs`
+
+- New projectile behavior in:
+  - `Assets/Scripts/Player/Attack/SkillsAndElements/skills/PlayerLightningBolt.cs`
+  - Core behavior:
+    - main bolt flies like standard projectile
+    - side bolts are spawned in fan pattern
+    - side bolt count scales by skill level and multiplier
+    - side bolts can use wider angles and longer distance
+    - side bolt damage falls off by fan step (farther side bolts hit weaker)
+    - sprite can align to movement direction with optional tilt
+
+- Projectile selection safety in:
+  - `Assets/Scripts/Player/Attack/SkillsAndElements/PlayerSkillShooter.cs`
+  - if prefab accidentally contains multiple projectile scripts, shooter picks script by `SkillId` and disables other projectile components for that spawned instance.
+
+### Pink/magenta artifact finding
+
+- Tried runtime-only fix in `PlayerLightningBolt` (forcing unlit material / white color / point+clamp texture settings).
+- Result: no reliable improvement in project case; fix was rolled back.
+- Current conclusion:
+  - this artifact is most likely texture/slicing alpha-bleed (asset/import side), not runtime component logic.
+  - primary fix should be texture import/slice padding adjustments (extrude, clamp, point/no compression, clean transparent edges in source sprite).

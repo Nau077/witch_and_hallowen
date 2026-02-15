@@ -10911,11 +10911,18 @@ MonoBehaviour:
   - {fileID: 1337262885}
   - {fileID: 724431972}
   - {fileID: 751247381}
+  - {fileID: 1418057058}
   interLevelUI: {fileID: 1118943245}
   stagePopup: {fileID: 1782959089}
   shopPopup: {fileID: 932788303}
   playerMana: {fileID: 0}
   skullEvent: {fileID: 0}
+  enableDebugCheats: 1
+  grantDebugCurrenciesOnNewRun: 1
+  debugBonusCoins: 300
+  debugBonusSouls: 300
+  enableSkipStageHotkeys: 1
+  finalVictoryPopupDuration: 1.2
 --- !u!4 &765279634
 Transform:
   m_ObjectHideFlags: 0
@@ -15766,7 +15773,7 @@ MonoBehaviour:
   - {fileID: 5553669972159275953, guid: 6c85a8b7040f0f646b2f713c9520cb15, type: 3}
   - {fileID: 5553669972159275953, guid: fbdb9dc9d668c9540989bf7efce9cd2a, type: 3}
   spawnMode: 0
-  initialCount: 4
+  initialCount: 1
   spawnInterval: 0
   container: {fileID: 0}
   xInset: 0.05

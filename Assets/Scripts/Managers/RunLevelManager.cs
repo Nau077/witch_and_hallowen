@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+using UnityEngine;
+using System.Collections;
 
 public class RunLevelManager : MonoBehaviour
 {
@@ -45,10 +46,25 @@ public class RunLevelManager : MonoBehaviour
     [Header("Player Mana (optional assign)")]
     public PlayerMana playerMana;
 
-    // ✅ SKULL EVENT
+    // SKULL EVENT
     [Header("Skull Event (optional)")]
     [Tooltip("Перетащи сюда компонент SkullEventController (обычно висит на RunLevelManager).")]
     public SkullEventController skullEvent;
+
+    [Header("Debug Cheats (optional)")]
+    [Tooltip("Включает debug-чит флаг и hotkeys.")]
+    [SerializeField] private bool enableDebugCheats = false;
+    [Tooltip("Если включено, в начале нового рана добавляет бонусные coins/souls.")]
+    [SerializeField] private bool grantDebugCurrenciesOnNewRun = false;
+    [Min(0)] [SerializeField] private int debugBonusCoins = 300;
+    [Min(0)] [SerializeField] private int debugBonusSouls = 300;
+    [Tooltip("Пропуск на следующий этап: Shift + D или Shift + L.")]
+    [SerializeField] private bool enableSkipStageHotkeys = true;
+    [Tooltip("Сколько секунд держать попап Victory! на последнем этапе.")]
+    [Min(0.1f)] [SerializeField] private float finalVictoryPopupDuration = 1.2f;
+
+    private bool debugCurrenciesAppliedThisRun = false;
+    private bool isFinalVictoryFlowRunning = false;
 
     private void Awake()
     {
@@ -71,7 +87,7 @@ public class RunLevelManager : MonoBehaviour
         if (shopPopup == null)
             shopPopup = FindObjectOfType<SoulShopKeeperPopup>(true);
 
-        // ✅ SKULL EVENT: если не назначили — попробуем найти на себе, затем в сцене
+        // SKULL EVENT: если не назначили — попробуем найти на себе, затем в сцене
         if (skullEvent == null)
             skullEvent = GetComponent<SkullEventController>();
         if (skullEvent == null)
@@ -81,6 +97,11 @@ public class RunLevelManager : MonoBehaviour
     private void Start()
     {
         InitializeRun();
+    }
+
+    private void Update()
+    {
+        HandleDebugHotkeys();
     }
 
     private void EnsurePlayerMana()
@@ -114,6 +135,8 @@ public class RunLevelManager : MonoBehaviour
     public void InitializeRun()
     {
         currentStage = 0;
+        debugCurrenciesAppliedThisRun = false;
+        isFinalVictoryFlowRunning = false;
 
         stagePopup?.HideImmediate();
         shopPopup?.HideImmediate();
@@ -126,7 +149,7 @@ public class RunLevelManager : MonoBehaviour
         music?.SetStage(currentStage);
         FillManaToMaxSafe("InitializeRun");
 
-        // ✅ SKULL EVENT: база (stage 0) — череп выключаем
+        // SKULL EVENT: база (stage 0) — череп выключаем
         skullEvent?.SetStage(0);
 
         // Новый ран = новое расписание магазина
@@ -138,6 +161,8 @@ public class RunLevelManager : MonoBehaviour
 
         // Иконки магазина над стрелками — только тут и после смерти
         interLevelUI?.ApplyShopSchedule(TotalStages);
+
+        TryApplyDebugCurrenciesForNewRun();
     }
 
     private void ResetVictoryController()
@@ -182,13 +207,22 @@ public class RunLevelManager : MonoBehaviour
 
     public void OnStageCleared()
     {
+        if (isFinalVictoryFlowRunning)
+            return;
+
         int totalStages = TotalStages;
         if (currentStage <= 0) return;
 
-        bool hasNext = currentStage < totalStages;
-
         // Сообщим менеджеру (если нужно)
         ShopKeeperManager.Instance?.OnStageCleared(currentStage);
+
+        bool hasNext = currentStage < totalStages;
+
+        if (!hasNext)
+        {
+            StartCoroutine(FinalVictoryAndLoopRoutine());
+            return;
+        }
 
         // Проверяем расписание: есть ли магазин после победы на этом stage
         ShopCurrencyMode mode = ShopCurrencyMode.None;
@@ -239,7 +273,7 @@ public class RunLevelManager : MonoBehaviour
 
             ShopKeeperManager.Instance?.OnStageChanged(currentStage);
 
-            // ✅ SKULL EVENT: новый stage -> стартуем расписание спавна на этот stage
+            // SKULL EVENT: новый stage -> стартуем расписание спавна на этот stage
             skullEvent?.SetStage(currentStage);
         }
         else
@@ -261,7 +295,7 @@ public class RunLevelManager : MonoBehaviour
 
             ShopKeeperManager.Instance?.OnStageChanged(currentStage);
 
-            // ✅ SKULL EVENT: новый stage -> стартуем расписание спавна на этот stage
+            // SKULL EVENT: новый stage -> стартуем расписание спавна на этот stage
             skullEvent?.SetStage(currentStage);
         }
     }
@@ -269,6 +303,8 @@ public class RunLevelManager : MonoBehaviour
     public void ReturnToBaseAfterDeath()
     {
         currentStage = 0;
+        debugCurrenciesAppliedThisRun = false;
+        isFinalVictoryFlowRunning = false;
 
         music?.SetStage(currentStage);
 
@@ -284,7 +320,7 @@ public class RunLevelManager : MonoBehaviour
         UpdateHudProgress();
         FillManaToMaxSafe("ReturnToBaseAfterDeath");
 
-        // ✅ SKULL EVENT: смерть -> база -> череп выключаем
+        // SKULL EVENT: смерть -> база -> череп выключаем
         skullEvent?.SetStage(0);
 
         // смерть = новый ран
@@ -295,6 +331,8 @@ public class RunLevelManager : MonoBehaviour
         }
 
         interLevelUI?.ApplyShopSchedule(TotalStages);
+
+        TryApplyDebugCurrenciesForNewRun();
     }
 
     public void ReturnToMenu()
@@ -343,5 +381,119 @@ public class RunLevelManager : MonoBehaviour
 
         // стрелки/иконки магазина — обновим на всякий
         interLevelUI?.ApplyShopSchedule(TotalStages);
+    }
+
+    [ContextMenu("Apply Debug Currencies Now")]
+    public void ApplyDebugCurrenciesNow()
+    {
+        TryApplyDebugCurrencies(force: true);
+    }
+
+    private void TryApplyDebugCurrenciesForNewRun()
+    {
+        if (debugCurrenciesAppliedThisRun)
+            return;
+
+        if (TryApplyDebugCurrencies(force: false))
+            debugCurrenciesAppliedThisRun = true;
+    }
+
+    private bool TryApplyDebugCurrencies(bool force)
+    {
+        if (!enableDebugCheats)
+            return false;
+
+        if (!force && !grantDebugCurrenciesOnNewRun)
+            return false;
+
+        bool applied = false;
+
+        if (debugBonusCoins > 0)
+        {
+            if (PlayerWallet.Instance != null)
+            {
+                PlayerWallet.Instance.Add(debugBonusCoins);
+                applied = true;
+            }
+            else
+            {
+                Debug.LogWarning("[RunLevelManager] PlayerWallet.Instance is null, debug coins were not added.");
+            }
+        }
+
+        if (debugBonusSouls > 0)
+        {
+            if (SoulCounter.Instance != null)
+            {
+                SoulCounter.Instance.AddSouls(debugBonusSouls);
+                applied = true;
+            }
+            else
+            {
+                Debug.LogWarning("[RunLevelManager] SoulCounter.Instance is null, debug souls were not added.");
+            }
+        }
+
+        if (applied)
+            SoulCounter.Instance?.RefreshUI();
+
+        return applied;
+    }
+
+    private void HandleDebugHotkeys()
+    {
+        if (!enableDebugCheats || !enableSkipStageHotkeys)
+            return;
+
+        if (isFinalVictoryFlowRunning)
+            return;
+
+        bool shiftPressed = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+        if (!shiftPressed)
+            return;
+
+        if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.L))
+            ForceSkipToNextStage();
+    }
+
+    private void ForceSkipToNextStage()
+    {
+        if (currentStage < TotalStages)
+        {
+            GoDeeper();
+            return;
+        }
+
+        if (currentStage == TotalStages)
+            StartCoroutine(FinalVictoryAndLoopRoutine());
+    }
+
+    private IEnumerator FinalVictoryAndLoopRoutine()
+    {
+        if (isFinalVictoryFlowRunning)
+            yield break;
+
+        isFinalVictoryFlowRunning = true;
+        SetInputLocked(true);
+
+        stagePopup?.HideImmediate();
+        shopPopup?.HideImmediate();
+
+        if (WitchIsDeadPopup.Instance != null)
+        {
+            WitchIsDeadPopup.Instance.Show("Victory!");
+            yield return new WaitForSeconds(finalVictoryPopupDuration);
+            WitchIsDeadPopup.Instance.HideImmediate();
+        }
+        else
+        {
+            Debug.LogWarning("[RunLevelManager] WitchIsDeadPopup.Instance is null, showing final victory delay without popup.");
+            yield return new WaitForSeconds(finalVictoryPopupDuration);
+        }
+
+        SetInputLocked(false);
+        isFinalVictoryFlowRunning = false;
+
+        InitializeRun();
     }
 }

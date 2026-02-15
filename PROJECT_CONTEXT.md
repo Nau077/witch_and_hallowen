@@ -7,6 +7,21 @@ This document is a quick handoff for future Codex chats working on:
 
 Keep this file updated when logic changes.
 
+## Recent gameplay flow updates (updated 2026-02-15)
+
+- Final stage victory flow now shows `Victory!` popup (via `WitchIsDeadPopup`) and then returns to base (`stage 0`) by calling `RunLevelManager.InitializeRun()`.
+- It no longer jumps to `stage 1` after the final victory popup.
+- Added optional debug cheats in `RunLevelManager`:
+  - configurable currency grant for new run start (`debugBonusCoins`, `debugBonusSouls`)
+  - hotkeys to skip stage: `Shift + D` or `Shift + L`
+  - final popup duration setting: `finalVictoryPopupDuration`
+
+### Stage spawner assignment note (important)
+
+- Runtime stage activation uses `RunLevelManager.stageSpawners[index]`, where `index = stage - 1`.
+- If total stages include 9th stage, `stageSpawners` must contain 9 entries and `Element 8` must be assigned (e.g. `EnemyTopSpawner_9`).
+- `EnemyTopSpawner.enemyZone` being empty does not block spawning in current implementation.
+
 ## Core runtime flow
 
 1. `ShopKeeperManager` generates a per-run shop schedule for between-level stages.
@@ -100,6 +115,8 @@ If this area is changed later, verify these scenarios:
   - permanent perk levels, pricing, buy/reset logic, persistence via PlayerPrefs.
 - `Assets/Scripts/UI/SoulShopKeeper/SoulPerksPanelUI.cs`
   - hearts UI (HP/Mana/Stamina), pooling, pop animation, heart tooltips.
+- `Assets/Scripts/Managers/RunLevelManager.cs`
+  - stage transitions, final victory flow, optional debug cheats/hotkeys.
 - `Assets/Scripts/Player/Attack/SkillsAndElements/SkillBarUI.cs`
   - skill bar visuals and skill slot tooltips.
 - `Assets/Scripts/Player/Attack/SkillsAndElements/DashPerkPanelUI.cs`

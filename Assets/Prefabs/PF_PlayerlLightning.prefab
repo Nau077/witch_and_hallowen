@@ -460,7 +460,16 @@ MonoBehaviour:
   sideDamageMultiplier: 0.7
   sideSpeedMultiplier: 0.95
   sideDistanceMultiplier: 0.9
+  sideDistanceBoostPerStep: 0.12
+  maxSideDistanceMultiplier: 1.8
+  sideBoltCountMultiplier: 2
+  sideDamageFalloffPerStep: 0.12
+  minSideDamageMultiplier: 0.15
+  alignSpriteToDirection: 1
+  spriteAngleOffset: 0
+  sideBoltExtraTilt: 6
   spawnedAsSideBolt: 0
+  spawnedTiltOffset: 0
 --- !u!1 &1800674258889636772
 GameObject:
   m_ObjectHideFlags: 0
@@ -5562,7 +5571,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &7124401672541648456
 Transform:
   m_ObjectHideFlags: 0

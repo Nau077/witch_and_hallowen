@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerSkills : MonoBehaviour
 {
     public static PlayerSkills Instance { get; private set; }
+    public event Action OnSkillsChanged;
 
     [System.Serializable]
     public class SkillState
@@ -56,6 +58,8 @@ public class PlayerSkills : MonoBehaviour
                 charges = -1
             };
         }
+
+        NotifySkillsChanged();
     }
 
     public bool HasSkill(SkillId id) =>
@@ -81,11 +85,22 @@ public class PlayerSkills : MonoBehaviour
             _skills[id] = state;
         }
 
+        bool changed = false;
+
         if (state.level < level)
+        {
             state.level = level;
+            changed = true;
+        }
 
         if (charges != 0 && state.charges >= 0)
+        {
             state.charges += charges;
+            changed = true;
+        }
+
+        if (changed)
+            NotifySkillsChanged();
     }
 
     public void SetSkillLevel(SkillId id, int newLevel)
@@ -97,7 +112,10 @@ public class PlayerSkills : MonoBehaviour
         }
 
         if (newLevel > state.level)
+        {
             state.level = newLevel;
+            NotifySkillsChanged();
+        }
     }
 
     public void AddCharges(SkillId id, int amount)
@@ -110,6 +128,7 @@ public class PlayerSkills : MonoBehaviour
 
         if (state.charges < 0) return; // infinite
         state.charges += amount;
+        NotifySkillsChanged();
     }
 
     public bool MeetsRequirement(SkillId id, int requiredLevel)
@@ -169,6 +188,8 @@ public class PlayerSkills : MonoBehaviour
                 charges = -1
             };
         }
+
+        NotifySkillsChanged();
     }
 
     public bool IsSkillUnlocked(SkillId id)
@@ -177,4 +198,9 @@ public class PlayerSkills : MonoBehaviour
         return _skills.ContainsKey(id) && _skills[id].unlocked;
     }
 
+    private void NotifySkillsChanged()
+    {
+        OnSkillsChanged?.Invoke();
+    }
 }
+

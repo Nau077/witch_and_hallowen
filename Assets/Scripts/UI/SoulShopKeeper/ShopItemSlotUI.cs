@@ -55,7 +55,11 @@ public class ShopItemSlotUI : MonoBehaviour
             priceText.text = shownPrice.ToString();
 
         bool requirementsMet = true;
-        if (PlayerSkills.Instance != null)
+        if (_def.requiredSkill != SkillId.None && PlayerSkills.Instance == null)
+        {
+            requirementsMet = false;
+        }
+        else if (PlayerSkills.Instance != null)
         {
             requirementsMet = PlayerSkills.Instance.MeetsRequirement(
                 _def.requiredSkill,
@@ -64,6 +68,13 @@ public class ShopItemSlotUI : MonoBehaviour
         }
 
         bool canInteract = requirementsMet && CanPurchaseNow();
+        bool chargeLockedBySkillLevel = IsChargePurchaseLockedBySkillLevel();
+
+        if (chargeLockedBySkillLevel)
+            canInteract = false;
+
+        if (priceText != null && chargeLockedBySkillLevel)
+            priceText.text = "Недоступно";
 
         if (buyButton != null)
             buyButton.interactable = canInteract;
@@ -108,6 +119,7 @@ public class ShopItemSlotUI : MonoBehaviour
     private bool CanPurchaseNow()
     {
         if (_def == null) return false;
+        if (IsChargePurchaseLockedBySkillLevel()) return false;
 
         if (_def.currency == ShopCurrency.Souls)
         {
@@ -139,6 +151,7 @@ public class ShopItemSlotUI : MonoBehaviour
     private void OnClickBuy()
     {
         if (_def == null) return;
+        if (IsChargePurchaseLockedBySkillLevel()) return;
 
         bool paidOrDone = false;
 
@@ -234,12 +247,13 @@ public class ShopItemSlotUI : MonoBehaviour
 
         int price = GetCurrentPrice();
         string currency = (_def.currency == ShopCurrency.Souls) ? "души" : "монеты";
+        bool chargeLockedBySkillLevel = IsChargePurchaseLockedBySkillLevel();
 
         return new HoverTooltipData
         {
             title = _def.displayName,
             levelLine = GetCurrentLevelLine(),
-            priceLine = "Цена: " + price + " " + currency,
+            priceLine = chargeLockedBySkillLevel ? "Недоступно" : ("Цена: " + price + " " + currency),
             description = GetEffectDescription()
         };
     }
@@ -267,6 +281,9 @@ public class ShopItemSlotUI : MonoBehaviour
     private string GetEffectDescription()
     {
         if (_def == null) return "";
+
+        if (IsChargePurchaseLockedBySkillLevel())
+            return "Недоступно: сначала откройте навык (уровень 1+), потом можно покупать заряды.";
 
         if (_def.effectType == ShopItemEffectType.IncreaseMaxHealth)
             return "Перманентно повышает максимум HP.";
@@ -316,4 +333,17 @@ public class ShopItemSlotUI : MonoBehaviour
         if (_def.skillDef != null) return _def.skillDef.skillId;
         return SkillId.None;
     }
+
+    private bool IsChargePurchaseLockedBySkillLevel()
+    {
+        if (_def == null) return false;
+        if (_def.addCharges <= 0) return false;
+
+        SkillId skillId = ResolveSkillId();
+        if (skillId == SkillId.None) return false;
+
+        if (PlayerSkills.Instance == null) return true;
+        return PlayerSkills.Instance.GetSkillLevel(skillId) <= 0;
+    }
 }
+

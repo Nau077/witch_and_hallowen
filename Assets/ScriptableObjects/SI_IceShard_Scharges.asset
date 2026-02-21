@@ -24,5 +24,5 @@ MonoBehaviour:
   unlockLevel: 1
   upgradeToLevel: 0
   addCharges: 5
-  requiredSkill: 0
-  requiredSkillLevel: 0
+  requiredSkill: 2
+  requiredSkillLevel: 1

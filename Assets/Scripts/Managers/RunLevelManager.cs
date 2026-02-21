@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 
 public class RunLevelManager : MonoBehaviour
@@ -38,8 +38,12 @@ public class RunLevelManager : MonoBehaviour
     public StageTransitionPopup stagePopup;
 
     [Header("Shop popup")]
-    [Tooltip("Перетащи сюда SoulShopKeeperPopup из Canvas. Если пусто — найдём в сцене.")]
+    [Tooltip("ÐŸÐµÑ€ÐµÑ‚Ð°Ñ‰Ð¸ ÑÑŽÐ´Ð° SoulShopKeeperPopup Ð¸Ð· Canvas. Ð•ÑÐ»Ð¸ Ð¿ÑƒÑÑ‚Ð¾ â€” Ð½Ð°Ð¹Ð´Ñ‘Ð¼ Ð² ÑÑ†ÐµÐ½Ðµ.")]
     public SoulShopKeeperPopup shopPopup;
+
+    [Header("Upgrade rewards")]
+    [Tooltip("Optional: assign UpgradeRewardSystem. If empty, it will be found automatically.")]
+    public UpgradeRewardSystem upgradeRewardSystem;
 
     public static bool inputLocked;
 
@@ -48,19 +52,19 @@ public class RunLevelManager : MonoBehaviour
 
     // SKULL EVENT
     [Header("Skull Event (optional)")]
-    [Tooltip("Перетащи сюда компонент SkullEventController (обычно висит на RunLevelManager).")]
+    [Tooltip("ÐŸÐµÑ€ÐµÑ‚Ð°Ñ‰Ð¸ ÑÑŽÐ´Ð° ÐºÐ¾Ð¼Ð¿Ð¾Ð½ÐµÐ½Ñ‚ SkullEventController (Ð¾Ð±Ñ‹Ñ‡Ð½Ð¾ Ð²Ð¸ÑÐ¸Ñ‚ Ð½Ð° RunLevelManager).")]
     public SkullEventController skullEvent;
 
     [Header("Debug Cheats (optional)")]
-    [Tooltip("Включает debug-чит флаг и hotkeys.")]
+    [Tooltip("Ð’ÐºÐ»ÑŽÑ‡Ð°ÐµÑ‚ debug-Ñ‡Ð¸Ñ‚ Ñ„Ð»Ð°Ð³ Ð¸ hotkeys.")]
     [SerializeField] private bool enableDebugCheats = false;
-    [Tooltip("Если включено, в начале нового рана добавляет бонусные coins/souls.")]
+    [Tooltip("Ð•ÑÐ»Ð¸ Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¾, Ð² Ð½Ð°Ñ‡Ð°Ð»Ðµ Ð½Ð¾Ð²Ð¾Ð³Ð¾ Ñ€Ð°Ð½Ð° Ð´Ð¾Ð±Ð°Ð²Ð»ÑÐµÑ‚ Ð±Ð¾Ð½ÑƒÑÐ½Ñ‹Ðµ coins/souls.")]
     [SerializeField] private bool grantDebugCurrenciesOnNewRun = false;
     [Min(0)] [SerializeField] private int debugBonusCoins = 300;
     [Min(0)] [SerializeField] private int debugBonusSouls = 300;
-    [Tooltip("Пропуск на следующий этап: Shift + D или Shift + L.")]
+    [Tooltip("ÐŸÑ€Ð¾Ð¿ÑƒÑÐº Ð½Ð° ÑÐ»ÐµÐ´ÑƒÑŽÑ‰Ð¸Ð¹ ÑÑ‚Ð°Ð¿: Shift + D Ð¸Ð»Ð¸ Shift + L.")]
     [SerializeField] private bool enableSkipStageHotkeys = true;
-    [Tooltip("Сколько секунд держать попап Victory! на последнем этапе.")]
+    [Tooltip("Ð¡ÐºÐ¾Ð»ÑŒÐºÐ¾ ÑÐµÐºÑƒÐ½Ð´ Ð´ÐµÑ€Ð¶Ð°Ñ‚ÑŒ Ð¿Ð¾Ð¿Ð°Ð¿ Victory! Ð½Ð° Ð¿Ð¾ÑÐ»ÐµÐ´Ð½ÐµÐ¼ ÑÑ‚Ð°Ð¿Ðµ.")]
     [Min(0.1f)] [SerializeField] private float finalVictoryPopupDuration = 1.2f;
 
     private bool debugCurrenciesAppliedThisRun = false;
@@ -87,7 +91,10 @@ public class RunLevelManager : MonoBehaviour
         if (shopPopup == null)
             shopPopup = FindObjectOfType<SoulShopKeeperPopup>(true);
 
-        // SKULL EVENT: если не назначили — попробуем найти на себе, затем в сцене
+        if (upgradeRewardSystem == null)
+            upgradeRewardSystem = FindObjectOfType<UpgradeRewardSystem>(true);
+
+        // SKULL EVENT: ÐµÑÐ»Ð¸ Ð½Ðµ Ð½Ð°Ð·Ð½Ð°Ñ‡Ð¸Ð»Ð¸ â€” Ð¿Ð¾Ð¿Ñ€Ð¾Ð±ÑƒÐµÐ¼ Ð½Ð°Ð¹Ñ‚Ð¸ Ð½Ð° ÑÐµÐ±Ðµ, Ð·Ð°Ñ‚ÐµÐ¼ Ð² ÑÑ†ÐµÐ½Ðµ
         if (skullEvent == null)
             skullEvent = GetComponent<SkullEventController>();
         if (skullEvent == null)
@@ -149,17 +156,17 @@ public class RunLevelManager : MonoBehaviour
         music?.SetStage(currentStage);
         FillManaToMaxSafe("InitializeRun");
 
-        // SKULL EVENT: база (stage 0) — череп выключаем
+        // SKULL EVENT: Ð±Ð°Ð·Ð° (stage 0) â€” Ñ‡ÐµÑ€ÐµÐ¿ Ð²Ñ‹ÐºÐ»ÑŽÑ‡Ð°ÐµÐ¼
         skullEvent?.SetStage(0);
 
-        // Новый ран = новое расписание магазина
+        // ÐÐ¾Ð²Ñ‹Ð¹ Ñ€Ð°Ð½ = Ð½Ð¾Ð²Ð¾Ðµ Ñ€Ð°ÑÐ¿Ð¸ÑÐ°Ð½Ð¸Ðµ Ð¼Ð°Ð³Ð°Ð·Ð¸Ð½Ð°
         if (ShopKeeperManager.Instance != null)
         {
             ShopKeeperManager.Instance.GenerateRunSchedule(TotalStages);
             ShopKeeperManager.Instance.OnStageChanged(0);
         }
 
-        // Иконки магазина над стрелками — только тут и после смерти
+        // Ð˜ÐºÐ¾Ð½ÐºÐ¸ Ð¼Ð°Ð³Ð°Ð·Ð¸Ð½Ð° Ð½Ð°Ð´ ÑÑ‚Ñ€ÐµÐ»ÐºÐ°Ð¼Ð¸ â€” Ñ‚Ð¾Ð»ÑŒÐºÐ¾ Ñ‚ÑƒÑ‚ Ð¸ Ð¿Ð¾ÑÐ»Ðµ ÑÐ¼ÐµÑ€Ñ‚Ð¸
         interLevelUI?.ApplyShopSchedule(TotalStages);
 
         TryApplyDebugCurrenciesForNewRun();
@@ -210,12 +217,22 @@ public class RunLevelManager : MonoBehaviour
         if (isFinalVictoryFlowRunning)
             return;
 
-        int totalStages = TotalStages;
         if (currentStage <= 0) return;
 
-        // Сообщим менеджеру (если нужно)
         ShopKeeperManager.Instance?.OnStageCleared(currentStage);
 
+        if (upgradeRewardSystem != null &&
+            upgradeRewardSystem.TryTriggerStageCleared(currentStage, ContinueStageClearFlow))
+        {
+            return;
+        }
+
+        ContinueStageClearFlow();
+    }
+
+    private void ContinueStageClearFlow()
+    {
+        int totalStages = TotalStages;
         bool hasNext = currentStage < totalStages;
 
         if (!hasNext)
@@ -224,14 +241,12 @@ public class RunLevelManager : MonoBehaviour
             return;
         }
 
-        // Проверяем расписание: есть ли магазин после победы на этом stage
         ShopCurrencyMode mode = ShopCurrencyMode.None;
         if (ShopKeeperManager.Instance != null)
             mode = ShopKeeperManager.Instance.GetShopModeForStage(currentStage);
 
         if (mode != ShopCurrencyMode.None && shopPopup != null)
         {
-            // если показываем магазин — stagePopup не нужен
             stagePopup?.HideImmediate();
 
             bool allowCoins = true;
@@ -241,7 +256,6 @@ public class RunLevelManager : MonoBehaviour
             return;
         }
 
-        // Иначе обычный попап перехода
         if (stagePopup != null)
             stagePopup.Show(currentStage, totalStages, hasNext);
         else
@@ -252,7 +266,7 @@ public class RunLevelManager : MonoBehaviour
     {
         int totalStages = TotalStages;
 
-        // на всякий: прячем магазин
+        // Ð½Ð° Ð²ÑÑÐºÐ¸Ð¹: Ð¿Ñ€ÑÑ‡ÐµÐ¼ Ð¼Ð°Ð³Ð°Ð·Ð¸Ð½
         shopPopup?.HideImmediate();
 
         if (currentStage < totalStages)
@@ -273,12 +287,12 @@ public class RunLevelManager : MonoBehaviour
 
             ShopKeeperManager.Instance?.OnStageChanged(currentStage);
 
-            // SKULL EVENT: новый stage -> стартуем расписание спавна на этот stage
+            // SKULL EVENT: Ð½Ð¾Ð²Ñ‹Ð¹ stage -> ÑÑ‚Ð°Ñ€Ñ‚ÑƒÐµÐ¼ Ñ€Ð°ÑÐ¿Ð¸ÑÐ°Ð½Ð¸Ðµ ÑÐ¿Ð°Ð²Ð½Ð° Ð½Ð° ÑÑ‚Ð¾Ñ‚ stage
             skullEvent?.SetStage(currentStage);
         }
         else
         {
-            // прошли всё — переход на 1-й уровень (сброс прогресса на stage 1)
+            // Ð¿Ñ€Ð¾ÑˆÐ»Ð¸ Ð²ÑÑ‘ â€” Ð¿ÐµÑ€ÐµÑ…Ð¾Ð´ Ð½Ð° 1-Ð¹ ÑƒÑ€Ð¾Ð²ÐµÐ½ÑŒ (ÑÐ±Ñ€Ð¾Ñ Ð¿Ñ€Ð¾Ð³Ñ€ÐµÑÑÐ° Ð½Ð° stage 1)
             currentStage = 1;
 
             music?.SetStage(currentStage);
@@ -295,7 +309,7 @@ public class RunLevelManager : MonoBehaviour
 
             ShopKeeperManager.Instance?.OnStageChanged(currentStage);
 
-            // SKULL EVENT: новый stage -> стартуем расписание спавна на этот stage
+            // SKULL EVENT: Ð½Ð¾Ð²Ñ‹Ð¹ stage -> ÑÑ‚Ð°Ñ€Ñ‚ÑƒÐµÐ¼ Ñ€Ð°ÑÐ¿Ð¸ÑÐ°Ð½Ð¸Ðµ ÑÐ¿Ð°Ð²Ð½Ð° Ð½Ð° ÑÑ‚Ð¾Ñ‚ stage
             skullEvent?.SetStage(currentStage);
         }
     }
@@ -320,10 +334,10 @@ public class RunLevelManager : MonoBehaviour
         UpdateHudProgress();
         FillManaToMaxSafe("ReturnToBaseAfterDeath");
 
-        // SKULL EVENT: смерть -> база -> череп выключаем
+        // SKULL EVENT: ÑÐ¼ÐµÑ€Ñ‚ÑŒ -> Ð±Ð°Ð·Ð° -> Ñ‡ÐµÑ€ÐµÐ¿ Ð²Ñ‹ÐºÐ»ÑŽÑ‡Ð°ÐµÐ¼
         skullEvent?.SetStage(0);
 
-        // смерть = новый ран
+        // ÑÐ¼ÐµÑ€Ñ‚ÑŒ = Ð½Ð¾Ð²Ñ‹Ð¹ Ñ€Ð°Ð½
         if (ShopKeeperManager.Instance != null)
         {
             ShopKeeperManager.Instance.GenerateRunSchedule(TotalStages);
@@ -343,7 +357,7 @@ public class RunLevelManager : MonoBehaviour
     // ====== SAVE/LOAD SUPPORT ======
 
     /// <summary>
-    /// Восстановить stage из сейва без "прокликивания" GoDeeper().
+    /// Ð’Ð¾ÑÑÑ‚Ð°Ð½Ð¾Ð²Ð¸Ñ‚ÑŒ stage Ð¸Ð· ÑÐµÐ¹Ð²Ð° Ð±ÐµÐ· "Ð¿Ñ€Ð¾ÐºÐ»Ð¸ÐºÐ¸Ð²Ð°Ð½Ð¸Ñ" GoDeeper().
     /// </summary>
     public void SetStageFromSave(int stage)
     {
@@ -356,19 +370,19 @@ public class RunLevelManager : MonoBehaviour
 
     private void ApplyStageState_FromCurrent(string reason)
     {
-        // закрываем UI, магазин
+        // Ð·Ð°ÐºÑ€Ñ‹Ð²Ð°ÐµÐ¼ UI, Ð¼Ð°Ð³Ð°Ð·Ð¸Ð½
         stagePopup?.HideImmediate();
         shopPopup?.HideImmediate();
 
-        // сбрасываем победу, спавнеры, позицию
+        // ÑÐ±Ñ€Ð°ÑÑ‹Ð²Ð°ÐµÐ¼ Ð¿Ð¾Ð±ÐµÐ´Ñƒ, ÑÐ¿Ð°Ð²Ð½ÐµÑ€Ñ‹, Ð¿Ð¾Ð·Ð¸Ñ†Ð¸ÑŽ
         ResetVictoryController();
         DeactivateAllSpawners();
         ResetPlayerPosition();
 
-        // stage 0 => база, stage > 0 => включаем спавнер
+        // stage 0 => Ð±Ð°Ð·Ð°, stage > 0 => Ð²ÐºÐ»ÑŽÑ‡Ð°ÐµÐ¼ ÑÐ¿Ð°Ð²Ð½ÐµÑ€
         ActivateSpawnerForStage(currentStage);
 
-        // UI/аудио/мана
+        // UI/Ð°ÑƒÐ´Ð¸Ð¾/Ð¼Ð°Ð½Ð°
         UpdateHudProgress();
         music?.SetStage(currentStage);
         FillManaToMaxSafe($"ApplyStageState ({reason}) stage={currentStage}");
@@ -376,10 +390,10 @@ public class RunLevelManager : MonoBehaviour
         // skull event
         skullEvent?.SetStage(currentStage);
 
-        // shopkeeper stage change (для NPC)
+        // shopkeeper stage change (Ð´Ð»Ñ NPC)
         ShopKeeperManager.Instance?.OnStageChanged(currentStage);
 
-        // стрелки/иконки магазина — обновим на всякий
+        // ÑÑ‚Ñ€ÐµÐ»ÐºÐ¸/Ð¸ÐºÐ¾Ð½ÐºÐ¸ Ð¼Ð°Ð³Ð°Ð·Ð¸Ð½Ð° â€” Ð¾Ð±Ð½Ð¾Ð²Ð¸Ð¼ Ð½Ð° Ð²ÑÑÐºÐ¸Ð¹
         interLevelUI?.ApplyShopSchedule(TotalStages);
     }
 
@@ -497,3 +511,5 @@ public class RunLevelManager : MonoBehaviour
         InitializeRun();
     }
 }
+
+

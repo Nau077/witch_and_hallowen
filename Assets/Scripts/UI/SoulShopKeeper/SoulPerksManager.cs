@@ -149,6 +149,26 @@ public class SoulPerksManager : MonoBehaviour
         return HpLevel * hpStep;
     }
 
+    public bool CanGrantHealthLevel(int amount = 1)
+    {
+        return HpLevel < hpMaxPurchases && amount > 0;
+    }
+
+    public bool GrantHealthLevel(int amount = 1)
+    {
+        if (amount <= 0) return false;
+        if (HpLevel >= hpMaxPurchases) return false;
+
+        int prev = HpLevel;
+        HpLevel = Mathf.Clamp(HpLevel + amount, 0, hpMaxPurchases);
+        if (HpLevel == prev) return false;
+
+        Save();
+        ApplyToPlayerIfPossible();
+        NotifyChanged();
+        return true;
+    }
+
     // ---------------- DASH ----------------
 
     /// <summary>
@@ -249,6 +269,26 @@ public class SoulPerksManager : MonoBehaviour
         return ManaLevel * manaStep;
     }
 
+    public bool CanGrantManaLevel(int amount = 1)
+    {
+        return ManaLevel < manaMaxPurchases && amount > 0;
+    }
+
+    public bool GrantManaLevel(int amount = 1)
+    {
+        if (amount <= 0) return false;
+        if (ManaLevel >= manaMaxPurchases) return false;
+
+        int prev = ManaLevel;
+        ManaLevel = Mathf.Clamp(ManaLevel + amount, 0, manaMaxPurchases);
+        if (ManaLevel == prev) return false;
+
+        Save();
+        ApplyToPlayerIfPossible();
+        NotifyChanged();
+        return true;
+    }
+
     // ---------------- STAMINA ----------------
 
     public int GetStaminaUpgradePrice()
@@ -295,6 +335,26 @@ public class SoulPerksManager : MonoBehaviour
     public int GetPermanentStaminaBonus()
     {
         return StaminaLevel * staminaStep;
+    }
+
+    public bool CanGrantStaminaLevel(int amount = 1)
+    {
+        return StaminaLevel < staminaMaxPurchases && amount > 0;
+    }
+
+    public bool GrantStaminaLevel(int amount = 1)
+    {
+        if (amount <= 0) return false;
+        if (StaminaLevel >= staminaMaxPurchases) return false;
+
+        int prev = StaminaLevel;
+        StaminaLevel = Mathf.Clamp(StaminaLevel + amount, 0, staminaMaxPurchases);
+        if (StaminaLevel == prev) return false;
+
+        Save();
+        ApplyToPlayerIfPossible();
+        NotifyChanged();
+        return true;
     }
 
     // ---------------- RESET ----------------

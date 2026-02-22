@@ -17,6 +17,11 @@ public class CursorManager : MonoBehaviour
     [Header("Debug")]
     public bool debug = false;
 
+    [Header("Scale")]
+    [Tooltip("Global cursor texture scale. 0.475 = half size and additional 5% smaller.")]
+    [Range(0.1f, 1f)]
+    public float cursorScale = 0.475f;
+
     private enum Mode { UI, Combat }
 
     private Mode _currentMode = (Mode)(-1);
@@ -24,6 +29,7 @@ public class CursorManager : MonoBehaviour
 
     // Кэш: Sprite -> Texture2D, чтобы не создавать Texture2D каждый кадр
     private readonly Dictionary<Sprite, Texture2D> _spriteTexCache = new Dictionary<Sprite, Texture2D>(32);
+    private readonly Dictionary<int, Texture2D> _scaledTexCache = new Dictionary<int, Texture2D>(64);
 
     private void Awake()
     {
@@ -169,8 +175,9 @@ public class CursorManager : MonoBehaviour
             return;
         }
 
-        Texture2D tex = SpriteToTextureCached(sprite);
-        Cursor.SetCursor(tex, hotspot, CursorMode.Auto);
+        Texture2D tex = SpriteToTextureScaledCached(sprite, cursorScale);
+        Vector2 scaledHotspot = hotspot * Mathf.Clamp(cursorScale, 0.1f, 1f);
+        Cursor.SetCursor(tex, scaledHotspot, CursorMode.Auto);
     }
 
     private Texture2D SpriteToTextureCached(Sprite sprite)
@@ -183,6 +190,26 @@ public class CursorManager : MonoBehaviour
         Texture2D tex = SpriteToTexture(sprite);
         _spriteTexCache[sprite] = tex;
         return tex;
+    }
+
+    private Texture2D SpriteToTextureScaledCached(Sprite sprite, float scale)
+    {
+        if (sprite == null) return null;
+
+        float safeScale = Mathf.Clamp(scale, 0.1f, 1f);
+        if (safeScale >= 0.999f)
+            return SpriteToTextureCached(sprite);
+
+        int scaleKey = Mathf.RoundToInt(safeScale * 1000f);
+        int key = (sprite.GetInstanceID() * 397) ^ scaleKey;
+
+        if (_scaledTexCache.TryGetValue(key, out var cached) && cached != null)
+            return cached;
+
+        Texture2D source = SpriteToTextureCached(sprite);
+        Texture2D scaled = ScaleTextureBilinear(source, safeScale);
+        _scaledTexCache[key] = scaled;
+        return scaled;
     }
 
     private Texture2D SpriteToTexture(Sprite sprite)
@@ -204,5 +231,32 @@ public class CursorManager : MonoBehaviour
         tex.SetPixels(pixels);
         tex.Apply();
         return tex;
+    }
+
+    private Texture2D ScaleTextureBilinear(Texture2D source, float scale)
+    {
+        if (source == null) return null;
+
+        int srcW = source.width;
+        int srcH = source.height;
+        int dstW = Mathf.Max(1, Mathf.RoundToInt(srcW * scale));
+        int dstH = Mathf.Max(1, Mathf.RoundToInt(srcH * scale));
+
+        var dst = new Texture2D(dstW, dstH, TextureFormat.RGBA32, false);
+        Color[] pixels = new Color[dstW * dstH];
+
+        for (int y = 0; y < dstH; y++)
+        {
+            float v = dstH > 1 ? (float)y / (dstH - 1) : 0f;
+            for (int x = 0; x < dstW; x++)
+            {
+                float u = dstW > 1 ? (float)x / (dstW - 1) : 0f;
+                pixels[y * dstW + x] = source.GetPixelBilinear(u, v);
+            }
+        }
+
+        dst.SetPixels(pixels);
+        dst.Apply();
+        return dst;
     }
 }

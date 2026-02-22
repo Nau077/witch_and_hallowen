@@ -28,7 +28,7 @@ public class HoverTooltipUI : MonoBehaviour
     }
 
     [SerializeField] private Vector2 mouseOffset = new Vector2(24f, -10f);
-    [SerializeField] private float globalRightOffsetPx = 15f;
+    [SerializeField] private float globalRightOffsetPx = 25f;
     [SerializeField] private float showDelayDefault = 0.35f;
 
     private static HoverTooltipUI _instance;

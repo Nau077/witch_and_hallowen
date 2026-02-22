@@ -16301,6 +16301,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeRewardSystem
   rewardPopup: {fileID: 1373876753}
   lockInputWhileOpen: 1
+  defaultChargesOnReward: 10
   rules:
   - ruleId: stage_1_ice
     popupTitle: 
@@ -17143,6 +17144,7 @@ GameObject:
   - component: {fileID: 1373876755}
   - component: {fileID: 1373876754}
   - component: {fileID: 1373876753}
+  - component: {fileID: 1373876757}
   m_Layer: 5
   m_Name: 'UpgradeRewardPopupRoot '
   m_TagString: Untagged
@@ -17186,25 +17188,33 @@ MonoBehaviour:
   titleText: {fileID: 1957381625}
   closeButton: {fileID: 1681187848}
   allowCloseWithoutSelection: 0
+  selectedTint: {r: 1, g: 1, b: 1, a: 1}
+  normalTint: {r: 1, g: 1, b: 1, a: 0.6}
+  selectedScale: 1.08
+  normalScale: 1
   animator: {fileID: 305426589}
   showTrigger: Show
   hideTrigger: Hide
+  popupFade: {fileID: 1373876757}
   options:
   - root: {fileID: 696353729}
     button: {fileID: 696353733}
     icon: {fileID: 211590258}
     nameText: {fileID: 0}
     descText: {fileID: 0}
+    highlightImage: {fileID: 0}
   - root: {fileID: 0}
     button: {fileID: 0}
     icon: {fileID: 0}
     nameText: {fileID: 0}
     descText: {fileID: 0}
+    highlightImage: {fileID: 0}
   - root: {fileID: 0}
     button: {fileID: 0}
     icon: {fileID: 0}
     nameText: {fileID: 0}
     descText: {fileID: 0}
+    highlightImage: {fileID: 0}
 --- !u!114 &1373876754
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17255,6 +17265,23 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1373876751}
   m_CullTransparentMesh: 1
+--- !u!114 &1373876757
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1373876751}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2c2f093f7a0e1543b26db55d7d243f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PopupFadeCanvas
+  canvasGroup: {fileID: 0}
+  fadeInDuration: 0.18
+  fadeOutDuration: 0.16
+  useUnscaledTime: 1
+  disableOnHidden: 1
 --- !u!1 &1375396960
 GameObject:
   m_ObjectHideFlags: 0

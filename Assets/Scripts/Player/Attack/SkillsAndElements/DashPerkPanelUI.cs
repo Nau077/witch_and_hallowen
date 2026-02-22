@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -71,10 +71,8 @@ public class DashPerkPanelUI : MonoBehaviour
         int lvl = GetDashLevelSafe();
         iconImg.sprite = GetSpriteByLevel(lvl);
         iconImg.preserveAspect = true;
-
-        // ВАЖНО: принудительно делаем видимым
         iconImg.enabled = (iconImg.sprite != null);
-        iconImg.color = Color.white; // alpha = 1
+        iconImg.color = Color.white;
 
         if (forceIconSize)
             ForceSize();
@@ -105,20 +103,8 @@ public class DashPerkPanelUI : MonoBehaviour
     private void EnsureIconExists()
     {
         if (iconGO != null && iconImg != null && iconRect != null) return;
+        if (content == null || iconPrefab == null) return;
 
-        if (content == null)
-        {
-            Debug.LogWarning("DashPerkPanelUI: content is NULL");
-            return;
-        }
-
-        if (iconPrefab == null)
-        {
-            Debug.LogWarning("DashPerkPanelUI: iconPrefab is NULL");
-            return;
-        }
-
-        // Если уже есть ребёнок — используем его
         if (content.childCount > 0)
             iconGO = content.GetChild(0).gameObject;
         else
@@ -132,13 +118,11 @@ public class DashPerkPanelUI : MonoBehaviour
 
         if (iconImg == null)
         {
-            Debug.LogWarning("DashPerkPanelUI: iconPrefab has no Image (or in children).");
+            Debug.LogWarning("[DashPerkPanelUI] iconPrefab has no Image.");
             return;
         }
 
         iconRect = iconImg.rectTransform;
-
-        // Сброс в адекватное состояние
         iconRect.localScale = Vector3.one;
         iconImg.color = Color.white;
 
@@ -146,12 +130,11 @@ public class DashPerkPanelUI : MonoBehaviour
         if (tooltipTrigger == null)
             tooltipTrigger = iconGO.AddComponent<HoverTooltipTrigger>();
 
-        tooltipTrigger.Bind(BuildTooltipData, 0.6f);
+        tooltipTrigger.Bind(BuildTooltipData, 0.3f);
     }
 
     private void ForceSize()
     {
-        // 1) LayoutElement на контейнер (для LayoutGroup)
         var le = iconGO.GetComponent<LayoutElement>();
         if (le == null) le = iconGO.AddComponent<LayoutElement>();
 
@@ -160,7 +143,6 @@ public class DashPerkPanelUI : MonoBehaviour
         le.preferredWidth = forceIconWidth;
         le.preferredHeight = forceIconHeight;
 
-        // 2) И прямой размер RectTransform у картинки (на случай, если Layout не работает)
         iconRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, forceIconWidth);
         iconRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, forceIconHeight);
     }
@@ -174,8 +156,6 @@ public class DashPerkPanelUI : MonoBehaviour
         breatheT += dt * breatheSpeed;
 
         float s = 1f + Mathf.Sin(breatheT * Mathf.PI * 2f) * breatheAmplitude;
-
-        // скейлим именно картинку, чтобы LayoutGroup не затирал
         iconRect.localScale = new Vector3(s, s, 1f);
     }
 
@@ -195,7 +175,6 @@ public class DashPerkPanelUI : MonoBehaviour
 
         Vector3 start = Vector3.one * popScale;
         Vector3 end = Vector3.one;
-
         iconRect.localScale = start;
 
         float dur = Mathf.Max(0.001f, popDownDuration);
@@ -208,7 +187,6 @@ public class DashPerkPanelUI : MonoBehaviour
 
             float k = Mathf.Clamp01(time / dur);
             k = Mathf.Pow(k, 0.35f);
-
             iconRect.localScale = Vector3.LerpUnclamped(start, end, k);
             yield return null;
         }
@@ -226,12 +204,13 @@ public class DashPerkPanelUI : MonoBehaviour
 
         return new HoverTooltipData
         {
-            title = "Перк дэша",
-            levelLine = "Уровень: " + perks.GetDashRealLevel() + "/3",
+            title = TooltipLocalization.Tr("Dash Perk", "Перк дэша"),
+            levelLine = TooltipLocalization.Tr("Level: ", "Уровень: ") + perks.GetDashRealLevel() + "/3",
             priceLine = perks.DashLevel >= perks.dashMaxPurchases
-                ? "Цена: MAX"
-                : ("Цена: " + perks.GetDashUpgradePrice() + " души"),
-            description = "Улучшает дальность и эффективность дэша."
+                ? TooltipLocalization.Tr("Price: MAX", "Цена: MAX")
+                : (TooltipLocalization.Tr("Price: ", "Цена: ") + perks.GetDashUpgradePrice() + TooltipLocalization.Tr(" souls", " души")),
+            description = TooltipLocalization.Tr("Improves dash range and efficiency.", "Улучшает дальность и эффективность дэша.")
         };
     }
 }
+

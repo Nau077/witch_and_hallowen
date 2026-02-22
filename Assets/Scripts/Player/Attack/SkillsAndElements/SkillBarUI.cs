@@ -143,7 +143,7 @@ public class SkillBarUI : MonoBehaviour
             if (trigger == null)
                 trigger = sUI.button.gameObject.AddComponent<HoverTooltipTrigger>();
 
-            trigger.Bind(() => BuildSkillTooltipData(captured), 0.6f);
+            trigger.Bind(() => BuildSkillTooltipData(captured), 0.3f);
             _tooltipTriggers[i] = trigger;
         }
     }
@@ -160,14 +160,22 @@ public class SkillBarUI : MonoBehaviour
         if (PlayerSkills.Instance != null)
             level = Mathf.Max(1, PlayerSkills.Instance.GetSkillLevel(slot.def.skillId));
 
-        string chargesLine = slot.def.infiniteCharges ? "Заряды: бесконечно" : ("Заряды: " + slot.charges);
-        string extraLine = "КД: " + slot.def.cooldown.ToString("0.##") + " сек | Мана: " + slot.def.manaCostPerShot;
+        string chargesLine = slot.def.infiniteCharges
+            ? TooltipLocalization.Tr("Charges: infinite", "Заряды: бесконечно")
+            : (TooltipLocalization.Tr("Charges: ", "Заряды: ") + slot.charges);
+
+        string extraLine = TooltipLocalization.Tr("CD: ", "КД: ")
+            + slot.def.cooldown.ToString("0.##")
+            + TooltipLocalization.Tr(" sec | Mana: ", " сек | Мана: ")
+            + slot.def.manaCostPerShot;
 
         return new HoverTooltipData
         {
             title = slot.def.displayName,
-            levelLine = "Уровень навыка: " + level,
-            priceLine = "Цена заряда: " + slot.def.coinCostPerCharge + " монеты",
+            levelLine = TooltipLocalization.Tr("Skill level: ", "Уровень навыка: ") + level,
+            priceLine = TooltipLocalization.Tr("Charge price: ", "Цена заряда: ")
+                + slot.def.coinCostPerCharge
+                + TooltipLocalization.Tr(" coins", " монеты"),
             description = chargesLine + "\n" + extraLine
         };
     }
@@ -182,3 +190,4 @@ public class SkillBarUI : MonoBehaviour
             shooter.SkipNextClickFromUI();
     }
 }
+

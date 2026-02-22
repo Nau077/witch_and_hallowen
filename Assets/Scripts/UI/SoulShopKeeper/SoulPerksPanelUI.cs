@@ -428,7 +428,7 @@ public class SoulPerksPanelUI : MonoBehaviour
         if (trigger == null)
             trigger = heartGO.AddComponent<HoverTooltipTrigger>();
 
-        trigger.Bind(() => BuildPerkTooltipData(type), 0.6f);
+        trigger.Bind(() => BuildPerkTooltipData(type), 0.3f);
     }
 
     private HoverTooltipData BuildPerkTooltipData(PerkType type)
@@ -441,34 +441,34 @@ public class SoulPerksPanelUI : MonoBehaviour
             case PerkType.HP:
                 return new HoverTooltipData
                 {
-                    title = "Сердце здоровья",
-                    levelLine = "Уровень: " + (1 + perks.HpLevel) + "/" + (1 + perks.hpMaxPurchases),
+                    title = TooltipLocalization.Tr("Health Heart", "Сердце здоровья"),
+                    levelLine = TooltipLocalization.Tr("Level: ", "Уровень: ") + (1 + perks.HpLevel) + "/" + (1 + perks.hpMaxPurchases),
                     priceLine = perks.HpLevel >= perks.hpMaxPurchases
-                        ? "Цена: MAX"
-                        : ("Цена: " + perks.GetHealthUpgradePrice() + " души"),
-                    description = "Перманентный бонус HP: +" + perks.GetPermanentMaxHpBonus()
+                        ? TooltipLocalization.Tr("Price: MAX", "Цена: MAX")
+                        : (TooltipLocalization.Tr("Price: ", "Цена: ") + perks.GetHealthUpgradePrice() + TooltipLocalization.Tr(" souls", " души")),
+                    description = TooltipLocalization.Tr("Permanent HP bonus: +", "Перманентный бонус HP: +") + perks.GetPermanentMaxHpBonus()
                 };
 
             case PerkType.Mana:
                 return new HoverTooltipData
                 {
-                    title = "Сердце маны",
-                    levelLine = "Уровень: " + (1 + perks.ManaLevel) + "/" + (1 + perks.manaMaxPurchases),
+                    title = TooltipLocalization.Tr("Mana Heart", "Сердце маны"),
+                    levelLine = TooltipLocalization.Tr("Level: ", "Уровень: ") + (1 + perks.ManaLevel) + "/" + (1 + perks.manaMaxPurchases),
                     priceLine = perks.ManaLevel >= perks.manaMaxPurchases
-                        ? "Цена: MAX"
-                        : ("Цена: " + perks.GetManaUpgradePrice() + " души"),
-                    description = "Перманентный бонус маны: +" + perks.GetPermanentManaBonus()
+                        ? TooltipLocalization.Tr("Price: MAX", "Цена: MAX")
+                        : (TooltipLocalization.Tr("Price: ", "Цена: ") + perks.GetManaUpgradePrice() + TooltipLocalization.Tr(" souls", " души")),
+                    description = TooltipLocalization.Tr("Permanent Mana bonus: +", "Перманентный бонус маны: +") + perks.GetPermanentManaBonus()
                 };
 
             default:
                 return new HoverTooltipData
                 {
-                    title = "Сердце выносливости",
-                    levelLine = "Уровень: " + (1 + perks.StaminaLevel) + "/" + (1 + perks.staminaMaxPurchases),
+                    title = TooltipLocalization.Tr("Stamina Heart", "Сердце выносливости"),
+                    levelLine = TooltipLocalization.Tr("Level: ", "Уровень: ") + (1 + perks.StaminaLevel) + "/" + (1 + perks.staminaMaxPurchases),
                     priceLine = perks.StaminaLevel >= perks.staminaMaxPurchases
-                        ? "Цена: MAX"
-                        : ("Цена: " + perks.GetStaminaUpgradePrice() + " души"),
-                    description = "Перманентный бонус выносливости: +" + perks.GetPermanentStaminaBonus()
+                        ? TooltipLocalization.Tr("Price: MAX", "Цена: MAX")
+                        : (TooltipLocalization.Tr("Price: ", "Цена: ") + perks.GetStaminaUpgradePrice() + TooltipLocalization.Tr(" souls", " души")),
+                    description = TooltipLocalization.Tr("Permanent Stamina bonus: +", "Перманентный бонус выносливости: +") + perks.GetPermanentStaminaBonus()
                 };
         }
     }

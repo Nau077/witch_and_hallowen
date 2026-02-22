@@ -61,20 +61,17 @@ public class ShopItemSlotUI : MonoBehaviour
         }
         else if (PlayerSkills.Instance != null)
         {
-            requirementsMet = PlayerSkills.Instance.MeetsRequirement(
-                _def.requiredSkill,
-                _def.requiredSkillLevel
-            );
+            requirementsMet = PlayerSkills.Instance.MeetsRequirement(_def.requiredSkill, _def.requiredSkillLevel);
         }
 
         bool canInteract = requirementsMet && CanPurchaseNow();
-        bool chargeLockedBySkillLevel = IsChargePurchaseLockedBySkillLevel();
+        bool chargeLocked = IsChargePurchaseLockedBySkillLevel();
 
-        if (chargeLockedBySkillLevel)
+        if (chargeLocked)
             canInteract = false;
 
-        if (priceText != null && chargeLockedBySkillLevel)
-            priceText.text = "Недоступно";
+        if (priceText != null && chargeLocked)
+            priceText.text = TooltipLocalization.Tr("Unavailable", "Недоступно");
 
         if (buyButton != null)
             buyButton.interactable = canInteract;
@@ -89,29 +86,17 @@ public class ShopItemSlotUI : MonoBehaviour
 
         var perks = SoulPerksManager.Instance;
 
-        if (_def.effectType == ShopItemEffectType.IncreaseMaxHealth)
-        {
-            if (perks != null)
-                return perks.GetHealthUpgradePrice();
-        }
+        if (_def.effectType == ShopItemEffectType.IncreaseMaxHealth && perks != null)
+            return perks.GetHealthUpgradePrice();
 
-        if (_def.effectType == ShopItemEffectType.IncreaseDashLevel)
-        {
-            if (perks != null)
-                return perks.GetStaminaUpgradePrice();
-        }
+        if (_def.effectType == ShopItemEffectType.IncreaseDashLevel && perks != null)
+            return perks.GetStaminaUpgradePrice();
 
-        if (_def.effectType == ShopItemEffectType.IncreaseManaLevel)
-        {
-            if (perks != null)
-                return perks.GetManaUpgradePrice();
-        }
+        if (_def.effectType == ShopItemEffectType.IncreaseManaLevel && perks != null)
+            return perks.GetManaUpgradePrice();
 
-        if (_def.effectType == ShopItemEffectType.ResetSoulPerks)
-        {
-            if (perks != null)
-                return perks.resetPrice;
-        }
+        if (_def.effectType == ShopItemEffectType.ResetSoulPerks && perks != null)
+            return perks.resetPrice;
 
         return _def.price;
     }
@@ -188,7 +173,6 @@ public class ShopItemSlotUI : MonoBehaviour
                     sc.SetSouls(sc.souls - price);
                     sc.RefreshUI();
                     paidOrDone = true;
-
                     ApplyEffect_RegularShopItem();
                 }
             }
@@ -238,7 +222,7 @@ public class ShopItemSlotUI : MonoBehaviour
         if (_tooltipTrigger == null)
             _tooltipTrigger = target.AddComponent<HoverTooltipTrigger>();
 
-        _tooltipTrigger.Bind(BuildTooltipData, 0.6f);
+        _tooltipTrigger.Bind(BuildTooltipData, 0.3f);
     }
 
     private HoverTooltipData BuildTooltipData()
@@ -246,14 +230,18 @@ public class ShopItemSlotUI : MonoBehaviour
         if (_def == null) return default;
 
         int price = GetCurrentPrice();
-        string currency = (_def.currency == ShopCurrency.Souls) ? "души" : "монеты";
-        bool chargeLockedBySkillLevel = IsChargePurchaseLockedBySkillLevel();
+        string currency = (_def.currency == ShopCurrency.Souls)
+            ? TooltipLocalization.Tr("souls", "души")
+            : TooltipLocalization.Tr("coins", "монеты");
+        bool chargeLocked = IsChargePurchaseLockedBySkillLevel();
 
         return new HoverTooltipData
         {
             title = _def.displayName,
             levelLine = GetCurrentLevelLine(),
-            priceLine = chargeLockedBySkillLevel ? "Недоступно" : ("Цена: " + price + " " + currency),
+            priceLine = chargeLocked
+                ? TooltipLocalization.Tr("Unavailable", "Недоступно")
+                : (TooltipLocalization.Tr("Price: ", "Цена: ") + price + " " + currency),
             description = GetEffectDescription()
         };
     }
@@ -263,19 +251,19 @@ public class ShopItemSlotUI : MonoBehaviour
         var perks = SoulPerksManager.Instance;
 
         if (_def.effectType == ShopItemEffectType.IncreaseMaxHealth && perks != null)
-            return "Уровень: " + (1 + perks.HpLevel) + "/" + (1 + perks.hpMaxPurchases);
+            return TooltipLocalization.Tr("Level: ", "Уровень: ") + (1 + perks.HpLevel) + "/" + (1 + perks.hpMaxPurchases);
 
         if (_def.effectType == ShopItemEffectType.IncreaseManaLevel && perks != null)
-            return "Уровень: " + (1 + perks.ManaLevel) + "/" + (1 + perks.manaMaxPurchases);
+            return TooltipLocalization.Tr("Level: ", "Уровень: ") + (1 + perks.ManaLevel) + "/" + (1 + perks.manaMaxPurchases);
 
         if (_def.effectType == ShopItemEffectType.IncreaseDashLevel && perks != null)
-            return "Уровень: " + (1 + perks.StaminaLevel) + "/" + (1 + perks.staminaMaxPurchases);
+            return TooltipLocalization.Tr("Level: ", "Уровень: ") + (1 + perks.StaminaLevel) + "/" + (1 + perks.staminaMaxPurchases);
 
         SkillId skillId = ResolveSkillId();
         if (skillId != SkillId.None && PlayerSkills.Instance != null)
-            return "Уровень навыка: " + PlayerSkills.Instance.GetSkillLevel(skillId);
+            return TooltipLocalization.Tr("Skill level: ", "Уровень навыка: ") + PlayerSkills.Instance.GetSkillLevel(skillId);
 
-        return "Уровень: -";
+        return TooltipLocalization.Tr("Level: -", "Уровень: -");
     }
 
     private string GetEffectDescription()
@@ -283,47 +271,36 @@ public class ShopItemSlotUI : MonoBehaviour
         if (_def == null) return "";
 
         if (IsChargePurchaseLockedBySkillLevel())
-            return "Недоступно: сначала откройте навык (уровень 1+), потом можно покупать заряды.";
+            return TooltipLocalization.Tr(
+                "Unavailable: unlock this skill first (level 1+) to buy charges.",
+                "Недоступно: сначала откройте навык (уровень 1+), потом можно покупать заряды.");
 
         if (_def.effectType == ShopItemEffectType.IncreaseMaxHealth)
-            return "Перманентно повышает максимум HP.";
+            return TooltipLocalization.Tr("Permanently increases max HP.", "Перманентно повышает максимум HP.");
 
         if (_def.effectType == ShopItemEffectType.IncreaseManaLevel)
-            return "Перманентно повышает максимум маны.";
+            return TooltipLocalization.Tr("Permanently increases max Mana.", "Перманентно повышает максимум маны.");
 
         if (_def.effectType == ShopItemEffectType.IncreaseDashLevel)
-            return "Перманентно повышает запас выносливости для дэша.";
+            return TooltipLocalization.Tr("Permanently increases dash stamina reserve.", "Перманентно повышает запас выносливости для дэша.");
 
         if (_def.effectType == ShopItemEffectType.ResetSoulPerks)
-            return "Сбрасывает перки и возвращает потраченные души с комиссией.";
+            return TooltipLocalization.Tr("Resets perks and refunds spent souls with commission.", "Сбрасывает перки и возвращает потраченные души с комиссией.");
 
         SkillId skillId = ResolveSkillId();
 
         if (_def.addCharges > 0)
         {
-            if (skillId == SkillId.Lightning)
-                return "Добавляет заряды молнии: +" + _def.addCharges + ".";
-
-            return "Добавляет заряды: +" + _def.addCharges + ".";
+            return TooltipLocalization.Tr("Adds charges: +", "Добавляет заряды: +") + _def.addCharges + ".";
         }
 
         if (_def.unlockSkill && skillId != SkillId.None)
-        {
-            if (skillId == SkillId.Lightning)
-                return "Открывает навык молнии: прямой выстрел и разряд в стороны.";
-
-            return "Открывает навык.";
-        }
+            return TooltipLocalization.Tr("Unlocks skill.", "Открывает навык.");
 
         if (_def.upgradeToLevel > 0 && skillId != SkillId.None)
-        {
-            if (skillId == SkillId.Lightning)
-                return "Повышает уровень молнии до " + _def.upgradeToLevel + ".";
+            return TooltipLocalization.Tr("Upgrades skill to level ", "Повышает навык до уровня ") + _def.upgradeToLevel + ".";
 
-            return "Повышает навык до уровня " + _def.upgradeToLevel + ".";
-        }
-
-        return "Покупка в магазине.";
+        return TooltipLocalization.Tr("Shop purchase.", "Покупка в магазине.");
     }
 
     private SkillId ResolveSkillId()

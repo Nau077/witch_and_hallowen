@@ -27,8 +27,9 @@ public class HoverTooltipUI : MonoBehaviour
         }
     }
 
-    [SerializeField] private Vector2 mouseOffset = new Vector2(10f, -10f);
-    [SerializeField] private float showDelayDefault = 0.6f;
+    [SerializeField] private Vector2 mouseOffset = new Vector2(24f, -10f);
+    [SerializeField] private float globalRightOffsetPx = 15f;
+    [SerializeField] private float showDelayDefault = 0.35f;
 
     private static HoverTooltipUI _instance;
     private static bool _isQuitting;
@@ -232,6 +233,7 @@ public class HoverTooltipUI : MonoBehaviour
 
         var size = _root.rect.size;
         var pos = local + mouseOffset;
+        pos.x += globalRightOffsetPx;
 
         float minX = -_canvasRect.rect.width * 0.5f;
         float maxX = _canvasRect.rect.width * 0.5f - size.x;
@@ -243,18 +245,17 @@ public class HoverTooltipUI : MonoBehaviour
 
         _root.anchoredPosition = pos;
     }
-
 }
 
 public class HoverTooltipTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerMoveHandler
 {
     public float ShowDelay => _showDelay;
 
-    [SerializeField] private float _showDelay = 1f;
+    [SerializeField] private float _showDelay = 0.35f;
     private System.Func<HoverTooltipData> _provider;
     private bool _hovered;
 
-    public void Bind(System.Func<HoverTooltipData> provider, float showDelay = 1f)
+    public void Bind(System.Func<HoverTooltipData> provider, float showDelay = 0.35f)
     {
         _provider = provider;
         _showDelay = Mathf.Max(0f, showDelay);

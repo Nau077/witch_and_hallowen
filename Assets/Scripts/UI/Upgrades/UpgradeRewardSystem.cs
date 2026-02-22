@@ -27,6 +27,7 @@ public class UpgradeRewardSystem : MonoBehaviour
     [Header("Popup")]
     [SerializeField] private UpgradeRewardPopup rewardPopup;
     [SerializeField] private bool lockInputWhileOpen = true;
+    [SerializeField] private int defaultChargesOnReward = 10;
 
     [Header("Rules")]
     [SerializeField] private RewardRule[] rules = Array.Empty<RewardRule>();
@@ -233,7 +234,8 @@ public class UpgradeRewardSystem : MonoBehaviour
             case UpgradeRewardType.SkillCharges:
                 if (reward.skillId == SkillId.None) return false;
                 if (PlayerSkills.Instance == null) return false;
-                return PlayerSkills.Instance.GetSkillLevel(reward.skillId) > 0 && reward.addCharges > 0;
+                return PlayerSkills.Instance.GetSkillLevel(reward.skillId) > 0
+                    && (reward.addCharges > 0 || defaultChargesOnReward > 0);
 
             case UpgradeRewardType.HealthHeart:
                 return SoulPerksManager.Instance != null && SoulPerksManager.Instance.CanGrantHealthLevel(reward.amount);
@@ -284,8 +286,9 @@ public class UpgradeRewardSystem : MonoBehaviour
         int targetLevel = Mathf.Max(1, reward.targetSkillLevel);
         PlayerSkills.Instance.UnlockSkill(reward.skillId, targetLevel);
 
-        if (reward.addCharges > 0)
-            PlayerSkills.Instance.AddCharges(reward.skillId, reward.addCharges);
+        int chargesToGrant = reward.addCharges > 0 ? reward.addCharges : Mathf.Max(0, defaultChargesOnReward);
+        if (chargesToGrant > 0)
+            PlayerSkills.Instance.AddCharges(reward.skillId, chargesToGrant);
 
         if (!reward.addToLoadout) return;
 
@@ -299,17 +302,18 @@ public class UpgradeRewardSystem : MonoBehaviour
             return;
         }
 
-        int chargesToAdd = def.infiniteCharges ? 0 : Mathf.Max(1, reward.addCharges);
-        loadout.AddChargesToSkill(def, chargesToAdd);
+        int loadoutCharges = def.infiniteCharges ? 0 : Mathf.Max(1, chargesToGrant);
+        loadout.AddChargesToSkill(def, loadoutCharges);
     }
 
     private void ApplySkillCharges(UpgradeRewardDefinition reward)
     {
         if (PlayerSkills.Instance == null) return;
         if (reward.skillId == SkillId.None) return;
-        if (reward.addCharges <= 0) return;
+        int chargesToGrant = reward.addCharges > 0 ? reward.addCharges : Mathf.Max(0, defaultChargesOnReward);
+        if (chargesToGrant <= 0) return;
 
-        PlayerSkills.Instance.AddCharges(reward.skillId, reward.addCharges);
+        PlayerSkills.Instance.AddCharges(reward.skillId, chargesToGrant);
 
         var loadout = SkillLoadout.Instance;
         if (loadout == null) return;
@@ -321,6 +325,6 @@ public class UpgradeRewardSystem : MonoBehaviour
             return;
         }
 
-        loadout.AddChargesToSkill(def, reward.addCharges);
+        loadout.AddChargesToSkill(def, chargesToGrant);
     }
 }

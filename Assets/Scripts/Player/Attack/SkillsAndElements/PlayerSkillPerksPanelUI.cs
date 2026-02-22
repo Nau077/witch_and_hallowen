@@ -120,7 +120,7 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
         if (tooltip == null)
             tooltip = tooltipTarget.AddComponent<HoverTooltipTrigger>();
 
-        tooltip.Bind(() => BuildTooltip(def, skillId, level, charges), 0.6f);
+        tooltip.Bind(() => BuildTooltip(def, skillId, level, charges), 0.3f);
     }
 
     private HoverTooltipData BuildTooltip(SkillDefinition def, SkillId skillId, int level, int charges)
@@ -130,19 +130,17 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
             : skillId.ToString();
 
         string priceLine = def != null
-            ? "Charge price: " + def.coinCostPerCharge + " coins"
+            ? (TooltipLocalization.Tr("Charge price: ", "Цена заряда: ") + def.coinCostPerCharge + TooltipLocalization.Tr(" coins", " монеты"))
             : "";
 
-        string desc;
-        if (def != null && def.infiniteCharges)
-            desc = "Charges: infinite";
-        else
-            desc = "Charges: " + Mathf.Max(0, charges);
+        string desc = (def != null && def.infiniteCharges)
+            ? TooltipLocalization.Tr("Charges: infinite", "Заряды: бесконечно")
+            : (TooltipLocalization.Tr("Charges: ", "Заряды: ") + Mathf.Max(0, charges));
 
         return new HoverTooltipData
         {
             title = title,
-            levelLine = "Skill level: " + Mathf.Max(0, level),
+            levelLine = TooltipLocalization.Tr("Skill level: ", "Уровень навыка: ") + Mathf.Max(0, level),
             priceLine = priceLine,
             description = desc
         };

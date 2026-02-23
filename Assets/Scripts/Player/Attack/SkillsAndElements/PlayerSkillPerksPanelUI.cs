@@ -23,8 +23,8 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
     [SerializeField] private float tooltipDelay = 0.14f;
 
     [Header("New Icon Animation")]
-    [SerializeField] private float revealDuration = 0.28f;
-    [SerializeField] private float revealScaleMultiplier = 1.22f;
+    [SerializeField] private float revealDuration = 0.12f;
+    [SerializeField] private float revealScaleMultiplier = 2.3f;
     [SerializeField] private Color revealFlashTint = new Color(1f, 0.95f, 0.45f, 1f);
 
     [Header("Breathing (all visible icons)")]
@@ -36,8 +36,10 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
     private readonly List<GameObject> _icons = new List<GameObject>();
     private readonly List<SkillId> _tracked = new List<SkillId>();
     private readonly HashSet<SkillId> _visibleSkills = new HashSet<SkillId>();
+    private readonly Dictionary<GameObject, Coroutine> _popRoutines = new Dictionary<GameObject, Coroutine>();
     private bool _skillsSubscribed;
     private float _breatheTime;
+    private int _lastVisibleCount;
 
     private void Awake()
     {
@@ -79,18 +81,25 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
         CleanupVisibleSkills();
         EnsurePoolSize(_tracked.Count);
 
+        int visibleCount = 0;
+
         for (int i = 0; i < _icons.Count; i++)
         {
             bool visible = i < _tracked.Count;
             _icons[i].SetActive(visible);
             if (!visible) continue;
+            visibleCount++;
 
             SkillId skillId = _tracked[i];
             SetupIcon(_icons[i], skillId);
 
-            if (_visibleSkills.Add(skillId))
+            bool isNewSkill = _visibleSkills.Add(skillId);
+            bool isNewByCount = i >= _lastVisibleCount;
+            if (isNewSkill || isNewByCount)
                 PlayRevealAnimation(_icons[i]);
         }
+
+        _lastVisibleCount = visibleCount;
     }
 
     private void RebuildTrackedSkills()
@@ -176,6 +185,8 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
             rootRect.localScale = Vector3.one;
             rootRect.localRotation = Quaternion.identity;
             rootRect.anchoredPosition3D = Vector3.zero;
+            rootRect.anchorMin = new Vector2(0.5f, 0.5f);
+            rootRect.anchorMax = new Vector2(0.5f, 0.5f);
             rootRect.pivot = new Vector2(0.5f, 0.5f);
             rootRect.sizeDelta = iconSize;
         }
@@ -295,7 +306,11 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
     private void PlayRevealAnimation(GameObject iconGO)
     {
         if (iconGO == null) return;
-        StartCoroutine(RevealRoutine(iconGO));
+
+        if (_popRoutines.TryGetValue(iconGO, out var running) && running != null)
+            StopCoroutine(running);
+
+        _popRoutines[iconGO] = StartCoroutine(RevealRoutine(iconGO));
     }
 
     private IEnumerator RevealRoutine(GameObject iconGO)
@@ -330,6 +345,8 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
         tr.localScale = endScale;
         if (image != null)
             image.color = endColor;
+
+        _popRoutines.Remove(iconGO);
     }
 
     private void TickBreathing()
@@ -348,6 +365,8 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
         {
             var go = _icons[i];
             if (go == null || !go.activeSelf)
+                continue;
+            if (_popRoutines.ContainsKey(go))
                 continue;
 
             go.transform.localScale = scale;

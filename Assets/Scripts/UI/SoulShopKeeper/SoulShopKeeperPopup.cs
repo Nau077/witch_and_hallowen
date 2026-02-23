@@ -32,6 +32,10 @@ public class SoulShopKeeperPopup : MonoBehaviour
     public bool enableCoinSection = true;
     public bool enableSoulSection = true;
 
+    [Header("Open speed")]
+    [SerializeField] private bool speedUpPopupAnimator = true;
+    [SerializeField] private float popupAnimatorSpeed = 3f;
+
     private enum OpenMode
     {
         Base,
@@ -142,6 +146,19 @@ public class SoulShopKeeperPopup : MonoBehaviour
         ApplyModeUI();
 
         popupRoot.SetActive(true);
+
+        // Если на root есть fade-компонент/аниматор — форсим быстрое появление.
+        var fade = popupRoot.GetComponent<PopupFadeCanvas>();
+        if (fade != null)
+            fade.ShowImmediate();
+
+        if (speedUpPopupAnimator)
+        {
+            var animator = popupRoot.GetComponent<Animator>();
+            if (animator != null)
+                animator.speed = Mathf.Max(1f, popupAnimatorSpeed);
+        }
+
         CursorManager.Instance?.SetPopupBlocking(true);
         RunLevelManager.Instance?.SetInputLocked(true);
 

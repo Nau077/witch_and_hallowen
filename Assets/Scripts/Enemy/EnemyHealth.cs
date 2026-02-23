@@ -93,7 +93,8 @@ public class EnemyHealth : MonoBehaviour
 
     [Header("Hit Knockback")]
     [SerializeField] private bool enableHitKnockback = true;
-    [SerializeField] private float knockbackCells = 1f;
+    [SerializeField] private float knockbackCells = 0.5f;
+    [SerializeField] private float knockbackMoveDuration = 0.08f;
 
     // ---------- INTERNAL ----------
     private SpriteRenderer sr;
@@ -110,6 +111,7 @@ public class EnemyHealth : MonoBehaviour
     private Canvas _cachedDamageCanvas;
 
     private Coroutine _critBlinkRoutine;
+    private Coroutine _knockbackRoutine;
     private float _critUntilTime;
     private bool _critBlinkOn;
     private Color _critBlinkColor = Color.white;
@@ -261,6 +263,11 @@ public class EnemyHealth : MonoBehaviour
 
         // 2) Стаггер (блок движения/атаки) + множитель от снаряда
         float m = Mathf.Max(0f, staggerMultiplier);
+
+        // Крит должен мгновенно сбивать ченнел/луч даже при нулевом стаггере.
+        if (_walkerCached != null)
+            _walkerCached.ForceInterruptFromExternalStagger();
+
         if (m > 0f)
         {
             float staggerDur;
@@ -284,9 +291,6 @@ public class EnemyHealth : MonoBehaviour
             else
                 _staggerUntilTime = newStaggerUntil;
 
-            // 3) МГНОВЕННО прерываем текущую атаку/скиллы (в этот же кадр)
-            if (_walkerCached != null)
-                _walkerCached.ForceInterruptFromExternalStagger();
         }
     }
 
@@ -553,6 +557,31 @@ public class EnemyHealth : MonoBehaviour
         Vector2 target = current + away * distance;
         Vector2 clamped = _walkerCached.DebugClampToBounds(target);
 
-        transform.position = clamped;
+        if (_knockbackRoutine != null)
+            StopCoroutine(_knockbackRoutine);
+
+        _knockbackRoutine = StartCoroutine(SmoothHitKnockback(clamped));
+    }
+
+    private IEnumerator SmoothHitKnockback(Vector2 target)
+    {
+        Vector2 start = transform.position;
+        float duration = Mathf.Max(0.01f, knockbackMoveDuration);
+        float t = 0f;
+
+        while (t < duration)
+        {
+            if (isDead)
+                yield break;
+
+            t += Time.deltaTime;
+            float k = Mathf.Clamp01(t / duration);
+            float eased = 1f - Mathf.Pow(1f - k, 3f);
+            transform.position = Vector2.LerpUnclamped(start, target, eased);
+            yield return null;
+        }
+
+        transform.position = target;
+        _knockbackRoutine = null;
     }
 }

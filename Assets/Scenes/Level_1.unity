@@ -7973,14 +7973,13 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2000803685}
+  m_Children: []
   m_Father: {fileID: 1448406667}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 13, y: -20}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 12.67, y: -20}
+  m_SizeDelta: {x: 20, y: 50}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &275834034
 MonoBehaviour:
@@ -17859,8 +17858,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -428.10004, y: 12}
-  m_SizeDelta: {x: -1148, y: -93.445}
+  m_AnchoredPosition: {x: -420.29996, y: 12}
+  m_SizeDelta: {x: -1152, y: -93.445}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1448406668
 MonoBehaviour:
@@ -17927,10 +17926,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSkillPerksPanelUI
   content: {fileID: 275834032}
-  iconPrefab: {fileID: 7410972412674622390, guid: be03e409c2f5218448661187775a7523, type: 3}
+  iconPrefab: {fileID: 7410972412674622390, guid: 8d26dd21afe437741886b527dc3f2b18, type: 3}
   includeFireball: 0
   levelTextChildName: LevelText
   iconTint: {r: 1, g: 1, b: 1, a: 1}
+  revealDuration: 0.28
+  revealScaleMultiplier: 1.22
+  revealFlashTint: {r: 1, g: 0.95, b: 0.45, a: 1}
 --- !u!1 &1453603308
 GameObject:
   m_ObjectHideFlags: 0
@@ -22185,68 +22187,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1989171461}
   m_CullTransparentMesh: 1
---- !u!1 &2000803684
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2000803685}
-  - component: {fileID: 2000803686}
-  m_Layer: 5
-  m_Name: HPContainer
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &2000803685
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2000803684}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.9999357, y: 1.0000552, z: 1.0000144}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 275834032}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 1}
---- !u!114 &2000803686
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2000803684}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 59f8146938fff824cb5fd77236b75775, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.VerticalLayoutGroup
-  m_Padding:
-    m_Left: 0
-    m_Right: 0
-    m_Top: 0
-    m_Bottom: 0
-  m_ChildAlignment: 1
-  m_Spacing: 3
-  m_ChildForceExpandWidth: 0
-  m_ChildForceExpandHeight: 0
-  m_ChildControlWidth: 0
-  m_ChildControlHeight: 0
-  m_ChildScaleWidth: 0
-  m_ChildScaleHeight: 0
-  m_ReverseArrangement: 0
 --- !u!224 &2015753370 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1124566145701538185, guid: d211c921a4f372847bfba8bad7f436fa, type: 3}

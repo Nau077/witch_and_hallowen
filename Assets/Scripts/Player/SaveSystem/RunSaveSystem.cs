@@ -19,6 +19,7 @@ public static class RunSaveSystem
     {
         public int stage;
         public int coins;
+        public int playerCurrentHealth;
 
         public int loadoutActiveIndex;
         public SkillSlotSave[] loadoutSlots;
@@ -48,6 +49,10 @@ public static class RunSaveSystem
 
         // coins (run-only, но сохраняем для Continue)
         snap.coins = PlayerWallet.Instance != null ? Mathf.Max(0, PlayerWallet.Instance.coins) : 0;
+        snap.playerCurrentHealth = 0;
+
+        if (RunLevelManager.Instance != null && RunLevelManager.Instance.playerHealth != null)
+            snap.playerCurrentHealth = Mathf.Max(1, RunLevelManager.Instance.playerHealth.CurrentHealth);
 
         // loadout
         var loadout = SkillLoadout.Instance;
@@ -65,7 +70,20 @@ public static class RunSaveSystem
 
                 if (s != null && s.def != null)
                 {
-                    ss.skillId = (int)s.def.skillId; // ВАЖНО: SkillDefinition должен иметь поле skillId (enum SkillId)
+                    SkillId sid = s.def.skillId;
+                    bool canPersistSlotSkill = sid == SkillId.Fireball ||
+                                               (PlayerSkills.Instance != null && PlayerSkills.Instance.GetSkillLevel(sid) > 0);
+
+                    if (!canPersistSlotSkill)
+                    {
+                        ss.skillId = 0;
+                        ss.charges = 0;
+                        ss.cooldownLeft = 0f;
+                        snap.loadoutSlots[i] = ss;
+                        continue;
+                    }
+
+                    ss.skillId = (int)sid; // ВАЖНО: SkillDefinition должен иметь поле skillId (enum SkillId)
                     ss.charges = s.charges;
 
                     float left = Mathf.Max(0f, s.cooldownUntil - Time.time);
@@ -142,6 +160,9 @@ public static class RunSaveSystem
         if (PlayerSkills.Instance != null)
             PlayerSkills.Instance.ImportStates(snap.skillIds, snap.skillLevels, snap.skillCharges);
 
+        if (snap.playerCurrentHealth > 0 && RunLevelManager.Instance != null && RunLevelManager.Instance.playerHealth != null)
+            RunLevelManager.Instance.playerHealth.SetCurrentHealthClamped(snap.playerCurrentHealth);
+
         // SkillLoadout
         var loadout = SkillLoadout.Instance;
         if (loadout != null)
@@ -164,6 +185,8 @@ public static class RunSaveSystem
         for (int i = 0; i < n; i++)
             if (loadout.slots[i] == null) loadout.slots[i] = new SkillSlot();
 
+        SkillDefinition fireballFallbackDef = FindExistingFireballDef(loadout);
+
         var arr = snap.loadoutSlots ?? Array.Empty<SkillSlotSave>();
 
         for (int i = 0; i < n; i++)
@@ -173,15 +196,42 @@ public static class RunSaveSystem
 
             if (saved == null || saved.skillId == 0)
             {
-                s.def = null;
-                s.charges = 0;
-                s.cooldownUntil = 0f;
+                // Keep default fireball if it is already in this slot.
+                if (s.def != null && s.def.skillId == SkillId.Fireball)
+                {
+                    s.charges = s.def.infiniteCharges ? 0 : Mathf.Max(1, s.charges);
+                    s.cooldownUntil = 0f;
+                }
+                else
+                {
+                    s.def = null;
+                    s.charges = 0;
+                    s.cooldownUntil = 0f;
+                }
                 continue;
             }
 
             // найти SkillDefinition по SkillId
             SkillId id = (SkillId)saved.skillId;
             SkillDefinition def = SkillDefinitionLookup.FindById(id);
+
+            // Do not restore locked skills into active loadout.
+            if (!IsSkillUnlockedByState(id, snap))
+            {
+                s.def = null;
+                s.charges = 0;
+                s.cooldownUntil = 0f;
+                continue;
+            }
+
+            // If definition is missing, clear slot (do not keep ghost charges).
+            if (def == null)
+            {
+                s.def = null;
+                s.charges = 0;
+                s.cooldownUntil = 0f;
+                continue;
+            }
 
             s.def = def;
             s.charges = saved.charges;
@@ -192,7 +242,98 @@ public static class RunSaveSystem
                 s.cooldownUntil = 0f;
         }
 
+        EnsureDefaultFireballPresent(loadout, snap, fireballFallbackDef);
         loadout.SetActiveIndex(snap.loadoutActiveIndex);
         loadout.EnsureValidActive();
+    }
+
+    private static bool IsSkillUnlockedByState(SkillId id, RunSnapshot snap)
+    {
+        if (id == SkillId.None) return false;
+        if (id == SkillId.Fireball) return true;
+
+        if (snap == null || snap.skillIds == null || snap.skillLevels == null)
+            return false;
+
+        int count = Mathf.Min(snap.skillIds.Length, snap.skillLevels.Length);
+        for (int i = 0; i < count; i++)
+        {
+            if ((SkillId)snap.skillIds[i] != id) continue;
+            return snap.skillLevels[i] > 0;
+        }
+
+        // Fallback for runtime state if arrays are incomplete.
+        return PlayerSkills.Instance != null && PlayerSkills.Instance.GetSkillLevel(id) > 0;
+    }
+
+    private static void EnsureDefaultFireballPresent(SkillLoadout loadout, RunSnapshot snap, SkillDefinition fireballFallbackDef)
+    {
+        if (loadout == null || loadout.slots == null) return;
+
+        // Requirement: slot 0 should always be Fireball by default.
+        SkillDefinition fireballDef = ResolveFireballDefinition(fireballFallbackDef);
+        if (fireballDef == null) return;
+
+        int targetIndex = 0;
+        var target = loadout.slots[targetIndex];
+        if (target == null)
+        {
+            target = new SkillSlot();
+            loadout.slots[targetIndex] = target;
+        }
+
+        target.def = fireballDef;
+        target.charges = fireballDef.infiniteCharges ? 0 : Mathf.Max(1, FindSavedChargesFor(SkillId.Fireball, snap));
+        target.cooldownUntil = 0f;
+    }
+
+    private static int FindSavedChargesFor(SkillId id, RunSnapshot snap)
+    {
+        if (snap?.loadoutSlots == null) return 0;
+
+        for (int i = 0; i < snap.loadoutSlots.Length; i++)
+        {
+            var s = snap.loadoutSlots[i];
+            if (s == null) continue;
+            if ((SkillId)s.skillId != id) continue;
+            return Mathf.Max(0, s.charges);
+        }
+
+        return 0;
+    }
+
+    private static SkillDefinition FindExistingFireballDef(SkillLoadout loadout)
+    {
+        if (loadout?.slots == null) return null;
+
+        for (int i = 0; i < loadout.slots.Length; i++)
+        {
+            var s = loadout.slots[i];
+            if (s?.def != null && s.def.skillId == SkillId.Fireball)
+                return s.def;
+        }
+
+        return null;
+    }
+
+    private static SkillDefinition ResolveFireballDefinition(SkillDefinition fallback)
+    {
+        SkillDefinition def = SkillDefinitionLookup.FindById(SkillId.Fireball);
+        if (def != null) return def;
+        if (fallback != null) return fallback;
+
+        // Fallback for cases when fireball asset is loaded but not found via lookup.
+        var loaded = Resources.FindObjectsOfTypeAll<SkillDefinition>();
+        if (loaded != null)
+        {
+            for (int i = 0; i < loaded.Length; i++)
+            {
+                var item = loaded[i];
+                if (item != null && item.skillId == SkillId.Fireball)
+                    return item;
+            }
+        }
+
+        return null;
     }
 }

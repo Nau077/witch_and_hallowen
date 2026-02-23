@@ -121,6 +121,14 @@ public class PlayerHealth : MonoBehaviour
         UpdateBar();
     }
 
+    public void SetCurrentHealthClamped(int value)
+    {
+        if (maxHealth <= 0) return;
+
+        currentHealth = Mathf.Clamp(value, 1, maxHealth);
+        UpdateBar();
+    }
+
     private void UpdateBar()
     {
         if (barFill != null)

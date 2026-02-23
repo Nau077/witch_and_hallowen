@@ -14,7 +14,7 @@ public class UpgradeRewardSystem : MonoBehaviour
     public class RewardRule
     {
         public string ruleId = "rule";
-        public string popupTitle = "Choose Upgrade";
+        public string popupTitle = "Upgade";
         public UpgradeRewardTriggerType triggerType = UpgradeRewardTriggerType.StageCleared;
         public int stageIndex = 1;
         public string customEventId = "";

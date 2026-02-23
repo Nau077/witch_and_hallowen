@@ -1,3 +1,4 @@
+﻿using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -11,32 +12,62 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
     [SerializeField] private string levelTextChildName = "LevelText";
     [SerializeField] private Color iconTint = Color.white;
 
+    [Header("Layout")]
+    [SerializeField] private bool normalizeRuntimeIconRect = true;
+    [SerializeField] private Vector2 iconSize = new Vector2(20f, 20f);
+    [SerializeField] private int contentSidePadding = 2;
+    [SerializeField] private int firstIconTopOffset = 15;
+    [SerializeField] private float slotHorizontalPadding = 1f;
+
+    [Header("Tooltip")]
+    [SerializeField] private float tooltipDelay = 0.14f;
+
+    [Header("New Icon Animation")]
+    [SerializeField] private float revealDuration = 0.28f;
+    [SerializeField] private float revealScaleMultiplier = 1.22f;
+    [SerializeField] private Color revealFlashTint = new Color(1f, 0.95f, 0.45f, 1f);
+
     private readonly List<GameObject> _icons = new List<GameObject>();
     private readonly List<SkillId> _tracked = new List<SkillId>();
+    private readonly HashSet<SkillId> _visibleSkills = new HashSet<SkillId>();
+    private bool _skillsSubscribed;
 
     private void Awake()
     {
         if (content == null)
             content = transform as RectTransform;
+
+        ApplyContentPaddingIfPossible();
     }
 
     private void OnEnable()
     {
-        if (PlayerSkills.Instance != null)
-            PlayerSkills.Instance.OnSkillsChanged += Refresh;
-
+        ApplyContentPaddingIfPossible();
+        RegisterUiZonesForCursor();
+        TrySubscribeSkills();
         Refresh();
+    }
+
+    private void Update()
+    {
+        // PlayerSkills can be spawned after this UI object.
+        if (!_skillsSubscribed)
+            TrySubscribeSkills();
     }
 
     private void OnDisable()
     {
-        if (PlayerSkills.Instance != null)
+        if (_skillsSubscribed && PlayerSkills.Instance != null)
             PlayerSkills.Instance.OnSkillsChanged -= Refresh;
+        _skillsSubscribed = false;
+
+        UnregisterUiZonesForCursor();
     }
 
     public void Refresh()
     {
         RebuildTrackedSkills();
+        CleanupVisibleSkills();
         EnsurePoolSize(_tracked.Count);
 
         for (int i = 0; i < _icons.Count; i++)
@@ -45,8 +76,11 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
             _icons[i].SetActive(visible);
             if (!visible) continue;
 
-            var skillId = _tracked[i];
+            SkillId skillId = _tracked[i];
             SetupIcon(_icons[i], skillId);
+
+            if (_visibleSkills.Add(skillId))
+                PlayRevealAnimation(_icons[i]);
         }
     }
 
@@ -77,7 +111,8 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
 
         while (_icons.Count < need)
         {
-            var go = Instantiate(iconPrefab, content);
+            GameObject go = Instantiate(iconPrefab, content);
+            NormalizeRuntimeRect(go, null);
             go.SetActive(false);
             _icons.Add(go);
         }
@@ -91,18 +126,22 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
         int level = PlayerSkills.Instance != null ? PlayerSkills.Instance.GetSkillLevel(skillId) : 0;
         int charges = PlayerSkills.Instance != null ? PlayerSkills.Instance.GetCharges(skillId) : 0;
 
-        var image = iconGO.GetComponentInChildren<Image>(true);
+        Image image = iconGO.GetComponentInChildren<Image>(true);
         if (image != null)
         {
             if (def != null)
                 image.sprite = def.icon;
             image.color = iconTint;
+            image.raycastTarget = true;
+            image.preserveAspect = true;
         }
+
+        NormalizeRuntimeRect(iconGO, image);
 
         TMP_Text levelText = null;
         if (!string.IsNullOrWhiteSpace(levelTextChildName))
         {
-            var child = iconGO.transform.Find(levelTextChildName);
+            Transform child = iconGO.transform.Find(levelTextChildName);
             if (child != null)
                 levelText = child.GetComponent<TMP_Text>();
         }
@@ -112,15 +151,98 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
         if (levelText != null)
             levelText.text = "Lv." + level;
 
-        var tooltipTarget = iconGO.GetComponent<Button>() != null
-            ? iconGO.GetComponent<Button>().gameObject
-            : iconGO;
+        BindTooltip(iconGO, def, skillId, level, charges, tooltipDelay);
+        if (image != null && image.gameObject != iconGO)
+            BindTooltip(image.gameObject, def, skillId, level, charges, tooltipDelay);
+    }
 
-        var tooltip = tooltipTarget.GetComponent<HoverTooltipTrigger>();
+    private void NormalizeRuntimeRect(GameObject iconGO, Image iconImage)
+    {
+        if (!normalizeRuntimeIconRect || iconGO == null)
+            return;
+
+        RectTransform rootRect = iconGO.GetComponent<RectTransform>();
+        if (rootRect != null)
+        {
+            rootRect.localScale = Vector3.one;
+            rootRect.localRotation = Quaternion.identity;
+            rootRect.anchoredPosition3D = Vector3.zero;
+            rootRect.pivot = new Vector2(0.5f, 0.5f);
+            rootRect.sizeDelta = iconSize;
+        }
+
+        LayoutElement layoutElement = iconGO.GetComponent<LayoutElement>();
+        if (layoutElement == null)
+            layoutElement = iconGO.AddComponent<LayoutElement>();
+
+        layoutElement.minWidth = iconSize.x;
+        layoutElement.minHeight = iconSize.y;
+        layoutElement.preferredWidth = iconSize.x + Mathf.Max(0f, slotHorizontalPadding) * 2f;
+        layoutElement.preferredHeight = iconSize.y;
+        layoutElement.flexibleWidth = 0f;
+        layoutElement.flexibleHeight = 0f;
+
+        Graphic rootGraphic = iconGO.GetComponent<Graphic>();
+        if (rootGraphic != null)
+            rootGraphic.raycastTarget = true;
+
+        if (iconImage != null)
+            iconImage.raycastTarget = true;
+    }
+
+    private void ApplyContentPaddingIfPossible()
+    {
+        if (content == null)
+            return;
+
+        VerticalLayoutGroup layout = content.GetComponent<VerticalLayoutGroup>();
+        if (layout == null)
+            return;
+
+        RectOffset pad = layout.padding ?? new RectOffset();
+        int side = Mathf.Max(0, contentSidePadding);
+        pad.left = Mathf.Max(pad.left, side);
+        pad.right = Mathf.Max(pad.right, side);
+        pad.top = Mathf.Max(pad.top, Mathf.Max(0, firstIconTopOffset));
+        layout.padding = pad;
+    }
+
+    private void BindTooltip(GameObject target, SkillDefinition def, SkillId skillId, int level, int charges, float delay)
+    {
+        if (target == null)
+            return;
+
+        HoverTooltipTrigger tooltip = target.GetComponent<HoverTooltipTrigger>();
         if (tooltip == null)
-            tooltip = tooltipTarget.AddComponent<HoverTooltipTrigger>();
+            tooltip = target.AddComponent<HoverTooltipTrigger>();
 
-        tooltip.Bind(() => BuildTooltip(def, skillId, level, charges), 0.3f);
+        tooltip.Bind(() => BuildTooltip(def, skillId, level, charges), delay);
+    }
+
+    private void RegisterUiZonesForCursor()
+    {
+        if (CursorManager.Instance == null)
+            return;
+
+        RectTransform ownRect = transform as RectTransform;
+        if (ownRect != null)
+            CursorManager.Instance.RegisterForcedUiZone(ownRect);
+
+        if (content != null)
+            CursorManager.Instance.RegisterForcedUiZone(content);
+    }
+
+    private void UnregisterUiZonesForCursor()
+    {
+        if (CursorManager.Instance == null)
+            return;
+
+        RectTransform ownRect = transform as RectTransform;
+        if (ownRect != null)
+            CursorManager.Instance.UnregisterForcedUiZone(ownRect);
+
+        if (content != null)
+            CursorManager.Instance.UnregisterForcedUiZone(content);
     }
 
     private HoverTooltipData BuildTooltip(SkillDefinition def, SkillId skillId, int level, int charges)
@@ -130,20 +252,75 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
             : skillId.ToString();
 
         string priceLine = def != null
-            ? (TooltipLocalization.Tr("Charge price: ", "Цена заряда: ") + def.coinCostPerCharge + TooltipLocalization.Tr(" coins", " монеты"))
+            ? (TooltipLocalization.Tr("Charge price: ", "Charge price: ") + def.coinCostPerCharge + TooltipLocalization.Tr(" coins", " coins"))
             : "";
 
         string desc = (def != null && def.infiniteCharges)
-            ? TooltipLocalization.Tr("Charges: infinite", "Заряды: бесконечно")
-            : (TooltipLocalization.Tr("Charges: ", "Заряды: ") + Mathf.Max(0, charges));
+            ? TooltipLocalization.Tr("Charges: infinite", "Charges: infinite")
+            : (TooltipLocalization.Tr("Charges: ", "Charges: ") + Mathf.Max(0, charges));
 
         return new HoverTooltipData
         {
             title = title,
-            levelLine = TooltipLocalization.Tr("Skill level: ", "Уровень навыка: ") + Mathf.Max(0, level),
+            levelLine = TooltipLocalization.Tr("Skill level: ", "Skill level: ") + Mathf.Max(0, level),
             priceLine = priceLine,
             description = desc
         };
+    }
+
+    private void TrySubscribeSkills()
+    {
+        if (_skillsSubscribed) return;
+        if (PlayerSkills.Instance == null) return;
+
+        PlayerSkills.Instance.OnSkillsChanged += Refresh;
+        _skillsSubscribed = true;
+    }
+
+    private void CleanupVisibleSkills()
+    {
+        if (_visibleSkills.Count == 0) return;
+        _visibleSkills.RemoveWhere(skillId => !_tracked.Contains(skillId));
+    }
+
+    private void PlayRevealAnimation(GameObject iconGO)
+    {
+        if (iconGO == null) return;
+        StartCoroutine(RevealRoutine(iconGO));
+    }
+
+    private IEnumerator RevealRoutine(GameObject iconGO)
+    {
+        if (iconGO == null) yield break;
+
+        float duration = Mathf.Max(0.05f, revealDuration);
+        float t = 0f;
+
+        Transform tr = iconGO.transform;
+        Vector3 endScale = tr.localScale;
+        Vector3 startScale = endScale * Mathf.Max(1.02f, revealScaleMultiplier);
+        tr.localScale = startScale;
+
+        Image image = iconGO.GetComponentInChildren<Image>(true);
+        Color startColor = revealFlashTint;
+        Color endColor = iconTint;
+        if (image != null)
+            image.color = startColor;
+
+        while (t < duration)
+        {
+            t += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(t / duration);
+            float eased = 1f - Mathf.Pow(1f - k, 3f);
+            tr.localScale = Vector3.LerpUnclamped(startScale, endScale, eased);
+            if (image != null)
+                image.color = Color.Lerp(startColor, endColor, eased);
+            yield return null;
+        }
+
+        tr.localScale = endScale;
+        if (image != null)
+            image.color = endColor;
     }
 }
 

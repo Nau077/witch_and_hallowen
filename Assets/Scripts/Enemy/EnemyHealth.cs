@@ -404,9 +404,12 @@ public class EnemyHealth : MonoBehaviour
         var rb = GetComponent<Rigidbody2D>(); if (rb) rb.simulated = false;
         if (_walkerCached) _walkerCached.enabled = false;
 
+        // Always set dead sprite as a reliable fallback.
+        if (deadSprite && sr) sr.sprite = deadSprite;
+
         var anim = GetComponent<Animator>();
-        if (anim && anim.runtimeAnimatorController) anim.SetTrigger("Die");
-        else if (deadSprite && sr) sr.sprite = deadSprite;
+        if (anim && anim.runtimeAnimatorController && HasTriggerParameter(anim, "Die"))
+            anim.SetTrigger("Die");
 
         if (hpBar) hpBar.Hide();
 
@@ -442,6 +445,23 @@ public class EnemyHealth : MonoBehaviour
             srRen.color = new Color(c.r, c.g, c.b, 0f);
         }
         Destroy(gameObject);
+    }
+
+    private static bool HasTriggerParameter(Animator animator, string paramName)
+    {
+        if (animator == null || string.IsNullOrEmpty(paramName)) return false;
+
+        var parameters = animator.parameters;
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            if (parameters[i].type == AnimatorControllerParameterType.Trigger &&
+                parameters[i].name == paramName)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // ---------- DAMAGE TEXT ----------

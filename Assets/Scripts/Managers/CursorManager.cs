@@ -14,6 +14,10 @@ public class CursorManager : MonoBehaviour
     [Tooltip("Если true — курсор всегда UI (например открыт попап/магазин).")]
     public bool popupBlocking = false;
 
+    [Header("Forced UI Zones")]
+    [Tooltip("RectTransform-зоны, где курсор всегда считается UI (например левая/правая колонки иконок).")]
+    [SerializeField] private RectTransform[] forceUiZones;
+
     [Header("Debug")]
     public bool debug = false;
 
@@ -30,6 +34,7 @@ public class CursorManager : MonoBehaviour
     // Кэш: Sprite -> Texture2D, чтобы не создавать Texture2D каждый кадр
     private readonly Dictionary<Sprite, Texture2D> _spriteTexCache = new Dictionary<Sprite, Texture2D>(32);
     private readonly Dictionary<int, Texture2D> _scaledTexCache = new Dictionary<int, Texture2D>(64);
+    private readonly List<RectTransform> _runtimeForceUiZones = new List<RectTransform>(8);
 
     private void Awake()
     {
@@ -79,6 +84,19 @@ public class CursorManager : MonoBehaviour
         ApplyCursor(Mode.UI, Input.GetMouseButton(0));
     }
 
+    public void RegisterForcedUiZone(RectTransform zone)
+    {
+        if (zone == null) return;
+        if (_runtimeForceUiZones.Contains(zone)) return;
+        _runtimeForceUiZones.Add(zone);
+    }
+
+    public void UnregisterForcedUiZone(RectTransform zone)
+    {
+        if (zone == null) return;
+        _runtimeForceUiZones.Remove(zone);
+    }
+
     private void ForceRefresh()
     {
         _currentMode = (Mode)(-1);
@@ -120,11 +138,43 @@ public class CursorManager : MonoBehaviour
 
     private bool IsPointerOverUI()
     {
-        // Если EventSystem нет (например на очень раннем старте) — считаем что НЕ над UI
-        if (EventSystem.current == null) return false;
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            return true;
 
-        // Для мыши без параметров нормально работает
-        return EventSystem.current.IsPointerOverGameObject();
+        Vector2 mousePos = Input.mousePosition;
+        if (ContainsMouse(forceUiZones, mousePos))
+            return true;
+
+        if (ContainsMouse(_runtimeForceUiZones, mousePos))
+            return true;
+
+        return false;
+    }
+
+    private bool ContainsMouse(IReadOnlyList<RectTransform> zones, Vector2 mousePos)
+    {
+        if (zones == null || zones.Count == 0)
+            return false;
+
+        for (int i = 0; i < zones.Count; i++)
+        {
+            RectTransform zone = zones[i];
+            if (zone == null || !zone.gameObject.activeInHierarchy)
+                continue;
+
+            if (RectTransformUtility.RectangleContainsScreenPoint(zone, mousePos, GetUiCameraFor(zone)))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static Camera GetUiCameraFor(RectTransform rect)
+    {
+        Canvas canvas = rect.GetComponentInParent<Canvas>();
+        if (canvas == null || canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+            return null;
+        return canvas.worldCamera;
     }
 
     private void ApplyCursor(Mode mode, bool active)

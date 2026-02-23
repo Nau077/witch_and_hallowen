@@ -7,6 +7,9 @@ public static class ProgressResetter
 
     // Perks
     private const string PERK_HP_LEVEL = "perk_hp_level";
+    private const string PERK_DASH_LEVEL = "perk_dash_level";
+    private const string PERK_MANA_LEVEL = "perk_mana_level";
+    private const string PERK_STAMINA_LEVEL = "perk_stamina_level";
     private const string PERK_SOULS_SPENT = "perk_souls_spent";
 
     // SaveManager (если используешь) — можно оставить, но мы чистим ключи
@@ -23,6 +26,9 @@ public static class ProgressResetter
 
         // 2) Perks
         PlayerPrefs.SetInt(PERK_HP_LEVEL, 0);
+        PlayerPrefs.SetInt(PERK_DASH_LEVEL, 0);
+        PlayerPrefs.SetInt(PERK_MANA_LEVEL, 0);
+        PlayerPrefs.SetInt(PERK_STAMINA_LEVEL, 0);
         PlayerPrefs.SetInt(PERK_SOULS_SPENT, 0);
 
         // 3) SaveManager keys

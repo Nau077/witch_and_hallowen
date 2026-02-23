@@ -53,6 +53,8 @@ public class UpgradeRewardPopup : MonoBehaviour
         if (popupRoot == null)
             popupRoot = gameObject;
 
+        SetupTitleText();
+
         if (popupFade == null)
             popupFade = GetComponent<PopupFadeCanvas>();
 
@@ -83,7 +85,10 @@ public class UpgradeRewardPopup : MonoBehaviour
         EnsureRuntimeOptionBindings();
 
         if (titleText != null)
-            titleText.text = string.IsNullOrWhiteSpace(popupTitle) ? "Choose Upgrade" : popupTitle;
+        {
+            SetupTitleText();
+            titleText.text = string.IsNullOrWhiteSpace(popupTitle) ? "Upgade" : popupTitle;
+        }
 
         HideAllOptions();
 
@@ -457,5 +462,12 @@ public class UpgradeRewardPopup : MonoBehaviour
             priceLine = priceLine,
             description = reward.description
         };
+    }
+
+    private void SetupTitleText()
+    {
+        if (titleText == null) return;
+        titleText.enableWordWrapping = false;
+        titleText.overflowMode = TextOverflowModes.Overflow;
     }
 }

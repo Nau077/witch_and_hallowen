@@ -7,6 +7,108 @@ This document is a quick handoff for future Codex chats working on:
 
 Keep this file updated when logic changes.
 
+## Latest context update (updated 2026-02-23)
+
+### Last hotfixes (updated 2026-02-23, late)
+
+- Upgrade popup title default changed from `Choose Upgrade` to `Upgade`.
+  - `Assets/Scripts/UI/Upgrades/UpgradeRewardSystem.cs`
+    - `RewardRule.popupTitle = "Upgade"`
+  - `Assets/Scripts/UI/Upgrades/UpgradeRewardPopup.cs`
+    - fallback title in `Show(...)` changed to `"Upgade"` when rule title is empty.
+
+- New Game reset fixed for mana/stamina/dash perk levels.
+  - root cause: `ProgressResetter.ResetAllProgressForNewGame()` previously reset only HP perk level.
+  - fixed in `Assets/Scripts/Managers/ProgressResetter.cs` by resetting:
+    - `perk_dash_level`
+    - `perk_mana_level`
+    - `perk_stamina_level`
+  - expected behavior now: after `MainMenu -> New Game`, mana and stamina return to base (1 heart each), same as HP base behavior.
+
+### Upgrade reward system / popup
+
+Implemented and wired new reward flow:
+- `UpgradeRewardSystem` can trigger reward popup by stage clear rules.
+- `UpgradeRewardPopup` supports selecting reward option first, then confirming with `GET`.
+- reward definitions (`UpgradeRewardDefinition`) support:
+  - skill unlock / skill level set
+  - charges grant
+  - adding skill to loadout
+  - perk-like rewards (example: HP heart grant path prepared).
+
+Current balancing defaults used in code/config:
+- default charges on reward grant: `10` (if reward entry does not override).
+- common stage test setup:
+  - after stage 1: Ice Shard reward
+  - after stage 2: Lightning reward
+
+### Skill gating in shop
+
+Shop charge items now respect required skill level:
+- if skill level is `0`, charge purchase is unavailable and should be shown as unavailable.
+- this is required for non-default skills at new game start.
+
+### Continue snapshot persistence (run)
+
+Run snapshot was extended:
+- now stores and restores player current HP on Continue.
+- file: `Assets/Scripts/Player/SaveSystem/RunSaveSystem.cs`
+  - added `RunSnapshot.playerCurrentHealth`
+  - save from `RunLevelManager.playerHealth.CurrentHealth`
+  - restore using `PlayerHealth.SetCurrentHealthClamped(...)`
+- file: `Assets/Scripts/Player/PlayerHealth.cs`
+  - added helper `SetCurrentHealthClamped(int value)`.
+
+### Left skill perks column work (PerkPanel_2)
+
+Recent runtime normalization and layout controls were added in:
+- `Assets/Scripts/Player/Attack/SkillsAndElements/PlayerSkillPerksPanelUI.cs`
+
+New inspector controls:
+- `iconSize`
+- `contentSidePadding`
+- `firstIconTopOffset` (top offset for the first icon; currently used for Ice Shard)
+- `slotHorizontalPadding`
+- `tooltipDelay`
+
+Also added:
+- runtime icon rect normalization (to avoid prefab transform drift),
+- tooltip bind on icon root and on child image,
+- auto-registration of panel/content rects in cursor forced UI zones.
+
+### Cursor forced UI zones
+
+`CursorManager` extended to support runtime zone registration:
+- file: `Assets/Scripts/Managers/CursorManager.cs`
+- new API:
+  - `RegisterForcedUiZone(RectTransform zone)`
+  - `UnregisterForcedUiZone(RectTransform zone)`
+- pointer-over-ui check now combines:
+  - `EventSystem.current.IsPointerOverGameObject()`
+  - inspector `forceUiZones[]`
+  - runtime-registered zones.
+
+### Known open issue (not resolved yet)
+
+Still reproducible in some scene/layout states:
+- over left side of `PerkPanel_2` icon area cursor can remain combat (fire) instead of UI (blue),
+- tooltip hover can trigger only on right side of icon width.
+
+What was already attempted:
+- forced UI zones via inspector + runtime registration,
+- tooltip trigger binding to both icon root and icon image,
+- icon rect normalization and layout element sizing.
+
+Suspected remaining cause:
+- overlapping UI element with `Raycast Target` intercepting pointer on left area
+  OR canvas/camera mismatch for screen-point hit checks in current scene hierarchy.
+
+Recommended next debug pass:
+1. verify there is only one active `CursorManager` and one `EventSystem`,
+2. use a temporary `IPointerEnterHandler` logger directly on `PerkPanel_2` root and on icon root/image,
+3. disable `Raycast Target` on non-interactive overlay images in left panel chain,
+4. check parent canvas render mode / camera and matching camera passed to hit tests.
+
 ## Recent gameplay flow updates (updated 2026-02-15)
 
 - Final stage victory flow now shows `Victory!` popup (via `WitchIsDeadPopup`) and then returns to base (`stage 0`) by calling `RunLevelManager.InitializeRun()`.

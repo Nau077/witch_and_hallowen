@@ -17,6 +17,7 @@ UserSettings/
 *.user
 *.pidb
 *.svd
+*.psd
 *.userprefs
 
 # OS

@@ -27,10 +27,17 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
     [SerializeField] private float revealScaleMultiplier = 1.22f;
     [SerializeField] private Color revealFlashTint = new Color(1f, 0.95f, 0.45f, 1f);
 
+    [Header("Breathing (all visible icons)")]
+    [SerializeField] private bool enableBreathing = true;
+    [SerializeField] private float breatheAmplitude = 0.06f;
+    [SerializeField] private float breatheSpeed = 1.2f;
+    [SerializeField] private bool breatheUseUnscaledTime = true;
+
     private readonly List<GameObject> _icons = new List<GameObject>();
     private readonly List<SkillId> _tracked = new List<SkillId>();
     private readonly HashSet<SkillId> _visibleSkills = new HashSet<SkillId>();
     private bool _skillsSubscribed;
+    private float _breatheTime;
 
     private void Awake()
     {
@@ -53,6 +60,8 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
         // PlayerSkills can be spawned after this UI object.
         if (!_skillsSubscribed)
             TrySubscribeSkills();
+
+        TickBreathing();
     }
 
     private void OnDisable()
@@ -321,6 +330,28 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
         tr.localScale = endScale;
         if (image != null)
             image.color = endColor;
+    }
+
+    private void TickBreathing()
+    {
+        if (!enableBreathing)
+            return;
+
+        float dt = breatheUseUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
+        _breatheTime += dt * Mathf.Max(0.1f, breatheSpeed);
+
+        float amp = Mathf.Clamp(breatheAmplitude, 0f, 0.25f);
+        float s = 1f + Mathf.Sin(_breatheTime * Mathf.PI * 2f) * amp;
+        Vector3 scale = new Vector3(s, s, 1f);
+
+        for (int i = 0; i < _icons.Count; i++)
+        {
+            var go = _icons[i];
+            if (go == null || !go.activeSelf)
+                continue;
+
+            go.transform.localScale = scale;
+        }
     }
 }
 

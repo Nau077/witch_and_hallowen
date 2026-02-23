@@ -18,6 +18,11 @@ public class DamageTextPopup : MonoBehaviour
     [Tooltip("Сколько времени занимает полное исчезновение (альфа 1 → 0).")]
     public float fadeDuration = 0.35f;
 
+    [Header("Crit")]
+    [SerializeField] private string critLabel = "CRIT";
+    [SerializeField] private Color critColor = new Color(1f, 0.88f, 0.2f, 1f);
+    [SerializeField] private bool critUppercase = true;
+
     private TMP_Text _text;
     private Color _startColor;
     private float _time;
@@ -36,12 +41,29 @@ public class DamageTextPopup : MonoBehaviour
     /// </summary>
     public void Setup(int amount)
     {
+        Setup(amount, false);
+    }
+
+    public void Setup(int amount, bool isCrit)
+    {
         if (_text == null) _text = GetComponent<TMP_Text>();
 
         if (_text != null)
         {
-            _text.text = amount.ToString();
-            _startColor = _text.color;
+            if (isCrit)
+            {
+                string label = string.IsNullOrWhiteSpace(critLabel) ? "CRIT" : critLabel;
+                if (critUppercase)
+                    label = label.ToUpperInvariant();
+                _text.text = label + "\n" + amount;
+                _text.color = critColor;
+                _startColor = critColor;
+            }
+            else
+            {
+                _text.text = amount.ToString();
+                _startColor = _text.color;
+            }
         }
     }
 

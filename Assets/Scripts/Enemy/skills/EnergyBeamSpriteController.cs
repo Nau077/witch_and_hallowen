@@ -324,10 +324,11 @@ public class BeamSpriteController : MonoBehaviour
         _nextTickTime = Time.time + tickInterval;
 
         int dmg = damagePerTick;
-        if (Random.value < critChance)
+        bool isCrit = Random.value < critChance;
+        if (isCrit)
             dmg = Mathf.RoundToInt(dmg * critMultiplier);
 
-        _playerHP.TakeDamage(dmg);
+        _playerHP.TakeDamage(dmg, isCrit);
     }
 
 #if UNITY_EDITOR

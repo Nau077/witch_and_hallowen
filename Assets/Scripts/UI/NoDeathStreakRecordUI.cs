@@ -149,16 +149,16 @@ public sealed class NoDeathStreakRecordUI : MonoBehaviour
         panelRect.anchorMin = new Vector2(1f, 1f);
         panelRect.anchorMax = new Vector2(1f, 1f);
         panelRect.pivot = new Vector2(1f, 1f);
-        panelRect.anchoredPosition = new Vector2(-24f, -24f);
-        panelRect.sizeDelta = new Vector2(420f, 142f);
+        panelRect.anchoredPosition = new Vector2(-16f, -18f);
+        panelRect.sizeDelta = new Vector2(400f, 136f);
 
         var panelImage = panelGo.GetComponent<Image>();
-        panelImage.color = new Color(0f, 0f, 0f, 0.22f);
+        panelImage.color = new Color(0f, 0f, 0f, 0.16f);
         panelImage.raycastTarget = false;
 
-        _titleText = CreateText("Title", panelRect, new Vector2(-14f, -10f), new Vector2(390f, 34f), 25f, TextAlignmentOptions.TopRight, true);
-        _valueText = CreateText("Value", panelRect, new Vector2(-14f, -52f), new Vector2(390f, 44f), 34f, TextAlignmentOptions.TopRight, false);
-        _descriptionText = CreateText("Description", panelRect, new Vector2(-14f, 10f), new Vector2(390f, 30f), 25f, TextAlignmentOptions.BottomRight, false);
+        _titleText = CreateText("Title", panelRect, new Vector2(-12f, -8f), new Vector2(376f, 30f), 22f, TextAlignmentOptions.TopRight, true);
+        _valueText = CreateText("Value", panelRect, new Vector2(-12f, -47f), new Vector2(376f, 40f), 30f, TextAlignmentOptions.TopRight, false);
+        _descriptionText = CreateText("Description", panelRect, new Vector2(-12f, 8f), new Vector2(376f, 28f), 20f, TextAlignmentOptions.BottomRight, false);
 
         SetAnchorsTopRight(_titleText.rectTransform);
         SetAnchorsTopRight(_valueText.rectTransform);
@@ -194,7 +194,7 @@ public sealed class NoDeathStreakRecordUI : MonoBehaviour
         text.fontStyle = isBold ? FontStyles.Bold : FontStyles.Normal;
         text.alignment = alignment;
         text.enableWordWrapping = false;
-        text.color = Color.white;
+        text.color = new Color(1f, 1f, 1f, 0.67f);
         text.outlineColor = Color.black;
         text.outlineWidth = 0f;
         text.raycastTarget = false;

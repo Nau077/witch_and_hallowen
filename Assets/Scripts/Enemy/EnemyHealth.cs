@@ -91,6 +91,10 @@ public class EnemyHealth : MonoBehaviour
     public Vector3 damageTextOffset = new Vector3(0f, 1.1f, 0f);
     public float damageTextRandomRadius = 0.25f;
 
+    [Header("Hit Knockback")]
+    [SerializeField] private bool enableHitKnockback = true;
+    [SerializeField] private float knockbackCells = 1f;
+
     // ---------- INTERNAL ----------
     private SpriteRenderer sr;
     private Color baseColor;
@@ -159,7 +163,8 @@ public class EnemyHealth : MonoBehaviour
 
         currentHealth = Mathf.Max(0, currentHealth - amount);
 
-        ShowDamageNumber(amount);
+        bool isCrit = TryRollCrit(critChance, critDuration);
+        ShowDamageNumber(amount, isCrit);
 
         // обычный hit-flash НЕ должен "ломать" крит-цвет — поэтому:
         // если сейчас идет крит-мигание, хит-флэш не запускаем
@@ -184,7 +189,13 @@ public class EnemyHealth : MonoBehaviour
             Destroy(fx, 0.6f);
         }
 
-        TryApplyCritFromHit(critChance, critDuration, critBlinkInterval, staggerMultiplier, critBlinkColor);
+        if (isCrit)
+        {
+            float interval = (critBlinkInterval > 0f) ? critBlinkInterval : Mathf.Max(0.01f, defaultCritBlinkInterval);
+            ApplyCritBlink(critDuration, interval, staggerMultiplier, critBlinkColor);
+        }
+
+        TryApplyHitKnockback();
 
         if (hpBar) hpBar.SetValue(currentHealth);
 
@@ -194,19 +205,18 @@ public class EnemyHealth : MonoBehaviour
             Die();
     }
 
-    private void TryApplyCritFromHit(float critChance, float critDuration, float critBlinkInterval, float staggerMultiplier, Color critBlinkColor)
+    private bool TryRollCrit(float critChance, float critDuration)
     {
-        if (!canBeCritStaggered) return;
-        if (isDead) return;
+        if (!canBeCritStaggered) return false;
+        if (isDead) return false;
 
-        if (critChance <= 0f) return;
-        if (critDuration <= 0f) return;
+        if (critChance <= 0f) return false;
+        if (critDuration <= 0f) return false;
 
         if (UnityEngine.Random.value > Mathf.Clamp01(critChance))
-            return;
+            return false;
 
-        float interval = (critBlinkInterval > 0f) ? critBlinkInterval : Mathf.Max(0.01f, defaultCritBlinkInterval);
-        ApplyCritBlink(critDuration, interval, staggerMultiplier, critBlinkColor);
+        return true;
     }
 
     public void ApplyCritBlink(float critDuration, float blinkInterval = -1f)
@@ -473,7 +483,7 @@ public class EnemyHealth : MonoBehaviour
         return _cachedDamageCanvas;
     }
 
-    private void ShowDamageNumber(int amount)
+    private void ShowDamageNumber(int amount, bool isCrit)
     {
         if (!damageTextPrefab) return;
 
@@ -515,6 +525,34 @@ public class EnemyHealth : MonoBehaviour
 
         var popup = go.GetComponent<DamageTextPopup>();
         if (popup != null)
-            popup.Setup(amount);
+            popup.Setup(amount, isCrit);
+    }
+
+    private void TryApplyHitKnockback()
+    {
+        if (!enableHitKnockback || isDead)
+            return;
+
+        if (_walkerCached == null)
+            return;
+
+        Transform playerTr = _walkerCached.PlayerTransform;
+        if (playerTr == null)
+            return;
+
+        float cell = Mathf.Max(0.01f, _walkerCached.cellSize);
+        float distance = Mathf.Max(0.1f, knockbackCells) * cell;
+
+        Vector2 current = transform.position;
+        Vector2 away = current - (Vector2)playerTr.position;
+        if (away.sqrMagnitude <= 0.000001f)
+            away = Vector2.right;
+        else
+            away.Normalize();
+
+        Vector2 target = current + away * distance;
+        Vector2 clamped = _walkerCached.DebugClampToBounds(target);
+
+        transform.position = clamped;
     }
 }

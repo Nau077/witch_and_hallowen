@@ -94,6 +94,11 @@ public class PlayerHealth : MonoBehaviour
 
     public int TakeDamage(int amount)
     {
+        return TakeDamage(amount, false);
+    }
+
+    public int TakeDamage(int amount, bool isCrit)
+    {
         if (isDead || amount <= 0) return 0;
         if (invulnerable) return 0;
 
@@ -106,7 +111,7 @@ public class PlayerHealth : MonoBehaviour
         if (taken > 0)
         {
             PlayHitSound();
-            ShowDamagePopup(taken);
+            ShowDamagePopup(taken, isCrit);
         }
 
         if (currentHealth <= 0) Die();
@@ -254,7 +259,7 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
-    private void ShowDamagePopup(int amount)
+    private void ShowDamagePopup(int amount, bool isCrit)
     {
         if (damageTextPrefab == null) return;
         if (damageTextParent == null)
@@ -298,7 +303,7 @@ public class PlayerHealth : MonoBehaviour
             popup.transform.position = screenPos;
         }
 
-        popup.Setup(amount);
+        popup.Setup(amount, isCrit);
     }
 
     public void ApplyPermanentMaxHpBonus(int bonus)

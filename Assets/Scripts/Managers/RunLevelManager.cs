@@ -37,6 +37,12 @@ public class RunLevelManager : MonoBehaviour
     public InterLevelUI interLevelUI;
     public StageTransitionPopup stagePopup;
 
+    [Header("Level Transition FX")]
+    [SerializeField] private bool enableIrisTransition = true;
+    [SerializeField] private float irisCloseDuration = 0.28f;
+    [SerializeField] private float irisOpenDuration = 0.24f;
+    [SerializeField] private float irisHoldBlackDuration = 0.03f;
+
     [Header("Shop popup")]
     [Tooltip("ÐŸÐµÑ€ÐµÑ‚Ð°Ñ‰Ð¸ ÑÑŽÐ´Ð° SoulShopKeeperPopup Ð¸Ð· Canvas. Ð•ÑÐ»Ð¸ Ð¿ÑƒÑÑ‚Ð¾ â€” Ð½Ð°Ð¹Ð´Ñ‘Ð¼ Ð² ÑÑ†ÐµÐ½Ðµ.")]
     public SoulShopKeeperPopup shopPopup;
@@ -69,6 +75,7 @@ public class RunLevelManager : MonoBehaviour
 
     private bool debugCurrenciesAppliedThisRun = false;
     private bool isFinalVictoryFlowRunning = false;
+    private bool _isGoDeeperTransitionRunning = false;
 
     private void Awake()
     {
@@ -141,6 +148,7 @@ public class RunLevelManager : MonoBehaviour
 
     public void InitializeRun()
     {
+        SetInputLocked(false);
         currentStage = 0;
         debugCurrenciesAppliedThisRun = false;
         isFinalVictoryFlowRunning = false;
@@ -266,6 +274,39 @@ public class RunLevelManager : MonoBehaviour
 
     public void GoDeeper()
     {
+        if (_isGoDeeperTransitionRunning)
+            return;
+
+        if (enableIrisTransition)
+        {
+            StartCoroutine(GoDeeperWithTransitionRoutine());
+            return;
+        }
+
+        ExecuteGoDeeperNow();
+    }
+
+    private IEnumerator GoDeeperWithTransitionRoutine()
+    {
+        _isGoDeeperTransitionRunning = true;
+        SetInputLocked(true);
+
+        try
+        {
+            yield return IrisScreenTransition.Close(Mathf.Max(0.01f, irisCloseDuration));
+            yield return IrisScreenTransition.HoldBlack(Mathf.Max(0f, irisHoldBlackDuration));
+            ExecuteGoDeeperNow();
+            yield return IrisScreenTransition.Open(Mathf.Max(0.01f, irisOpenDuration));
+        }
+        finally
+        {
+            SetInputLocked(false);
+            _isGoDeeperTransitionRunning = false;
+        }
+    }
+
+    private void ExecuteGoDeeperNow()
+    {
         int totalStages = TotalStages;
 
         // Ð½Ð° Ð²ÑÑÐºÐ¸Ð¹: Ð¿Ñ€ÑÑ‡ÐµÐ¼ Ð¼Ð°Ð³Ð°Ð·Ð¸Ð½
@@ -314,10 +355,14 @@ public class RunLevelManager : MonoBehaviour
             // SKULL EVENT: Ð½Ð¾Ð²Ñ‹Ð¹ stage -> ÑÑ‚Ð°Ñ€Ñ‚ÑƒÐµÐ¼ Ñ€Ð°ÑÐ¿Ð¸ÑÐ°Ð½Ð¸Ðµ ÑÐ¿Ð°Ð²Ð½Ð° Ð½Ð° ÑÑ‚Ð¾Ñ‚ stage
             skullEvent?.SetStage(currentStage);
         }
+
+        // Новый stage всегда должен запускаться с доступным управлением.
+        SetInputLocked(false);
     }
 
     public void ReturnToBaseAfterDeath()
     {
+        SetInputLocked(false);
         currentStage = 0;
         debugCurrenciesAppliedThisRun = false;
         isFinalVictoryFlowRunning = false;

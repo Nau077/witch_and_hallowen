@@ -1,17 +1,12 @@
-using UnityEngine;
-using TMPro;
+п»їusing UnityEngine;
 using System.Collections;
 
 /// <summary>
-/// Отслеживает момент, когда на сцене не остаётся живых врагов,
-/// показывает текст победы и после этого даёт сигнал RunLevelManager,
-/// что этаж леса очищен.
+/// Tracks stage clear state when all enemies are dead,
+/// then notifies RunLevelManager after the configured delay.
 /// </summary>
 public class LevelVictoryController : MonoBehaviour
 {
-    [Header("UI")]
-    public TextMeshProUGUI victoryText;
-
     [Header("Timings")]
     public float fadeInSpeed = 0.8f;
     public float visibleDuration = 1.5f;
@@ -30,38 +25,17 @@ public class LevelVictoryController : MonoBehaviour
         EnemyHealth.OnAnyEnemyDied -= HandleEnemyDied;
     }
 
-    private void Start()
-    {
-        InitVictoryTextState();
-    }
-
-    /// <summary>
-    /// Сбрасываем состояние контроллера, когда начинается новый этаж леса.
-    /// </summary>
     public void ResetForNewStage()
     {
         shown = false;
-        InitVictoryTextState();
-    }
-
-    private void InitVictoryTextState()
-    {
-        if (!victoryText) return;
-
-        victoryText.gameObject.SetActive(false);
-
-        var c = victoryText.color;
-        c.a = 0f;
-        victoryText.color = c;
-
-        victoryText.text = "VICTORY\nSOULS CAPTURED";
+        StopAllCoroutines();
     }
 
     private void HandleEnemyDied(EnemyHealth _)
     {
         if (shown) return;
 
-        // Проверяем, что ВСЕ враги мертвы
+        // Check that all enemies are dead.
         var enemies = FindObjectsOfType<EnemyHealth>();
         foreach (var e in enemies)
         {
@@ -69,54 +43,27 @@ public class LevelVictoryController : MonoBehaviour
                 return;
         }
 
-        ShowVictoryText();
-    }
-
-    private void ShowVictoryText()
-    {
-        if (!victoryText) return;
-
         shown = true;
-        victoryText.gameObject.SetActive(true);
         StopAllCoroutines();
-        StartCoroutine(FadeSequence());
+        StartCoroutine(CompleteStageAfterDelay());
     }
 
-    private IEnumerator FadeSequence()
+    private IEnumerator CompleteStageAfterDelay()
     {
-        var c = victoryText.color;
-        c.a = 0f;
-        victoryText.color = c;
+        float fadeInDuration = fadeInSpeed > 0f ? (1f / fadeInSpeed) : 0f;
+        float fadeOutDuration = fadeOutSpeed > 0f ? (1f / fadeOutSpeed) : 0f;
+        float totalDelay = Mathf.Max(0f, fadeInDuration) + Mathf.Max(0f, visibleDuration) + Mathf.Max(0f, fadeOutDuration) + Mathf.Max(0f, loadDelay);
 
-        // Fade-in
-        while (c.a < 1f)
-        {
-            c.a += Time.deltaTime * fadeInSpeed;
-            victoryText.color = c;
-            yield return null;
-        }
+        if (totalDelay > 0f)
+            yield return new WaitForSeconds(totalDelay);
 
-        // Hold
-        yield return new WaitForSeconds(visibleDuration);
-
-        // Fade-out
-        while (c.a > 0f)
-        {
-            c.a -= Time.deltaTime * fadeOutSpeed;
-            victoryText.color = c;
-            yield return null;
-        }
-
-        yield return new WaitForSeconds(loadDelay);
-
-        // Сигнал менеджеру забега
         if (RunLevelManager.Instance != null)
         {
             RunLevelManager.Instance.OnStageCleared();
         }
         else
         {
-            Debug.LogWarning("[LevelVictoryController] Нет RunLevelManager.Instance. Не знаю, что делать после победы.");
+            Debug.LogWarning("[LevelVictoryController] RunLevelManager.Instance is null. Cannot continue stage flow.");
         }
     }
 }

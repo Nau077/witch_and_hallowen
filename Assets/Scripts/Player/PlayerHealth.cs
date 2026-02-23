@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -12,8 +12,8 @@ public class PlayerHealth : MonoBehaviour
     public Image barFill;
 
     [Header("Sprites / Visual")]
-    [SerializeField] private SpriteRenderer sr;   // ребёнок witch_runner_2_1
-    [SerializeField] private Animator anim;       // там же
+    [SerializeField] private SpriteRenderer sr;   // Ñ€ÐµÐ±Ñ‘Ð½Ð¾Ðº witch_runner_2_1
+    [SerializeField] private Animator anim;       // Ñ‚Ð°Ð¼ Ð¶Ðµ
     public Sprite aliveSprite;
     public Sprite deadSprite;
 
@@ -21,17 +21,17 @@ public class PlayerHealth : MonoBehaviour
     public bool disableMovementOnDeath = true;
 
     [Header("Audio")]
-    public AudioSource audioSource;   // AudioSource на ведьме
-    public AudioClip hitSfx;          // звук попадания по ведьме
+    public AudioSource audioSource;   // AudioSource Ð½Ð° Ð²ÐµÐ´ÑŒÐ¼Ðµ
+    public AudioClip hitSfx;          // Ð·Ð²ÑƒÐº Ð¿Ð¾Ð¿Ð°Ð´Ð°Ð½Ð¸Ñ Ð¿Ð¾ Ð²ÐµÐ´ÑŒÐ¼Ðµ
 
     [Header("Damage Text")]
-    [Tooltip("Префаб DamageTextPopup / PlayerDamageText (с TextMeshPro-Text UI).")]
+    [Tooltip("ÐŸÑ€ÐµÑ„Ð°Ð± DamageTextPopup / PlayerDamageText (Ñ TextMeshPro-Text UI).")]
     public DamageTextPopup damageTextPrefab;
 
-    [Tooltip("Canvas / Transform, в котором живёт весь UI (HealthBar, SkillBar и т.д.).")]
+    [Tooltip("Canvas / Transform, Ð² ÐºÐ¾Ñ‚Ð¾Ñ€Ð¾Ð¼ Ð¶Ð¸Ð²Ñ‘Ñ‚ Ð²ÐµÑÑŒ UI (HealthBar, SkillBar Ð¸ Ñ‚.Ð´.).")]
     public Transform damageTextParent;
 
-    [Tooltip("Смещение над головой в мировых координатах.")]
+    [Tooltip("Ð¡Ð¼ÐµÑ‰ÐµÐ½Ð¸Ðµ Ð½Ð°Ð´ Ð³Ð¾Ð»Ð¾Ð²Ð¾Ð¹ Ð² Ð¼Ð¸Ñ€Ð¾Ð²Ñ‹Ñ… ÐºÐ¾Ð¾Ñ€Ð´Ð¸Ð½Ð°Ñ‚Ð°Ñ….")]
     public Vector3 damageTextOffset = new Vector3(0f, 1.2f, 0f);
 
     [Header("Debug / State")]
@@ -142,6 +142,8 @@ public class PlayerHealth : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
+
+        NoDeathStreakRecord.RegisterDeath();
 
         ApplyDeathVisual();
         StartCoroutine(DeathSequence());
@@ -327,3 +329,5 @@ public class PlayerHealth : MonoBehaviour
     }
 #endif
 }
+
+

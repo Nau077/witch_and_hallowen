@@ -219,6 +219,8 @@ public class RunLevelManager : MonoBehaviour
 
         if (currentStage <= 0) return;
 
+        NoDeathStreakRecord.RegisterStageCleared();
+
         ShopKeeperManager.Instance?.OnStageCleared(currentStage);
 
         if (upgradeRewardSystem != null &&
@@ -511,5 +513,7 @@ public class RunLevelManager : MonoBehaviour
         InitializeRun();
     }
 }
+
+
 
 

@@ -7,6 +7,7 @@ public class MainMenu : MonoBehaviour
     private const string BOOT_MODE_KEY = "dw_boot_mode";
     private const int BOOT_NEW_GAME = 1;
     private const int BOOT_CONTINUE = 2;
+    private const string NEW_GAME_INTRO_PENDING_KEY = "dw_intro_new_game_pending";
 
     [Header("Scenes")]
     public string newGameStartScene = "Level_1";
@@ -45,6 +46,7 @@ public class MainMenu : MonoBehaviour
     public void NewGame()
     {
         PlayerPrefs.SetInt(BOOT_MODE_KEY, BOOT_NEW_GAME);
+        PlayerPrefs.SetInt(NEW_GAME_INTRO_PENDING_KEY, 1);
         PlayerPrefs.Save();
 
         SaveSystem.ClearSave();
@@ -60,6 +62,7 @@ public class MainMenu : MonoBehaviour
     public void Continue()
     {
         PlayerPrefs.SetInt(BOOT_MODE_KEY, BOOT_CONTINUE);
+        PlayerPrefs.SetInt(NEW_GAME_INTRO_PENDING_KEY, 0);
         PlayerPrefs.Save();
 
         string sceneToLoad = SaveSystem.GetLastScene(newGameStartScene);

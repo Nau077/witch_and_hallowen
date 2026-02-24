@@ -1,5 +1,5 @@
+﻿using System.Collections;
 using UnityEngine;
-using System.Collections;
 
 [RequireComponent(typeof(AudioSource))]
 public class MenuMusicFade : MonoBehaviour
@@ -11,6 +11,14 @@ public class MenuMusicFade : MonoBehaviour
     {
         audioSource = GetComponent<AudioSource>();
         audioSource.volume = 0f;
+        StartCoroutine(PlayWhenCarryoverEnds());
+    }
+
+    private IEnumerator PlayWhenCarryoverEnds()
+    {
+        while (IntroMusicCarryover.HasActiveCarryover)
+            yield return null;
+
         audioSource.Play();
         StartCoroutine(FadeIn());
     }

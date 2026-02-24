@@ -81,12 +81,14 @@ public sealed class NoDeathStreakRecordUI : MonoBehaviour
     {
         NoDeathStreakRecord.OnChanged += Refresh;
         SceneManager.sceneLoaded += OnSceneLoaded;
+        IntroSlideshowPlayer.AnyIntroPlaybackChanged += OnIntroPlaybackChanged;
     }
 
     private void OnDisable()
     {
         NoDeathStreakRecord.OnChanged -= Refresh;
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        IntroSlideshowPlayer.AnyIntroPlaybackChanged -= OnIntroPlaybackChanged;
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -324,6 +326,7 @@ public sealed class NoDeathStreakRecordUI : MonoBehaviour
         _descriptionText.text = isRussian ? "\u0423\u0420\u041E\u0412\u041D\u0415\u0419 \u041F\u041E\u0414\u0420\u042F\u0414 \u0411\u0415\u0417 \u0421\u041C\u0415\u0420\u0422\u0418" : "LEVELS CLEARED IN A ROW";
 
         ApplyAlphaMultiplier(FixedAlphaMultiplier);
+        ApplyVisibilityBySceneAndIntroState();
     }
 
     private static void ApplyFontPair(TMP_Text text, TMP_FontAsset font, Material material)
@@ -364,6 +367,22 @@ public sealed class NoDeathStreakRecordUI : MonoBehaviour
         Color c = _baseTextColor;
         c.a *= multiplier;
         text.color = c;
+    }
+
+    private void OnIntroPlaybackChanged(bool isPlaying)
+    {
+        ApplyVisibilityBySceneAndIntroState();
+    }
+
+    private void ApplyVisibilityBySceneAndIntroState()
+    {
+        if (_panelRoot == null)
+            return;
+
+        bool shouldBeVisible = !IntroSlideshowPlayer.IsNoDeathRecordHideRequested;
+
+        if (_panelRoot.gameObject.activeSelf != shouldBeVisible)
+            _panelRoot.gameObject.SetActive(shouldBeVisible);
     }
 }
 

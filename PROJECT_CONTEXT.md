@@ -448,3 +448,128 @@ Implemented gameplay additions for new `Lightning` player skill:
 - Current conclusion:
   - this artifact is most likely texture/slicing alpha-bleed (asset/import side), not runtime component logic.
   - primary fix should be texture import/slice padding adjustments (extrude, clamp, point/no compression, clean transparent edges in source sprite).
+
+## Latest context update (updated 2026-02-24, intro/cutscene flow)
+
+Implemented a reusable runtime intro/cutscene slideshow system with two main entry points:
+- before menu (`BootIntro` scene)
+- on `MainMenu -> New Game` (Level_1 intro only)
+
+### New scripts / files
+
+- `Assets/Scripts/UI/Intro/IntroSlideshowPlayer.cs`
+  - universal slideshow player for image-sequences + transitions + optional audio.
+- `Assets/Scripts/UI/Intro/IntroMusicCarryover.cs`
+  - keeps intro music alive across scene load (BootIntro -> MainMenu).
+
+### Updated scripts
+
+- `Assets/Scripts/UI/Menu/MainMenu.cs`
+- `Assets/Scripts/Music/Menu/MenuMusicFade.cs`
+- `Assets/Scripts/Music/Menu/StageMusicController.cs`
+- `Assets/Scripts/UI/NoDeathStreakRecordUI.cs`
+
+---
+
+### Boot/new-game gating (important)
+
+PlayerPrefs keys now used for intro gating:
+- `dw_boot_mode`
+  - `1` = New Game
+  - `2` = Continue
+- `dw_intro_new_game_pending`
+  - strict marker that Level_1 intro must play for New Game only.
+
+Current behavior:
+- `MainMenu.NewGame()` sets:
+  - `dw_boot_mode = 1`
+  - `dw_intro_new_game_pending = 1`
+- `MainMenu.Continue()` sets:
+  - `dw_boot_mode = 2`
+  - `dw_intro_new_game_pending = 0`
+
+`IntroSlideshowPlayer` with `PlayCondition.NewGameBootModeOnly`:
+- plays only when New-Game condition is true,
+- clears both keys after intro finish (`clearNewGameBootModeAfterPlay`).
+
+### Fast disable when condition is not met
+
+If intro object is present in scene but should not run (e.g. Continue path):
+- `disableIfConditionNotMet = true` causes immediate hide logic in `Awake/Start`.
+- current disable target uses `objectsToDisableOnFinish[]` (no fallback disable of the component object itself).
+
+This is intended for cases like `Level_1` where `IntroNewGameCanvas` must disappear instantly on Continue.
+
+---
+
+### IntroSlideshowPlayer capabilities (current)
+
+Global flow options:
+- `playOnStart`
+- `finishAction` (`None / LoadSceneByName / DisableGameObject`)
+- `sceneToLoad`
+- optional carry-over music to loaded scene (`carryMusicToLoadedScene`)
+
+Slides data:
+- legacy `Sprite[] slides` (fallback)
+- per-slide `SlideSettings[]` (priority if non-empty), each slide can override:
+  - sprite
+  - timing (`fadeIn/hold/fadeOut`)
+  - zoom settings
+
+Visual behavior:
+- optional auto full-screen setup for slide image rect (`autoSetupSlideFullscreen`)
+- optional `preserveAspect`
+- optional force camera solid color (`forceMainCameraSolidColor`, `forcedCameraColor`)
+- transition via color overlay (`fadeThroughColor`, `fadeColor`, `fadeOverlayImage`)
+
+Zoom behavior:
+- global zoom mode (`AlwaysOut / AlwaysIn / Alternate`)
+- per-slide zoom overrides
+- alternating zoom support across slides
+- NaN/invalid scale protections added
+
+Input behavior:
+- skip enabled by default
+- supports configured keys + click
+- explicit space skip path (`alwaysAllowSpaceSkip`) to guarantee Space works
+
+Post-finish object control:
+- `objectsToDisableOnFinish[]`
+- `disableObjectsAlsoOnSkip`
+- used to disable `IntroNewGameCanvas` and similar overlays after intro
+
+---
+
+### Music handoff behavior (BootIntro -> MainMenu -> Level_1)
+
+- Boot intro can carry playing music into MainMenu through `IntroMusicCarryover`.
+- `MenuMusicFade` waits while carry-over music is active, then starts menu music.
+- once gameplay music claims control (`StageMusicController.SetStage(...)`), it force-stops and destroys intro carry-over (`IntroMusicCarryover.StopAndDestroyActive()`), so Level_1 music takes over.
+
+---
+
+### No-death record UI visibility during intros
+
+`NoDeathStreakRecordUI` now reacts to intro playback state:
+- hides while intro playback requests hide state,
+- shows again after intro ends.
+
+This replaced the earlier hard dependency on scene name checks for intro visibility.
+
+---
+
+### Current recommended scene setup
+
+1. `BootIntro` scene:
+- `IntroSlideshowPlayer` in `Always` mode.
+- optional `FinishAction = LoadSceneByName`, `sceneToLoad = MainMenu`.
+- optional carry music into menu.
+
+2. `Level_1` New Game intro:
+- `PlayCondition = NewGameBootModeOnly`.
+- `objectsToDisableOnFinish` should include `IntroNewGameCanvas`.
+- on Continue path, disable-if-condition-not-met hides intro canvas immediately.
+
+3. Future cutscenes (e.g. between stages):
+- use separate canvas + separate `IntroSlideshowPlayer` instance and trigger manually.

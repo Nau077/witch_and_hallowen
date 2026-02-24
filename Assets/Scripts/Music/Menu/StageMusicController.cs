@@ -141,6 +141,10 @@ public class StageMusicController : MonoBehaviour
     {
         if (stage == _currentStage) return;
 
+        // Once gameplay music controller is asked to set a stage,
+        // it takes ownership and interrupts intro carry-over music.
+        IntroMusicCarryover.StopAndDestroyActive();
+
         if (!_warmedUp && queueStageWhileWarming)
         {
             _queuedStage = stage;

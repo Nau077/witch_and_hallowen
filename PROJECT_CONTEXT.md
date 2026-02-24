@@ -7,6 +7,70 @@ This document is a quick handoff for future Codex chats working on:
 
 Keep this file updated when logic changes.
 
+## Latest context update (updated 2026-02-24)
+
+### No-death streak record (new persistent system)
+
+Added persistent run record for consecutive cleared levels without death.
+
+- Core storage:
+  - `Assets/Scripts/Managers/NoDeathStreakRecord.cs`
+  - PlayerPrefs keys:
+    - `no_death_streak_current`
+    - `no_death_streak_best`
+    - `no_death_streak_last_stage`
+- Increment rule (`RegisterStageCleared(clearedStage, totalStages)`):
+  - increments only on valid sequence:
+    - start from stage 1 when current streak is 0
+    - next numeric stage (`last + 1`)
+    - loop transition (`totalStages -> 1`)
+  - otherwise no increment.
+- Death reset:
+  - `RegisterDeath()` sets current streak and last counted stage to 0.
+
+Integration points:
+- `RunLevelManager` calls `NoDeathStreakRecord.RegisterStageCleared(...)` on stage clear.
+- `PlayerHealth` calls `NoDeathStreakRecord.RegisterDeath()` on player death.
+
+### Runtime UI for record counter
+
+Counter is fully runtime-created (no prefab dependency):
+- `Assets/Scripts/UI/NoDeathStreakRecordUI.cs`
+
+Behavior:
+- auto-created once in `DontDestroyOnLoad` (`NoDeathStreakRecordUI_Auto`);
+- visible in both `MainMenu` and gameplay scenes;
+- anchored to exact top-right screen corner;
+- localized EN/RU labels;
+- value shows `BestStreak`.
+
+Current visual/runtime setup:
+- dedicated runtime canvas: `NoDeathStreakRecordCanvas` (Screen Space Overlay);
+- panel:
+  - size: `272 x 96`
+  - anchored position: `(-6, -4)` from top-right
+  - black semi-transparent background
+- text:
+  - EN font target: `CinzelDecorative-Black SDF`
+  - RU fallback: `LiberationSans SDF`
+  - text is set with unicode escapes for RU literals (to avoid source-encoding corruption).
+
+Current transparency policy (final):
+- fixed alpha multiplier for all states (no popup-based switching):
+  - `FixedAlphaMultiplier = 0.3f`
+  - practical result: ~70% transparency all the time for both panel and text.
+
+Current sorting policy:
+- if `InterLevelPanel` canvas exists:
+  - counter canvas uses same sorting layer and order `InterLevel - 20`
+- otherwise fallback:
+  - sorting layer default, order `1`.
+
+### Removed/disabled old victory text dependency
+
+Legacy `Victory text` + `Victory UI script` path is removed from active flow.
+Counter/transition UI now uses the runtime record UI path above instead of that legacy overlay setup.
+
 ## Latest context update (updated 2026-02-23)
 
 ### Last hotfixes (updated 2026-02-23, late)

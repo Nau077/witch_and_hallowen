@@ -36,6 +36,7 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
     private readonly List<GameObject> _icons = new List<GameObject>();
     private readonly List<SkillId> _tracked = new List<SkillId>();
     private readonly HashSet<SkillId> _visibleSkills = new HashSet<SkillId>();
+    private readonly HashSet<SkillId> _forcedRevealSkills = new HashSet<SkillId>();
     private readonly Dictionary<GameObject, Coroutine> _popRoutines = new Dictionary<GameObject, Coroutine>();
     private bool _skillsSubscribed;
     private float _breatheTime;
@@ -94,12 +95,25 @@ public class PlayerSkillPerksPanelUI : MonoBehaviour
             SetupIcon(_icons[i], skillId);
 
             bool isNewSkill = _visibleSkills.Add(skillId);
+            bool isForcedReveal = _forcedRevealSkills.Remove(skillId);
             bool isNewByCount = i >= _lastVisibleCount;
-            if (isNewSkill || isNewByCount)
+            if (isForcedReveal || isNewSkill || isNewByCount)
                 PlayRevealAnimation(_icons[i]);
         }
 
         _lastVisibleCount = visibleCount;
+    }
+
+    public void ForceRevealForSkill(SkillId skillId)
+    {
+        if (skillId == SkillId.None)
+            return;
+
+        _forcedRevealSkills.Add(skillId);
+        _visibleSkills.Remove(skillId);
+
+        if (isActiveAndEnabled)
+            Refresh();
     }
 
     private void RebuildTrackedSkills()

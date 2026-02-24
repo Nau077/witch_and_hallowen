@@ -7,62 +7,35 @@ using UnityEngine.UI;
 using UnityEditor;
 #endif
 
-public static class NoDeathStreakRecord
-{
-    private const string KEY_CURRENT_STREAK = "no_death_streak_current";
-    private const string KEY_BEST_STREAK = "no_death_streak_best";
-
-    public static event Action OnChanged;
-
-    public static int CurrentStreak => Mathf.Max(0, PlayerPrefs.GetInt(KEY_CURRENT_STREAK, 0));
-    public static int BestStreak => Mathf.Max(0, PlayerPrefs.GetInt(KEY_BEST_STREAK, 0));
-
-    public static void RegisterStageCleared()
-    {
-        int nextCurrent = CurrentStreak + 1;
-        int best = BestStreak;
-
-        PlayerPrefs.SetInt(KEY_CURRENT_STREAK, nextCurrent);
-
-        if (nextCurrent > best)
-        {
-            best = nextCurrent;
-            PlayerPrefs.SetInt(KEY_BEST_STREAK, best);
-        }
-
-        PlayerPrefs.Save();
-        OnChanged?.Invoke();
-    }
-
-    public static void RegisterDeath()
-    {
-        if (CurrentStreak == 0)
-            return;
-
-        PlayerPrefs.SetInt(KEY_CURRENT_STREAK, 0);
-        PlayerPrefs.Save();
-        OnChanged?.Invoke();
-    }
-}
-
 [DefaultExecutionOrder(-9000)]
 public sealed class NoDeathStreakRecordUI : MonoBehaviour
 {
-    private const string RUNTIME_ROOT_NAME = "NoDeathStreakRecordUI_Auto";
+    private const string RuntimeRootName = "NoDeathStreakRecordUI_Auto";
+    private const string RuntimeCanvasName = "NoDeathStreakRecordCanvas";
+    private const float FixedAlphaMultiplier = 0.3f;
 
-    private const string ENGLISH_FONT_NAME = "CinzelDecorative-Black SDF";
-    private const string RUSSIAN_FONT_NAME = "LiberationSans SDF";
+    private const string EnglishFontName = "CinzelDecorative-Black SDF";
+    private const string RussianFontName = "LiberationSans SDF";
 
 #if UNITY_EDITOR
-    private const string ENGLISH_FONT_ASSET_PATH = "Assets/TextMesh Pro/Fonts/Cinzel/CinzelDecorative-Black SDF.asset";
-    private const string RUSSIAN_FONT_ASSET_PATH = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset";
+    private const string EnglishFontAssetPath = "Assets/TextMesh Pro/Fonts/Cinzel/CinzelDecorative-Black SDF.asset";
+    private const string RussianFontAssetPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset";
 #endif
 
     private static NoDeathStreakRecordUI _instance;
 
+    private RectTransform _panelRoot;
     private TMP_Text _titleText;
     private TMP_Text _valueText;
     private TMP_Text _descriptionText;
+    private Image _panelImage;
+
+    private Canvas _runtimeCanvas;
+    private RectTransform _runtimeCanvasRect;
+    private Canvas _interLevelCanvas;
+
+    private Color _basePanelColor = new Color(0f, 0f, 0f, 0.38f);
+    private Color _baseTextColor = new Color(1f, 1f, 1f, 0.67f);
 
     private TMP_FontAsset _englishFont;
     private TMP_FontAsset _russianFont;
@@ -83,7 +56,7 @@ public sealed class NoDeathStreakRecordUI : MonoBehaviour
             return;
         }
 
-        var go = new GameObject(RUNTIME_ROOT_NAME);
+        var go = new GameObject(RuntimeRootName);
         _instance = go.AddComponent<NoDeathStreakRecordUI>();
         DontDestroyOnLoad(go);
     }
@@ -118,47 +91,134 @@ public sealed class NoDeathStreakRecordUI : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        ReattachToRuntimeCanvas();
         Refresh();
     }
 
     private void BuildUi()
     {
-        var canvas = gameObject.GetComponent<Canvas>();
-        if (canvas == null)
-            canvas = gameObject.AddComponent<Canvas>();
+        ReattachToRuntimeCanvas();
+    }
 
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = short.MaxValue;
+    private void ReattachToRuntimeCanvas()
+    {
+        EnsureRuntimeCanvas();
+        if (_runtimeCanvasRect == null)
+            return;
 
-        var scaler = gameObject.GetComponent<CanvasScaler>();
-        if (scaler == null)
-            scaler = gameObject.AddComponent<CanvasScaler>();
+        if (_panelRoot == null)
+        {
+            CreatePanel(_runtimeCanvasRect);
+        }
+        else if (_panelRoot.parent != _runtimeCanvasRect)
+        {
+            _panelRoot.SetParent(_runtimeCanvasRect, false);
+        }
 
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-        scaler.matchWidthOrHeight = 0.5f;
+        ResolveInterLevelCanvas();
+        UpdateCanvasSorting();
+        PlaceAndSortPanel();
+    }
 
-        if (gameObject.GetComponent<GraphicRaycaster>() == null)
-            gameObject.AddComponent<GraphicRaycaster>();
+    private void EnsureRuntimeCanvas()
+    {
+        if (_runtimeCanvas == null)
+        {
+            _runtimeCanvas = GetComponentInChildren<Canvas>(true);
+            if (_runtimeCanvas == null)
+            {
+                var canvasGo = new GameObject(RuntimeCanvasName, typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+                canvasGo.transform.SetParent(transform, false);
+                _runtimeCanvas = canvasGo.GetComponent<Canvas>();
+            }
+        }
 
-        var panelGo = new GameObject("Panel", typeof(RectTransform), typeof(Image));
-        panelGo.transform.SetParent(transform, false);
+        _runtimeCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        _runtimeCanvas.pixelPerfect = false;
+        _runtimeCanvas.overrideSorting = true;
+        _runtimeCanvas.sortingOrder = 1;
 
-        var panelRect = panelGo.GetComponent<RectTransform>();
-        panelRect.anchorMin = new Vector2(1f, 1f);
-        panelRect.anchorMax = new Vector2(1f, 1f);
-        panelRect.pivot = new Vector2(1f, 1f);
-        panelRect.anchoredPosition = new Vector2(-16f, -18f);
-        panelRect.sizeDelta = new Vector2(400f, 136f);
+        var scaler = _runtimeCanvas.GetComponent<CanvasScaler>();
+        if (scaler != null)
+        {
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 0.5f;
+        }
 
-        var panelImage = panelGo.GetComponent<Image>();
-        panelImage.color = new Color(0f, 0f, 0f, 0.16f);
-        panelImage.raycastTarget = false;
+        var raycaster = _runtimeCanvas.GetComponent<GraphicRaycaster>();
+        if (raycaster != null)
+            raycaster.enabled = false;
 
-        _titleText = CreateText("Title", panelRect, new Vector2(-12f, -8f), new Vector2(376f, 30f), 22f, TextAlignmentOptions.TopRight, true);
-        _valueText = CreateText("Value", panelRect, new Vector2(-12f, -47f), new Vector2(376f, 40f), 30f, TextAlignmentOptions.TopRight, false);
-        _descriptionText = CreateText("Description", panelRect, new Vector2(-12f, 8f), new Vector2(376f, 28f), 20f, TextAlignmentOptions.BottomRight, false);
+        _runtimeCanvasRect = _runtimeCanvas.transform as RectTransform;
+    }
+
+    private void ResolveInterLevelCanvas()
+    {
+        _interLevelCanvas = null;
+        var all = FindObjectsOfType<Transform>(true);
+        for (int i = 0; i < all.Length; i++)
+        {
+            Transform t = all[i];
+            if (t == null || t.name != "InterLevelPanel")
+                continue;
+
+            _interLevelCanvas = t.GetComponentInParent<Canvas>(true);
+            if (_interLevelCanvas != null)
+                return;
+        }
+    }
+
+    private void UpdateCanvasSorting()
+    {
+        if (_runtimeCanvas == null)
+            return;
+
+        if (_interLevelCanvas != null)
+        {
+            _runtimeCanvas.sortingLayerID = _interLevelCanvas.sortingLayerID;
+            _runtimeCanvas.sortingOrder = _interLevelCanvas.sortingOrder - 20;
+            return;
+        }
+
+        _runtimeCanvas.sortingLayerID = 0;
+        _runtimeCanvas.sortingOrder = 1;
+    }
+
+    private void PlaceAndSortPanel()
+    {
+        if (_panelRoot == null)
+            return;
+
+        _panelRoot.anchorMin = new Vector2(1f, 1f);
+        _panelRoot.anchorMax = new Vector2(1f, 1f);
+        _panelRoot.pivot = new Vector2(1f, 1f);
+        _panelRoot.anchoredPosition = new Vector2(-6f, -4f);
+        _panelRoot.localScale = Vector3.one;
+        _panelRoot.localRotation = Quaternion.identity;
+        _panelRoot.SetAsLastSibling();
+    }
+
+    private void CreatePanel(RectTransform parent)
+    {
+        var panelGo = new GameObject("NoDeathRecordPanel", typeof(RectTransform), typeof(Image));
+        panelGo.transform.SetParent(parent, false);
+        _panelRoot = panelGo.GetComponent<RectTransform>();
+
+        _panelRoot.anchorMin = new Vector2(1f, 1f);
+        _panelRoot.anchorMax = new Vector2(1f, 1f);
+        _panelRoot.pivot = new Vector2(1f, 1f);
+        _panelRoot.anchoredPosition = new Vector2(-6f, -4f);
+        _panelRoot.sizeDelta = new Vector2(272f, 96f);
+
+        _panelImage = panelGo.GetComponent<Image>();
+        _panelImage.color = _basePanelColor;
+        _panelImage.raycastTarget = false;
+
+        _titleText = CreateText("Title", _panelRoot, new Vector2(-8f, -7f), new Vector2(220f, 24f), 17f, TextAlignmentOptions.TopRight, true);
+        _valueText = CreateText("Value", _panelRoot, new Vector2(-8f, -36f), new Vector2(220f, 30f), 29f, TextAlignmentOptions.TopRight, false);
+        _descriptionText = CreateText("Description", _panelRoot, new Vector2(-8f, 5f), new Vector2(220f, 20f), 15f, TextAlignmentOptions.BottomRight, false);
 
         SetAnchorsTopRight(_titleText.rectTransform);
         SetAnchorsTopRight(_valueText.rectTransform);
@@ -194,23 +254,24 @@ public sealed class NoDeathStreakRecordUI : MonoBehaviour
         text.fontStyle = isBold ? FontStyles.Bold : FontStyles.Normal;
         text.alignment = alignment;
         text.enableWordWrapping = false;
-        text.color = new Color(1f, 1f, 1f, 0.67f);
+        text.color = _baseTextColor;
         text.outlineColor = Color.black;
         text.outlineWidth = 0f;
         text.raycastTarget = false;
-
         return text;
     }
 
     private void ApplyPreferredFont()
     {
-        _englishFont = TryLoadFontAssetByPathEditor(ENGLISH_FONT_ASSET_PATH);
-        _russianFont = TryLoadFontAssetByPathEditor(RUSSIAN_FONT_ASSET_PATH);
+#if UNITY_EDITOR
+        _englishFont = TryLoadFontAssetByPathEditor(EnglishFontAssetPath);
+        _russianFont = TryLoadFontAssetByPathEditor(RussianFontAssetPath);
+#endif
 
         if (_englishFont == null)
-            _englishFont = FindFontByName(ENGLISH_FONT_NAME);
+            _englishFont = FindFontByName(EnglishFontName);
         if (_russianFont == null)
-            _russianFont = FindFontByName(RUSSIAN_FONT_NAME);
+            _russianFont = FindFontByName(RussianFontName);
 
         if (_englishFont == null)
             _englishFont = TMP_Settings.defaultFontAsset;
@@ -234,17 +295,19 @@ public sealed class NoDeathStreakRecordUI : MonoBehaviour
         return null;
     }
 
+#if UNITY_EDITOR
     private static TMP_FontAsset TryLoadFontAssetByPathEditor(string path)
     {
-#if UNITY_EDITOR
         if (!string.IsNullOrEmpty(path))
             return AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
-#endif
         return null;
     }
+#endif
 
     private void Refresh()
     {
+        ReattachToRuntimeCanvas();
+
         if (_titleText == null || _valueText == null || _descriptionText == null)
             return;
 
@@ -256,9 +319,11 @@ public sealed class NoDeathStreakRecordUI : MonoBehaviour
         ApplyFontPair(_valueText, font, material);
         ApplyFontPair(_descriptionText, font, material);
 
-        _titleText.text = isRussian ? "Лучший рекорд без смертей" : "BEST NO-DEATH RECORD";
+        _titleText.text = isRussian ? "\u041B\u0423\u0427\u0428\u0418\u0419 \u0420\u0415\u041A\u041E\u0420\u0414 \u0411\u0415\u0417 \u0421\u041C\u0415\u0420\u0422\u0415\u0419" : "BEST NO-DEATH RECORD";
         _valueText.text = NoDeathStreakRecord.BestStreak.ToString();
-        _descriptionText.text = isRussian ? "Уровней подряд без смерти" : "LEVELS CLEARED IN A ROW";
+        _descriptionText.text = isRussian ? "\u0423\u0420\u041E\u0412\u041D\u0415\u0419 \u041F\u041E\u0414\u0420\u042F\u0414 \u0411\u0415\u0417 \u0421\u041C\u0415\u0420\u0422\u0418" : "LEVELS CLEARED IN A ROW";
+
+        ApplyAlphaMultiplier(FixedAlphaMultiplier);
     }
 
     private static void ApplyFontPair(TMP_Text text, TMP_FontAsset font, Material material)
@@ -274,4 +339,33 @@ public sealed class NoDeathStreakRecordUI : MonoBehaviour
         else if (font != null && font.material != null)
             text.fontSharedMaterial = font.material;
     }
+
+    private void ApplyAlphaMultiplier(float multiplier)
+    {
+        float clamped = Mathf.Clamp01(multiplier);
+
+        if (_panelImage != null)
+        {
+            Color c = _basePanelColor;
+            c.a *= clamped;
+            _panelImage.color = c;
+        }
+
+        ApplyTextAlpha(_titleText, clamped);
+        ApplyTextAlpha(_valueText, clamped);
+        ApplyTextAlpha(_descriptionText, clamped);
+    }
+
+    private void ApplyTextAlpha(TMP_Text text, float multiplier)
+    {
+        if (text == null)
+            return;
+
+        Color c = _baseTextColor;
+        c.a *= multiplier;
+        text.color = c;
+    }
 }
+
+
+

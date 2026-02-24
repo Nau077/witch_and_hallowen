@@ -227,7 +227,7 @@ public class RunLevelManager : MonoBehaviour
 
         if (currentStage <= 0) return;
 
-        NoDeathStreakRecord.RegisterStageCleared();
+        NoDeathStreakRecord.RegisterStageCleared(currentStage, TotalStages);
 
         ShopKeeperManager.Instance?.OnStageCleared(currentStage);
 

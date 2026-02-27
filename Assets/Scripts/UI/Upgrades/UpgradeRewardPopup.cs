@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -28,6 +29,14 @@ public class UpgradeRewardPopup : MonoBehaviour
     [SerializeField] private Color normalTint = Color.white;
     [SerializeField] private float selectedScale = 1.08f;
     [SerializeField] private float normalScale = 1f;
+    [Header("Selected Icon Glow (like dialogue Next)")]
+    [SerializeField] private bool selectedIconGlowEnabled = true;
+    [SerializeField] private float selectedIconGlowPulsePeriod = 0.9f;
+    [SerializeField, Range(0f, 1f)] private float selectedIconGlowMinAlpha = 0.35f;
+    [SerializeField, Range(0f, 1f)] private float selectedIconGlowMaxAlpha = 1f;
+    [SerializeField] private Color selectedIconGlowColor = new Color(0.35f, 0.85f, 1f, 1f);
+    [SerializeField, Range(0f, 1f)] private float selectedIconGlowTintStrength = 0.18f;
+    [SerializeField] private Vector2 selectedIconGlowOutlineDistance = new Vector2(2f, -2f);
 
     [Header("Animation (optional)")]
     [SerializeField] private Animator animator;
@@ -41,6 +50,8 @@ public class UpgradeRewardPopup : MonoBehaviour
     private readonly List<BoundOption> _active = new List<BoundOption>(3);
     private Action<UpgradeRewardDefinition> _onSelected;
     private int _selectedActiveIndex = -1;
+    private Coroutine _selectedIconGlowRoutine;
+    private OptionUI _selectedGlowOption;
 
     private struct BoundOption
     {
@@ -66,6 +77,8 @@ public class UpgradeRewardPopup : MonoBehaviour
 
     private void OnDestroy()
     {
+        StopSelectedIconGlow();
+
         if (closeButton != null)
             closeButton.onClick.RemoveListener(OnClickGet);
 
@@ -119,14 +132,17 @@ public class UpgradeRewardPopup : MonoBehaviour
             shown++;
         }
 
+        ShowRoot();
+
         if (_active.Count == 0)
             Debug.LogWarning("[UpgradeRewardPopup] No usable UI slots to show rewards. Check Options array bindings.");
-
-        ShowRoot();
+        else if (_active.Count == 1)
+            SelectActiveIndex(0);
     }
 
     public void HideImmediate()
     {
+        StopSelectedIconGlow();
         _active.Clear();
         _selectedActiveIndex = -1;
 
@@ -186,6 +202,7 @@ public class UpgradeRewardPopup : MonoBehaviour
 
     private void HideWithAnimation()
     {
+        StopSelectedIconGlow();
         _active.Clear();
         _selectedActiveIndex = -1;
 
@@ -235,6 +252,11 @@ public class UpgradeRewardPopup : MonoBehaviour
 
         for (int i = 0; i < _active.Count; i++)
             SetOptionVisual(_active[i].ui, i == _selectedActiveIndex);
+
+        if (selectedIconGlowEnabled)
+            StartSelectedIconGlow(_active[_selectedActiveIndex].ui);
+        else
+            StopSelectedIconGlow();
     }
 
     private void SetOptionVisual(OptionUI ui, bool selected)
@@ -244,6 +266,13 @@ public class UpgradeRewardPopup : MonoBehaviour
 
         if (ui.root != null)
             ui.root.transform.localScale = Vector3.one * (selected ? selectedScale : normalScale);
+
+        if (ui.icon != null)
+        {
+            ui.icon.color = selected ? selectedTint : normalTint;
+            if (!selected)
+                SetIconGlowVisual(ui, 0f);
+        }
 
         if (ui.highlightImage != null)
         {
@@ -260,6 +289,75 @@ public class UpgradeRewardPopup : MonoBehaviour
             if (g != null)
                 g.color = selected ? selectedTint : normalTint;
         }
+    }
+
+    private void StartSelectedIconGlow(OptionUI ui)
+    {
+        StopSelectedIconGlow();
+
+        if (ui == null || ui.icon == null)
+            return;
+
+        _selectedGlowOption = ui;
+        _selectedIconGlowRoutine = StartCoroutine(SelectedIconGlowRoutine());
+    }
+
+    private void StopSelectedIconGlow()
+    {
+        if (_selectedIconGlowRoutine != null)
+        {
+            StopCoroutine(_selectedIconGlowRoutine);
+            _selectedIconGlowRoutine = null;
+        }
+
+        if (_selectedGlowOption != null)
+            SetIconGlowVisual(_selectedGlowOption, 0f);
+
+        _selectedGlowOption = null;
+    }
+
+    private IEnumerator SelectedIconGlowRoutine()
+    {
+        float period = Mathf.Max(0.15f, selectedIconGlowPulsePeriod);
+
+        while (_selectedGlowOption != null && _selectedGlowOption.icon != null)
+        {
+            float t = 0f;
+            while (t < period && _selectedGlowOption != null && _selectedGlowOption.icon != null)
+            {
+                t += Time.unscaledDeltaTime;
+                float k = Mathf.Clamp01(t / period);
+                float wave = 0.5f - 0.5f * Mathf.Cos(k * Mathf.PI * 2f); // 0..1..0
+                SetIconGlowVisual(_selectedGlowOption, wave);
+                yield return null;
+            }
+        }
+
+        _selectedIconGlowRoutine = null;
+    }
+
+    private void SetIconGlowVisual(OptionUI ui, float intensity01)
+    {
+        if (ui == null || ui.icon == null)
+            return;
+
+        intensity01 = Mathf.Clamp01(intensity01);
+
+        var outline = ui.icon.GetComponent<Outline>();
+        if (outline == null)
+            outline = ui.icon.gameObject.AddComponent<Outline>();
+
+        outline.effectDistance = selectedIconGlowOutlineDistance;
+
+        float alpha = Mathf.Lerp(selectedIconGlowMinAlpha, selectedIconGlowMaxAlpha, intensity01);
+        Color outlineColor = selectedIconGlowColor;
+        outlineColor.a *= alpha;
+        outline.effectColor = outlineColor;
+        outline.enabled = alpha > 0.01f;
+
+        Color tint = new Color(selectedIconGlowColor.r, selectedIconGlowColor.g, selectedIconGlowColor.b, 1f);
+        float s = selectedIconGlowTintStrength * intensity01;
+        ui.icon.color = Color.Lerp(selectedTint, tint, s);
     }
 
     private void HideAllOptions()

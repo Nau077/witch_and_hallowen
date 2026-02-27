@@ -24,6 +24,7 @@ public class UpgradeRewardDefinition : ScriptableObject
 
     [Header("Skill settings")]
     public SkillId skillId = SkillId.None;
+    public SkillDefinition skillDefinitionOverride;
     [Min(1)] public int targetSkillLevel = 1;
     [Min(0)] public int addCharges = 0;
     public bool addToLoadout = true;
@@ -31,4 +32,3 @@ public class UpgradeRewardDefinition : ScriptableObject
     [Header("Perk settings")]
     [Min(1)] public int amount = 1;
 }
-

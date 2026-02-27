@@ -51,6 +51,10 @@ public class RunLevelManager : MonoBehaviour
     [Tooltip("Optional: assign UpgradeRewardSystem. If empty, it will be found automatically.")]
     public UpgradeRewardSystem upgradeRewardSystem;
 
+    [Header("Input lock fail-safe")]
+    [SerializeField] private bool autoRecoverStuckInputLocks = true;
+    [SerializeField] private bool logInputRecoveries = false;
+
     public static bool inputLocked;
 
     [Header("Player Mana (optional assign)")]
@@ -116,6 +120,22 @@ public class RunLevelManager : MonoBehaviour
     private void Update()
     {
         HandleDebugHotkeys();
+    }
+
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (!hasFocus)
+            return;
+
+        TryRecoverStuckInputLock("OnApplicationFocus");
+    }
+
+    private void OnApplicationPause(bool pause)
+    {
+        if (pause)
+            return;
+
+        TryRecoverStuckInputLock("OnApplicationPause");
     }
 
     private void EnsurePlayerMana()
@@ -358,6 +378,7 @@ public class RunLevelManager : MonoBehaviour
 
         // Новый stage всегда должен запускаться с доступным управлением.
         SetInputLocked(false);
+        TryRecoverStuckInputLock("ExecuteGoDeeperNow");
     }
 
     public void ReturnToBaseAfterDeath()
@@ -442,6 +463,46 @@ public class RunLevelManager : MonoBehaviour
 
         // ÑÑ‚Ñ€ÐµÐ»ÐºÐ¸/Ð¸ÐºÐ¾Ð½ÐºÐ¸ Ð¼Ð°Ð³Ð°Ð·Ð¸Ð½Ð° â€” Ð¾Ð±Ð½Ð¾Ð²Ð¸Ð¼ Ð½Ð° Ð²ÑÑÐºÐ¸Ð¹
         interLevelUI?.ApplyShopSchedule(TotalStages);
+
+        TryRecoverStuckInputLock("ApplyStageState_FromCurrent");
+    }
+
+    private void TryRecoverStuckInputLock(string reason)
+    {
+        if (!autoRecoverStuckInputLocks)
+            return;
+
+        bool inputIsLocked = inputLocked;
+        bool cursorIsBlocked = CursorManager.Instance != null && CursorManager.Instance.popupBlocking;
+        if (!inputIsLocked && !cursorIsBlocked)
+            return;
+
+        if (HasActiveBlockingUi())
+            return;
+
+        SetInputLocked(false);
+        CursorManager.Instance?.SetPopupBlocking(false);
+
+        if (logInputRecoveries)
+            Debug.Log("[RunLevelManager] Recovered stuck input/cursor lock (" + reason + ").");
+    }
+
+    private bool HasActiveBlockingUi()
+    {
+        if (DialogueRunner.Instance != null && DialogueRunner.Instance.IsPlaying)
+            return true;
+
+        if (shopPopup != null && shopPopup.IsOpen)
+            return true;
+
+        if (upgradeRewardSystem != null && upgradeRewardSystem.IsShowing)
+            return true;
+
+        var hint = FindObjectOfType<TutorialHintPopup>(true);
+        if (hint != null && hint.IsOpen)
+            return true;
+
+        return false;
     }
 
     [ContextMenu("Apply Debug Currencies Now")]

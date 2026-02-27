@@ -3,6 +3,8 @@ using UnityEngine.UI;
 
 public class SoulShopKeeperPopup : MonoBehaviour
 {
+    public bool IsOpen => popupRoot != null && popupRoot.activeInHierarchy;
+
     [Header("Root")]
     public GameObject popupRoot;
 

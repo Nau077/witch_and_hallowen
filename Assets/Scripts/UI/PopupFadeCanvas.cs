@@ -7,6 +7,8 @@ public class PopupFadeCanvas : MonoBehaviour
     [SerializeField] private CanvasGroup canvasGroup;
     [SerializeField] private float fadeInDuration = 0.18f;
     [SerializeField] private float fadeOutDuration = 0.16f;
+    [SerializeField] private bool nearInstantMode = true;
+    [SerializeField, Min(0f)] private float nearInstantDuration = 0.02f;
     [SerializeField] private bool useUnscaledTime = true;
     [SerializeField] private bool disableOnHidden = true;
 
@@ -43,14 +45,23 @@ public class PopupFadeCanvas : MonoBehaviour
         EnsureCanvasGroup();
         StopFade();
         gameObject.SetActive(true);
-        _fadeRoutine = StartCoroutine(FadeTo(1f, fadeInDuration));
+        float duration = ResolveDuration(fadeInDuration);
+        _fadeRoutine = StartCoroutine(FadeTo(1f, duration));
     }
 
     public void HideSmooth()
     {
         EnsureCanvasGroup();
         StopFade();
-        _fadeRoutine = StartCoroutine(FadeTo(0f, fadeOutDuration));
+        float duration = ResolveDuration(fadeOutDuration);
+        _fadeRoutine = StartCoroutine(FadeTo(0f, duration));
+    }
+
+    private float ResolveDuration(float configured)
+    {
+        if (nearInstantMode)
+            return Mathf.Max(0f, nearInstantDuration);
+        return Mathf.Max(0f, configured);
     }
 
     private IEnumerator FadeTo(float targetAlpha, float duration)

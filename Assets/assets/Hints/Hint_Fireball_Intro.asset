@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15850a74d7e342d4f9add335fb44b4f6, type: 3}
+  m_Name: Hint_Fireball_Intro
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialHintDefinition
+  hintId: hint
+  titleEn: Hint
+  titleRu: "\u041F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0430"
+  lines:
+  - textEn: 'For attack: LMB on an area with an enemy'
+    textRu: "\u0438\u043A\u043E\u043D\u043A\u0430 \u041B\u041A\u041C/\u0430\u0442\u0430\u043A\u0438"
+    icon: {fileID: 4841722164830323710, guid: 64be172b5158ecc4a9cf8540b952e0c0, type: 3}
+  - textEn: 'For flight to cross the energy beam: Space'
+    textRu: "\u0438\u043A\u043E\u043D\u043A\u0430 \u043F\u0440\u043E\u0431\u0435\u043B\u0430/\u043F\u043E\u043B\u0435\u0442\u0430"
+    icon: {fileID: 6733791746008145239, guid: f221dec35301e594d81d17e7ac680a78, type: 3}

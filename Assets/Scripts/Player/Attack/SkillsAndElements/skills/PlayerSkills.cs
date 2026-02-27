@@ -49,16 +49,6 @@ public class PlayerSkills : MonoBehaviour
         }
 
         // гарантируем Fireball
-        if (!_skills.ContainsKey(SkillId.Fireball))
-        {
-            _skills[SkillId.Fireball] = new SkillState
-            {
-                skillId = SkillId.Fireball,
-                level = 1,
-                charges = -1
-            };
-        }
-
         NotifySkillsChanged();
     }
 
@@ -96,6 +86,13 @@ public class PlayerSkills : MonoBehaviour
         if (charges != 0 && state.charges >= 0)
         {
             state.charges += charges;
+            changed = true;
+        }
+
+        SkillDefinition def = SkillDefinitionLookup.FindById(id);
+        if (def != null && def.infiniteCharges && state.charges != -1)
+        {
+            state.charges = -1;
             changed = true;
         }
 
@@ -179,16 +176,6 @@ public class PlayerSkills : MonoBehaviour
         }
 
         // гарантируем Fireball
-        if (!_skills.ContainsKey(SkillId.Fireball))
-        {
-            _skills[SkillId.Fireball] = new SkillState
-            {
-                skillId = SkillId.Fireball,
-                level = 1,
-                charges = -1
-            };
-        }
-
         NotifySkillsChanged();
     }
 
@@ -198,9 +185,37 @@ public class PlayerSkills : MonoBehaviour
         return _skills.ContainsKey(id) && _skills[id].unlocked;
     }
 
+    public void ResetSkill(SkillId id)
+    {
+        if (id == SkillId.None) return;
+
+        bool changed = false;
+        if (_skills.TryGetValue(id, out var state))
+        {
+            if (state.level != 0 || state.charges != 0)
+            {
+                state.level = 0;
+                state.charges = 0;
+                changed = true;
+            }
+        }
+        else
+        {
+            _skills[id] = new SkillState
+            {
+                skillId = id,
+                level = 0,
+                charges = 0
+            };
+            changed = true;
+        }
+
+        if (changed)
+            NotifySkillsChanged();
+    }
+
     private void NotifySkillsChanged()
     {
         OnSkillsChanged?.Invoke();
     }
 }
-

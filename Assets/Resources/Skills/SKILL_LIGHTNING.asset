@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b7f63957faed2dd47a02d50eb09a4404, type: 3}
   m_Name: SKILL_LIGHTNING
   m_EditorClassIdentifier: Assembly-CSharp::SkillDefinition
-  skillId: 1
+  skillId: 3
   displayName: 
   icon: {fileID: 1922991287, guid: 0f490d568767fa044b52e7c6cc5ead8b, type: 3}
   element: 0

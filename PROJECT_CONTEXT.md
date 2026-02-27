@@ -7,6 +7,139 @@ This document is a quick handoff for future Codex chats working on:
 
 Keep this file updated when logic changes.
 
+## Latest context update (updated 2026-02-27, input/cursor lock recovery)
+
+### Stuck input + cursor fail-safe after transitions/focus loss
+
+Issue observed:
+- after clicking keeper `Go to the forest`, in some editor runs (especially after fullscreen/focus glitches) controls and cursor could remain locked.
+- console could also show allocator-level engine errors (e.g. `Invalid memory pointer ...`), after which lock flags were sometimes left in bad state.
+
+Implemented minimal runtime protection:
+
+- `Assets/Scripts/Managers/RunLevelManager.cs`
+  - added inspector flags:
+    - `autoRecoverStuckInputLocks` (default `true`)
+    - `logInputRecoveries` (default `false`)
+  - added fail-safe checks on:
+    - `OnApplicationFocus(true)`
+    - `OnApplicationPause(false)`
+    - after `ExecuteGoDeeperNow()`
+    - after `ApplyStageState_FromCurrent(...)`
+  - recovery logic:
+    - if `inputLocked` or `CursorManager.popupBlocking` is still true,
+    - but no known blocking UI is actually open,
+    - then force-unlock gameplay input and popup cursor block.
+
+- `Assets/Scripts/UI/SoulShopKeeper/SoulShopKeeperPopup.cs`
+  - added `IsOpen` property (`popupRoot.activeInHierarchy`) for safe lock-state checks.
+
+- `Assets/Scripts/UI/Tutorial/TutorialHintPopup.cs`
+  - added `IsOpen` property (`_isOpen && popupRoot.activeInHierarchy`).
+
+- `Assets/Scripts/UI/Upgrades/UpgradeRewardSystem.cs`
+  - added `IsShowing` property (proxy for `_showing`).
+
+Blocking UI sources currently considered by fail-safe:
+- active dialogue (`DialogueRunner.IsPlaying`)
+- open shop popup (`SoulShopKeeperPopup.IsOpen`)
+- upgrade reward popup flow running (`UpgradeRewardSystem.IsShowing`)
+- open tutorial hint popup (`TutorialHintPopup.IsOpen`)
+
+Practical result:
+- if lock flags get stuck due to interrupted flow/editor focus issue, controls and cursor recover automatically when no real popup/dialogue is open.
+
+## Latest context update (updated 2026-02-27)
+
+### Upgrade reward popup polish (selection UX)
+
+- `Assets/Scripts/UI/Upgrades/UpgradeRewardPopup.cs`
+  - selected reward icon now has pulse/glow effect (outline + tint), while keeping existing scale-up on select.
+  - when popup has exactly **one** valid option, it is now auto-selected immediately.
+    - practical behavior: player can press `GET` right away (no extra click required).
+
+### New Game intro -> Fireball reward flow
+
+Implemented New Game flow where Fireball is not default at run start and is granted as reward after first intro dialogue:
+
+- `Assets/Scripts/Dialogue/IntroDialogueOnNewGame.cs`
+  - New serialized controls:
+    - `removeDefaultFireballBeforeIntro`
+    - `triggerFireballRewardAfterIntro`
+    - `fireballRewardCustomEventId` (default: `new_game_intro_fireball_reward`)
+    - tutorial popup refs (`tutorialHintPopup`, `tutorialHintAfterReward`)
+  - On New Game boot:
+    - clears Fireball from runtime `PlayerSkills` + `SkillLoadout` before intro.
+  - after intro dialogue completes:
+    - triggers `UpgradeRewardSystem.TriggerCustomEvent(...)`,
+    - on reward complete shows tutorial hint popup.
+
+### Universal tutorial hint popup system
+
+Added reusable tutorial popup with configurable text + icons:
+
+- new file: `Assets/Scripts/UI/Tutorial/TutorialHintDefinition.cs`
+  - SO with localized title + array of lines (`textEn/textRu/icon`).
+- new file: `Assets/Scripts/UI/Tutorial/TutorialHintPopup.cs`
+  - renders definition rows,
+  - `Next` button and `Space` close support,
+  - optional input/cursor lock while open.
+  - runtime fallback binding:
+    - if `linesUi` is empty, popup tries to auto-discover rows from child TMP_Text + Image pairs.
+
+### Fireball/Lightning skill-definition conflict fix
+
+Root cause of wrong icon/slot behavior was duplicate `skillId=1` on Lightning and Fireball definitions.
+
+- fixed asset:
+  - `Assets/Resources/Skills/SKILL_LIGHTNING.asset`
+    - `skillId` corrected from `1` to `3`.
+
+### Reward skill-definition resolution hardening
+
+- `Assets/Scripts/UI/Upgrades/UpgradeRewardDefinition.cs`
+  - added `skillDefinitionOverride` field for deterministic definition binding per reward asset.
+- `Assets/Scripts/UI/Upgrades/UpgradeRewardSystem.cs`
+  - skill rewards now resolve definition via:
+    - `skillDefinitionOverride` first,
+    - fallback to `SkillDefinitionLookup.FindById(skillId)`.
+  - for infinite-charge skills, default `+10` grant is no longer applied.
+  - `SkillCharges` reward type is ignored for infinite-charge skills.
+
+### Skill lookup and runtime robustness
+
+- `Assets/Scripts/Player/SaveSystem/SkillDefinitionLookup.cs`
+  - logs warning on duplicate `SkillId` found in `Resources`.
+  - adds fallback scan via `Resources.FindObjectsOfTypeAll<SkillDefinition>()` for non-Resources loaded assets.
+- `Assets/Scripts/Player/Attack/SkillsAndElements/skills/PlayerSkills.cs`
+  - `UnlockSkill(...)` now enforces `charges = -1` when resolved definition is `infiniteCharges`.
+  - added `ResetSkill(SkillId)` helper for runtime new-game cleanup.
+
+### Loadout handling for infinite-charge skills
+
+- `Assets/Scripts/Player/Attack/SkillsAndElements/SkillLoadout.cs`
+  - `AddChargesToSkill(...)` now allows adding infinite-charge definitions even when `amount == 0`.
+  - practical fix: Fireball reward correctly appears in bottom skill bar and becomes usable.
+
+### Continue snapshot behavior update
+
+Removed forced default Fireball restoration on Continue:
+
+- `Assets/Scripts/Player/SaveSystem/RunSaveSystem.cs`
+  - removed hardcoded default-fireball injection path.
+  - loadout restore now relies on unlocked skill state and saved slot data.
+- `Assets/Scripts/Player/SaveSystem/RunSnapshotBootstrap.cs`
+  - removed post-apply enforcement that forced Fireball into slot 0.
+
+### Popup speed tuning (near-instant)
+
+- `Assets/Scripts/UI/PopupFadeCanvas.cs`
+  - added near-instant mode:
+    - `nearInstantMode` (default `true`)
+    - `nearInstantDuration` (default `0.02f`)
+  - `ShowSmooth/HideSmooth` now respect near-instant duration when enabled.
+  - practical result: reward/shop/upgrade popups using `PopupFadeCanvas` appear almost immediately.
+
 ## Latest context update (updated 2026-02-24)
 
 ### No-death streak record (new persistent system)

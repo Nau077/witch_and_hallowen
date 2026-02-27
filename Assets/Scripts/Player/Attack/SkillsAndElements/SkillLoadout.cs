@@ -165,7 +165,8 @@ public class SkillLoadout : MonoBehaviour
 
     public bool AddChargesToSkill(SkillDefinition def, int amount)
     {
-        if (def == null || amount <= 0) return false;
+        if (def == null) return false;
+        if (!def.infiniteCharges && amount <= 0) return false;
         int n = slots?.Length ?? 0;
         if (n == 0) return false;
 

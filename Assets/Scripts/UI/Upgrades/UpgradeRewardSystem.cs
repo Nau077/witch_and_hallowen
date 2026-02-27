@@ -10,6 +10,8 @@ public enum UpgradeRewardTriggerType
 
 public class UpgradeRewardSystem : MonoBehaviour
 {
+    public bool IsShowing => _showing;
+
     [Serializable]
     public class RewardRule
     {
@@ -283,10 +285,15 @@ public class UpgradeRewardSystem : MonoBehaviour
         if (PlayerSkills.Instance == null) return;
         if (reward.skillId == SkillId.None) return;
 
+        SkillDefinition def = ResolveSkillDefinition(reward);
         int targetLevel = Mathf.Max(1, reward.targetSkillLevel);
         PlayerSkills.Instance.UnlockSkill(reward.skillId, targetLevel);
 
-        int chargesToGrant = reward.addCharges > 0 ? reward.addCharges : Mathf.Max(0, defaultChargesOnReward);
+        bool infinite = def != null && def.infiniteCharges;
+        int chargesToGrant = 0;
+        if (!infinite)
+            chargesToGrant = reward.addCharges > 0 ? reward.addCharges : Mathf.Max(0, defaultChargesOnReward);
+
         if (chargesToGrant > 0)
             PlayerSkills.Instance.AddCharges(reward.skillId, chargesToGrant);
 
@@ -295,7 +302,6 @@ public class UpgradeRewardSystem : MonoBehaviour
         var loadout = SkillLoadout.Instance;
         if (loadout == null) return;
 
-        var def = SkillDefinitionLookup.FindById(reward.skillId);
         if (def == null)
         {
             Debug.LogWarning("[UpgradeRewardSystem] SkillDefinition not found for " + reward.skillId);
@@ -310,6 +316,11 @@ public class UpgradeRewardSystem : MonoBehaviour
     {
         if (PlayerSkills.Instance == null) return;
         if (reward.skillId == SkillId.None) return;
+
+        SkillDefinition def = ResolveSkillDefinition(reward);
+        if (def != null && def.infiniteCharges)
+            return;
+
         int chargesToGrant = reward.addCharges > 0 ? reward.addCharges : Mathf.Max(0, defaultChargesOnReward);
         if (chargesToGrant <= 0) return;
 
@@ -318,7 +329,6 @@ public class UpgradeRewardSystem : MonoBehaviour
         var loadout = SkillLoadout.Instance;
         if (loadout == null) return;
 
-        var def = SkillDefinitionLookup.FindById(reward.skillId);
         if (def == null)
         {
             Debug.LogWarning("[UpgradeRewardSystem] SkillDefinition not found for " + reward.skillId);
@@ -326,5 +336,12 @@ public class UpgradeRewardSystem : MonoBehaviour
         }
 
         loadout.AddChargesToSkill(def, chargesToGrant);
+    }
+
+    private static SkillDefinition ResolveSkillDefinition(UpgradeRewardDefinition reward)
+    {
+        if (reward == null) return null;
+        if (reward.skillDefinitionOverride != null) return reward.skillDefinitionOverride;
+        return SkillDefinitionLookup.FindById(reward.skillId);
     }
 }

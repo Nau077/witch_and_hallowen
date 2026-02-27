@@ -8,6 +8,8 @@ using System.Collections;
 public class LevelVictoryController : MonoBehaviour
 {
     [Header("Timings")]
+    [SerializeField] private bool instantStageClearFlow = true;
+    [SerializeField, Min(0f)] private float instantDelaySeconds = 0f;
     public float fadeInSpeed = 0.8f;
     public float visibleDuration = 1.5f;
     public float fadeOutSpeed = 0.8f;
@@ -50,6 +52,20 @@ public class LevelVictoryController : MonoBehaviour
 
     private IEnumerator CompleteStageAfterDelay()
     {
+        if (instantStageClearFlow)
+        {
+            float quickDelay = Mathf.Max(0f, instantDelaySeconds);
+            if (quickDelay > 0f)
+                yield return new WaitForSeconds(quickDelay);
+
+            if (RunLevelManager.Instance != null)
+                RunLevelManager.Instance.OnStageCleared();
+            else
+                Debug.LogWarning("[LevelVictoryController] RunLevelManager.Instance is null. Cannot continue stage flow.");
+
+            yield break;
+        }
+
         float fadeInDuration = fadeInSpeed > 0f ? (1f / fadeInSpeed) : 0f;
         float fadeOutDuration = fadeOutSpeed > 0f ? (1f / fadeOutSpeed) : 0f;
         float totalDelay = Mathf.Max(0f, fadeInDuration) + Mathf.Max(0f, visibleDuration) + Mathf.Max(0f, fadeOutDuration) + Mathf.Max(0f, loadDelay);

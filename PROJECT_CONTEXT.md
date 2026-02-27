@@ -7,6 +7,44 @@ This document is a quick handoff for future Codex chats working on:
 
 Keep this file updated when logic changes.
 
+## Latest context update (updated 2026-02-27, popup timings tuned)
+
+### Popup speed policy (final)
+
+User requirement clarified:
+- keep open/close animations,
+- target timing around `0.200s`,
+- remove excessive logical delay before popups appear.
+
+Implemented/adjusted:
+
+- `Assets/Scripts/UI/PopupFadeCanvas.cs`
+  - `fadeInDuration` default set to `0.2`
+  - `fadeOutDuration` default set to `0.2`
+  - near-instant branch now resolves to `0.2s` (not instant) for smooth open/close consistency.
+  - smooth methods keep coroutine fade path (no hard immediate skip).
+
+- `Assets/Scripts/LevelController/LevelVictoryController.cs`
+  - added:
+    - `instantStageClearFlow` (default `true`)
+    - `instantDelaySeconds` (default `0`)
+  - when enabled, stage clear immediately calls `RunLevelManager.OnStageCleared()` (optional tiny delay only).
+  - this removes old long pre-popup wait caused by summed fade/visible/load delays in this controller.
+
+- `Assets/Scripts/Score/StageTransitionPopup.cs`
+  - supports `PopupFadeCanvas` on root.
+  - default behavior now uses smooth fade (`showInstantly = false`), preserving animation.
+
+- `Assets/Scripts/UI/Upgrades/UpgradeRewardPopup.cs`
+  - default behavior uses smooth show (`showInstantly = false`), preserving animation.
+
+- `Assets/Scripts/UI/SoulShopKeeper/SoulShopKeeperPopup.cs`
+  - popup animator speed returned to moderate default (`popupAnimatorSpeed = 3f`) to avoid unnatural instant snap.
+
+Practical outcome:
+- reward/level/shop popups appear noticeably sooner (no long pre-trigger delays),
+- while still visually opening/closing with short (~0.2s) animation.
+
 ## Latest context update (updated 2026-02-27, input/cursor lock recovery)
 
 ### Stuck input + cursor fail-safe after transitions/focus loss

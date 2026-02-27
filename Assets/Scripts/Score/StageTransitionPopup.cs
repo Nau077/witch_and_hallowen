@@ -7,6 +7,10 @@ public class StageTransitionPopup : MonoBehaviour
     [Header("Root")]
     [Tooltip("Корневая панель попапа. Если пусто, используется этот GameObject.")]
     public GameObject root;
+    [SerializeField] private PopupFadeCanvas popupFade;
+    [SerializeField] private bool showInstantly = false;
+    [SerializeField] private bool speedUpAnimatorOnShow = true;
+    [SerializeField] private float popupAnimatorSpeed = 12f;
 
     [Header("Texts")]
     public TextMeshProUGUI titleText;
@@ -62,6 +66,9 @@ public class StageTransitionPopup : MonoBehaviour
         if (root == null)
             root = gameObject;
 
+        if (popupFade == null && root != null)
+            popupFade = root.GetComponent<PopupFadeCanvas>();
+
         // кнопка Next
         if (nextButton != null)
         {
@@ -109,17 +116,49 @@ public class StageTransitionPopup : MonoBehaviour
                 shopPopup.HideImmediate();
         }
 
-        root.SetActive(true);
+        if (popupFade != null)
+        {
+            if (showInstantly)
+                popupFade.ShowImmediate();
+            else
+                popupFade.ShowSmooth();
+        }
+        else
+        {
+            root.SetActive(true);
+        }
+
+        if (speedUpAnimatorOnShow && root != null)
+        {
+            var animator = root.GetComponent<Animator>();
+            if (animator != null)
+                animator.speed = Mathf.Max(12f, popupAnimatorSpeed);
+        }
     }
 
     public void Hide()
     {
+        if (popupFade != null)
+        {
+            if (showInstantly)
+                popupFade.HideImmediate();
+            else
+                popupFade.HideSmooth();
+            return;
+        }
+
         if (root != null)
             root.SetActive(false);
     }
 
     public void HideImmediate()
     {
+        if (popupFade != null)
+        {
+            popupFade.HideImmediate();
+            return;
+        }
+
         if (root != null)
             root.SetActive(false);
     }

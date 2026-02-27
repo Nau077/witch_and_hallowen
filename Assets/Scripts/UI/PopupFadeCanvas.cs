@@ -5,8 +5,8 @@ using UnityEngine;
 public class PopupFadeCanvas : MonoBehaviour
 {
     [SerializeField] private CanvasGroup canvasGroup;
-    [SerializeField] private float fadeInDuration = 0.18f;
-    [SerializeField] private float fadeOutDuration = 0.16f;
+    [SerializeField] private float fadeInDuration = 0.2f;
+    [SerializeField] private float fadeOutDuration = 0.2f;
     [SerializeField] private bool nearInstantMode = true;
     [SerializeField, Min(0f)] private float nearInstantDuration = 0.02f;
     [SerializeField] private bool useUnscaledTime = true;
@@ -46,6 +46,14 @@ public class PopupFadeCanvas : MonoBehaviour
         StopFade();
         gameObject.SetActive(true);
         float duration = ResolveDuration(fadeInDuration);
+        if (duration <= 0f)
+        {
+            canvasGroup.alpha = 1f;
+            canvasGroup.interactable = true;
+            canvasGroup.blocksRaycasts = true;
+            return;
+        }
+
         _fadeRoutine = StartCoroutine(FadeTo(1f, duration));
     }
 
@@ -54,13 +62,23 @@ public class PopupFadeCanvas : MonoBehaviour
         EnsureCanvasGroup();
         StopFade();
         float duration = ResolveDuration(fadeOutDuration);
+        if (duration <= 0f)
+        {
+            canvasGroup.alpha = 0f;
+            canvasGroup.interactable = false;
+            canvasGroup.blocksRaycasts = false;
+            if (disableOnHidden)
+                gameObject.SetActive(false);
+            return;
+        }
+
         _fadeRoutine = StartCoroutine(FadeTo(0f, duration));
     }
 
     private float ResolveDuration(float configured)
     {
         if (nearInstantMode)
-            return Mathf.Max(0f, nearInstantDuration);
+            return 0.2f;
         return Mathf.Max(0f, configured);
     }
 

@@ -39,6 +39,9 @@ public class UpgradeRewardPopup : MonoBehaviour
     [SerializeField] private Vector2 selectedIconGlowOutlineDistance = new Vector2(2f, -2f);
 
     [Header("Animation (optional)")]
+    [SerializeField] private bool showInstantly = false;
+    [SerializeField] private bool speedUpAnimatorOnShow = true;
+    [SerializeField] private float popupAnimatorSpeed = 12f;
     [SerializeField] private Animator animator;
     [SerializeField] private string showTrigger = "Show";
     [SerializeField] private string hideTrigger = "Hide";
@@ -190,13 +193,20 @@ public class UpgradeRewardPopup : MonoBehaviour
 
         if (popupFade != null)
         {
-            popupFade.ShowSmooth();
+            if (showInstantly)
+                popupFade.ShowImmediate();
+            else
+                popupFade.ShowSmooth();
         }
         else
         {
             popupRoot.SetActive(true);
             if (animator != null && !string.IsNullOrEmpty(showTrigger))
+            {
+                if (speedUpAnimatorOnShow)
+                    animator.speed = Mathf.Max(12f, popupAnimatorSpeed);
                 animator.SetTrigger(showTrigger);
+            }
         }
     }
 

@@ -8,7 +8,7 @@ public class StationInteractionToggle : MonoBehaviour
     [Header("Interaction")]
     [SerializeField] private Transform player;
     [SerializeField, Min(0.1f)] private float interactionDistance = 4f;
-    [SerializeField] private bool bypassDistanceCheck = false;
+    [SerializeField] private bool bypassDistanceCheck = true;
 
     [Header("Scene References")]
     [SerializeField] private Camera mainCamera;
@@ -225,13 +225,6 @@ public class StationInteractionToggle : MonoBehaviour
             shooter.SkipNextClickFromUI();
 
         AutoResolveReferences();
-
-        if (!bypassDistanceCheck && !IsPlayerCloseEnough())
-        {
-            if (logDistanceBlock)
-                Debug.Log($"[StationInteractionToggle] Click blocked by distance. Need <= {interactionDistance:0.00}");
-            return;
-        }
 
         bool toStationView = !_stationViewActive;
         if (_transitionRoutine != null)

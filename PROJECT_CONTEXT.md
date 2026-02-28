@@ -7,6 +7,60 @@ This document is a quick handoff for future Codex chats working on:
 
 Keep this file updated when logic changes.
 
+## Latest context update (updated 2026-02-28, station click final hard fix)
+
+### Final state (confirmed by user)
+
+User confirmed that station click flow is now correct.
+
+### What was still wrong before final fix
+
+Even after script updates, runtime still produced:
+- `[StationInteractionToggle] Click blocked by distance. Need <= 2.10`
+
+because scene serialization in `Level_1.unity` kept old value:
+- `bypassDistanceCheck: 0`
+
+### Final applied fixes
+
+- `Assets/Scenes/Level_1.unity`
+  - Station component value changed:
+    - `bypassDistanceCheck: 0 -> 1`
+
+- `Assets/Scripts/UI/Station/StationInteractionToggle.cs`
+  - removed distance-blocking branch inside `HandleStationClick()` so click no longer depends on approach distance.
+  - station click now always toggles station view when clicked.
+
+Practical result:
+- station can be clicked from any map position,
+- no more distance-block log for station click,
+- camera/UI toggle behavior remains unchanged and working.
+
+## Latest context update (updated 2026-02-28, station click distance serialization fix)
+
+### Final confirmation
+
+User confirmed: current station behavior is now correct ("everything works as needed").
+
+### Root cause and fix
+
+Issue:
+- station click was still blocked by distance in runtime despite script defaults.
+- console showed:
+  - `[StationInteractionToggle] Click blocked by distance. Need <= 2.10`
+
+Root cause:
+- scene-level serialized value in `Assets/Scenes/Level_1.unity` overrode script default:
+  - `StationInteractionToggle.bypassDistanceCheck` was saved as `0`.
+
+Applied fix:
+- updated `Assets/Scenes/Level_1.unity`:
+  - `bypassDistanceCheck: 0 -> 1` for the Station object component.
+
+Result:
+- station click works from any map position (no approach required),
+- camera swap / UI visibility toggle flow remains intact and confirmed working.
+
 ## Latest context update (updated 2026-02-28, intro skip vs dialogue input separation)
 
 ### Intro slideshow input (current)
@@ -52,6 +106,7 @@ Finalized behavior:
   - `Main Camera` <-> `Main Camera_2`
   - hides/shows `Canvas/MainGame`
   - hides/shows `SoulShopKeeper`
+  - click can be triggered from any distance (no mandatory approach to station).
 - station hover tooltip works with current setup.
 
 Implementation used for stable click detection:
@@ -64,6 +119,8 @@ Implementation used for stable click detection:
   - distance gate support:
     - `interactionDistance` for normal gameplay behavior,
     - `bypassDistanceCheck` for temporary debug/testing.
+  - current default for this project state:
+    - `bypassDistanceCheck = true` so station click works globally from any map position.
   - click diagnostics:
     - optional `logDistanceBlock` log when click is blocked by distance.
   - known earlier issue in chat was fixed:

@@ -21104,7 +21104,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StationInteractionToggle
   player: {fileID: 201944537}
   interactionDistance: 2.1
-  bypassDistanceCheck: 0
+  bypassDistanceCheck: 1
   mainCamera: {fileID: 519420031}
   stationCamera: {fileID: 160972773}
   mainGameRoot: {fileID: 266478642}

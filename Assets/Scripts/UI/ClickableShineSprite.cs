@@ -4,33 +4,51 @@
 public class ClickableGlowOutlineSprite : MonoBehaviour
 {
     [Header("Target")]
-    public SpriteRenderer target;
+    [SerializeField] private SpriteRenderer target;
 
     [Header("Glow look")]
-    public Color glowColor = new Color(1f, 1f, 1f, 1f);
-    [Range(0f, 1f)] public float minAlpha = 0.35f;
-    [Range(0f, 1f)] public float maxAlpha = 0.85f;
-    public float pulseSpeed = 2.5f;
+    [SerializeField] private Color glowColor = new Color(1f, 1f, 1f, 1f);
+    [SerializeField, Range(0f, 1f)] private float minAlpha = 0.35f;
+    [SerializeField, Range(0f, 1f)] private float maxAlpha = 0.85f;
+    [SerializeField] private float pulseSpeed = 2.5f;
 
     [Tooltip("How much bigger the glow sprite is compared to the target (local scale multiplier).")]
-    [Range(1.01f, 1.30f)] public float glowScale = 1.04f;
+    [SerializeField, Range(1.01f, 1.30f)] private float glowScale = 1.04f;
 
     [Header("Diagonal shine")]
-    public Color shineColor = new Color(1f, 1f, 1f, 1f);
-    [Range(0f, 1f)] public float shineMaxAlpha = 0.45f;
-    [Range(0.01f, 0.25f)] public float shineOffset = 0.08f;
-    public float shineSpeed = 1.6f;
+    [SerializeField] private Color shineColor = new Color(1f, 1f, 1f, 1f);
+    [SerializeField, Range(0f, 1f)] private float shineMaxAlpha = 0.45f;
+    [SerializeField, Range(0.01f, 0.25f)] private float shineOffset = 0.08f;
+    [SerializeField] private float shineSpeed = 1.6f;
 
     [Header("Target scale pulse")]
-    public bool animateTargetScale = true;
-    [Range(0f, 0.12f)] public float scalePulseAmount = 0.035f;
-    public float scalePulseSpeed = 2.2f;
+    [SerializeField] private bool animateTargetScale = true;
+    [SerializeField, Range(1f, 1.35f)] private float hoverScaleMultiplier = 1.12f;
+    [SerializeField, Range(0f, 0.15f)] private float scalePulseAmount = 0.035f;
+    [SerializeField, Min(0.1f)] private float scalePulseSpeed = 2.2f;
+    [SerializeField, Min(0.1f)] private float hoverScaleLerpSpeed = 8f;
+
+    [Header("Simple Hover (No Duplicate)")]
+    [SerializeField] private bool useSimpleHoverNoDuplicate = true;
+    [SerializeField, Range(0f, 1f)] private float hoverTintStrength = 0.28f;
+    [SerializeField, Min(0.1f)] private float hoverTintPulseSpeed = 2f;
+
+    [Header("Hover Boost")]
+    [SerializeField] private bool useHoverBoost = true;
+    [SerializeField, Range(0f, 1f)] private float hoverMinAlpha = 0.65f;
+    [SerializeField, Range(0f, 1f)] private float hoverMaxAlpha = 1f;
+    [SerializeField] private float hoverPulseSpeed = 1.05f;
+    [SerializeField, Range(0f, 1f)] private float hoverShineMaxAlpha = 0.75f;
+    [SerializeField] private float hoverShineSpeed = 0.75f;
+    [SerializeField, Min(0f)] private float hoverHitPaddingWorld = 0.2f;
+    [SerializeField, Range(1f, 1.6f)] private float hoverGlowScaleMultiplier = 1.08f;
 
     [Header("Sorting")]
-    public int sortingOrderOffset = 1;
+    [SerializeField] private int sortingOrderOffset = 1;
 
     [Header("URP 2D")]
-    public bool forceUnlit = true;
+    [SerializeField] private bool forceUnlit = true;
+    [SerializeField] private bool keepShineCenteredOnHover = true;
 
     SpriteRenderer _glowSr;
     SpriteRenderer _shineSr;
@@ -41,6 +59,8 @@ public class ClickableGlowOutlineSprite : MonoBehaviour
     Material _runtimeGlowMat;
     Material _runtimeShineMat;
     bool _inited;
+    bool _isHovered;
+    float _currentScaleMul = 1f;
 
     void Reset()
     {
@@ -59,9 +79,19 @@ public class ClickableGlowOutlineSprite : MonoBehaviour
 
         _baseTargetColor = target.color;
         _baseTargetLocalScale = target.transform.localScale;
+        if (scalePulseAmount <= 0f) scalePulseAmount = 0.035f;
+        if (scalePulseSpeed <= 0f) scalePulseSpeed = 2.2f;
 
-        CreateGlow();
-        CreateShine();
+        if (sortingOrderOffset <= 0)
+            sortingOrderOffset = 1;
+
+        if (!useSimpleHoverNoDuplicate)
+        {
+            CreateGlow();
+            CreateShine();
+        }
+
+        _currentScaleMul = 1f;
 
         _inited = true;
     }
@@ -71,6 +101,7 @@ public class ClickableGlowOutlineSprite : MonoBehaviour
         if (!_inited || target == null) return;
         _baseTargetColor = target.color;
         _baseTargetLocalScale = target.transform.localScale;
+        _currentScaleMul = 1f;
     }
 
     void OnDisable()
@@ -85,6 +116,8 @@ public class ClickableGlowOutlineSprite : MonoBehaviour
 
         if (_glowSr != null) _glowSr.enabled = false;
         if (_shineSr != null) _shineSr.enabled = false;
+        _isHovered = false;
+        _currentScaleMul = 1f;
     }
 
     void OnDestroy()
@@ -101,38 +134,129 @@ public class ClickableGlowOutlineSprite : MonoBehaviour
 
     void Update()
     {
-        if (_glowSr == null || _shineSr == null || target == null) return;
+        if (target == null) return;
+
+        _isHovered = IsMouseOverTarget();
+
+        if (useSimpleHoverNoDuplicate)
+        {
+            UpdateSimpleHover();
+            return;
+        }
+
+        if (_glowSr == null || _shineSr == null) return;
 
         SyncRenderersWithTarget();
 
         float t = Time.unscaledTime;
 
+        float pulse = _isHovered && useHoverBoost ? hoverPulseSpeed : pulseSpeed;
+        float minA = _isHovered && useHoverBoost ? hoverMinAlpha : minAlpha;
+        float maxA = _isHovered && useHoverBoost ? hoverMaxAlpha : maxAlpha;
+        float activeShineMax = _isHovered && useHoverBoost ? hoverShineMaxAlpha : shineMaxAlpha;
+        float activeShineSpeed = _isHovered && useHoverBoost ? hoverShineSpeed : shineSpeed;
+        float activeShineOffset = (_isHovered && useHoverBoost && keepShineCenteredOnHover) ? 0f : shineOffset;
+
         // Pulse alpha for persistent click hint.
-        float pulse01 = (Mathf.Sin(t * pulseSpeed) + 1f) * 0.5f;
-        float glowAlpha = Mathf.Lerp(minAlpha, maxAlpha, pulse01);
+        float pulse01 = (Mathf.Sin(t * pulse) + 1f) * 0.5f;
+        float glowAlpha = Mathf.Lerp(minA, maxA, pulse01);
 
         Color glow = glowColor;
         glow.a = glowAlpha;
         _glowSr.color = glow;
 
-        // Diagonal shine sweep.
-        float sweep01 = Mathf.PingPong(t * shineSpeed, 1f);
+        // Soft shine: no aggressive diagonal offset on hover.
+        float sweep01 = Mathf.PingPong(t * activeShineSpeed, 1f);
         float diag = sweep01 * 2f - 1f;
-        _shineTf.localPosition = new Vector3(diag * shineOffset, -diag * shineOffset, 0f);
+        _shineTf.localPosition = new Vector3(diag * activeShineOffset, -diag * activeShineOffset, 0f);
 
         float shineFade = Mathf.Sin(sweep01 * Mathf.PI); // 0..1..0
         Color shine = shineColor;
-        shine.a = shineMaxAlpha * shineFade;
+        shine.a = activeShineMax * shineFade;
         _shineSr.color = shine;
 
         if (animateTargetScale)
         {
-            float scalePulse = 1f + Mathf.Sin(t * scalePulseSpeed) * scalePulseAmount;
-            target.transform.localScale = _baseTargetLocalScale * scalePulse;
+            float targetMul = _isHovered ? hoverScaleMultiplier : 1f;
+            _currentScaleMul = Mathf.MoveTowards(_currentScaleMul, targetMul, hoverScaleLerpSpeed * Time.unscaledDeltaTime);
+
+            float pulseMul = 1f + Mathf.Sin(Time.unscaledTime * scalePulseSpeed) * scalePulseAmount;
+            target.transform.localScale = _baseTargetLocalScale * (_currentScaleMul * pulseMul);
+        }
+        else
+        {
+            target.transform.localScale = _baseTargetLocalScale;
         }
 
         _glowSr.enabled = true;
         _shineSr.enabled = true;
+    }
+
+    void UpdateSimpleHover()
+    {
+        if (animateTargetScale)
+        {
+            float targetMul = _isHovered ? hoverScaleMultiplier : 1f;
+            _currentScaleMul = Mathf.MoveTowards(_currentScaleMul, targetMul, hoverScaleLerpSpeed * Time.unscaledDeltaTime);
+
+            float pulseMul = 1f + Mathf.Sin(Time.unscaledTime * scalePulseSpeed) * scalePulseAmount;
+            target.transform.localScale = _baseTargetLocalScale * (_currentScaleMul * pulseMul);
+        }
+        else
+        {
+            target.transform.localScale = _baseTargetLocalScale;
+        }
+
+        if (_isHovered)
+        {
+            float pulse01 = (Mathf.Sin(Time.unscaledTime * hoverTintPulseSpeed) + 1f) * 0.5f;
+            float tint = hoverTintStrength * (0.65f + 0.35f * pulse01);
+            target.color = Color.Lerp(_baseTargetColor, Color.white, tint);
+        }
+        else
+        {
+            target.color = _baseTargetColor;
+        }
+    }
+
+    void OnMouseEnter()
+    {
+        _isHovered = true;
+    }
+
+    void OnMouseExit()
+    {
+        _isHovered = false;
+    }
+
+    bool IsMouseOverTarget()
+    {
+        Camera cam = null;
+        if (target != null)
+            cam = target.GetComponentInParent<Camera>();
+        if (cam == null || !cam.isActiveAndEnabled)
+            cam = Camera.main;
+        if (cam == null || !cam.isActiveAndEnabled)
+        {
+            var all = Camera.allCameras;
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i] != null && all[i].isActiveAndEnabled)
+                {
+                    cam = all[i];
+                    break;
+                }
+            }
+        }
+        if (cam == null) return _isHovered;
+
+        Vector3 mp = Input.mousePosition;
+        float z = Mathf.Abs(cam.transform.position.z - target.transform.position.z);
+        Vector3 world = cam.ScreenToWorldPoint(new Vector3(mp.x, mp.y, z));
+
+        Bounds b = target.bounds;
+        b.Expand(new Vector3(hoverHitPaddingWorld, hoverHitPaddingWorld, 0f));
+        return b.Contains(world);
     }
 
     void SyncRenderersWithTarget()
@@ -140,7 +264,8 @@ public class ClickableGlowOutlineSprite : MonoBehaviour
         if (_glowSr.sprite != target.sprite) _glowSr.sprite = target.sprite;
         if (_shineSr.sprite != target.sprite) _shineSr.sprite = target.sprite;
 
-        _glowTf.localScale = Vector3.one * glowScale;
+        float activeGlowScale = glowScale * (_isHovered && useHoverBoost ? hoverGlowScaleMultiplier : 1f);
+        _glowTf.localScale = Vector3.one * activeGlowScale;
         _shineTf.localScale = Vector3.one;
 
         _glowSr.sortingLayerID = target.sortingLayerID;

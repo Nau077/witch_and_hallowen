@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -89,10 +89,17 @@ public class IntroSlideshowPlayer : MonoBehaviour
 
     [Header("Input")]
     [SerializeField] private bool allowSkip = true;
-    [SerializeField] private bool alwaysAllowSpaceSkip = true;
-    [SerializeField] private bool skipOnAnyMouseClick = true;
     [SerializeField] private KeyCode skipKeyPrimary = KeyCode.Space;
-    [SerializeField] private KeyCode skipKeySecondary = KeyCode.Escape;
+    [SerializeField, Min(0f)] private float minSecondsBetweenSkips = 0.08f;
+
+    [Header("Skip Hint")]
+    [SerializeField] private bool showSkipHint = true;
+    [SerializeField] private string skipHintText = "Press Space to skip";
+    [SerializeField] private Text skipHintLabel;
+    [SerializeField, Min(8)] private int skipHintFontSize = 26;
+    [SerializeField] private Color skipHintColor = new Color(1f, 1f, 1f, 0.92f);
+    [SerializeField, Min(0f)] private float skipHintBottomOffset = 36f;
+    [SerializeField] private Font skipHintFont;
 
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
@@ -108,7 +115,12 @@ public class IntroSlideshowPlayer : MonoBehaviour
     [SerializeField] private GameObject[] objectsToDisableOnFinish;
     [SerializeField] private bool disableObjectsAlsoOnSkip = true;
 
-    private bool _skipRequested;
+    private bool _skipCurrentSlideRequested;
+    private bool _skipWasUsedThisPlayback;
+    private int _lastSkipFrame = -1;
+    private float _lastSkipTime = -10f;
+    private bool _skipHintCreateWarningLogged;
+    private bool _skipHintFontWarningLogged;
     private Coroutine _playRoutine;
     private Action _runtimeFinishedCallback;
     private bool _countedAsPlaying;
@@ -155,9 +167,15 @@ public class IntroSlideshowPlayer : MonoBehaviour
             canvasGroup.blocksRaycasts = false;
         }
 
+        if (minSecondsBetweenSkips <= 0f)
+            minSecondsBetweenSkips = 0.08f;
+
+        ApplyLegacySkipHintDefaultsIfNeeded();
         EnsureFadeOverlay();
         ApplyAutoSetup();
         ApplyFadeColor();
+        EnsureSkipHint();
+        UpdateSkipHintVisibility();
     }
 
     private void Start()
@@ -230,10 +248,15 @@ public class IntroSlideshowPlayer : MonoBehaviour
 
     private IEnumerator PlayRoutine()
     {
-        _skipRequested = false;
+        _skipCurrentSlideRequested = false;
+        _skipWasUsedThisPlayback = false;
+        _lastSkipFrame = -1;
+        _lastSkipTime = -10f;
 
         canvasGroup.interactable = true;
         canvasGroup.blocksRaycasts = true;
+        EnsureSkipHint();
+        UpdateSkipHintVisibility();
 
         if (!fadeThroughColor)
             canvasGroup.alpha = 0f;
@@ -269,19 +292,34 @@ public class IntroSlideshowPlayer : MonoBehaviour
             BeginSlideZoomCycle(i, fadeIn, hold, fadeOut);
 
             yield return Fade(0f, 1f, fadeIn);
-            if (_skipRequested) break;
+            if (_skipCurrentSlideRequested)
+            {
+                _skipCurrentSlideRequested = false;
+                ApplyVisibilityValue(0f);
+                continue;
+            }
 
             if (hold > 0f)
             {
                 yield return WaitForSecondsOrSkip(hold);
-                if (_skipRequested) break;
+                if (_skipCurrentSlideRequested)
+                {
+                    _skipCurrentSlideRequested = false;
+                    ApplyVisibilityValue(0f);
+                    continue;
+                }
             }
 
             yield return Fade(1f, 0f, fadeOut);
-            if (_skipRequested) break;
+            if (_skipCurrentSlideRequested)
+            {
+                _skipCurrentSlideRequested = false;
+                ApplyVisibilityValue(0f);
+                continue;
+            }
         }
 
-        OnSequenceFinished();
+        yield return OnSequenceFinishedRoutine();
     }
 
     private IEnumerator Fade(float from, float to, float duration)
@@ -327,29 +365,38 @@ public class IntroSlideshowPlayer : MonoBehaviour
         if (!allowSkip)
             return false;
 
-        if (_skipRequested)
+        if (_skipCurrentSlideRequested)
             return true;
 
-        bool pressedPrimaryOrSecondary = Input.GetKeyDown(skipKeyPrimary) || Input.GetKeyDown(skipKeySecondary);
-        bool pressedSpaceForced = alwaysAllowSpaceSkip && Input.GetKeyDown(KeyCode.Space);
+        if (Time.frameCount == _lastSkipFrame)
+            return false;
 
-        if (pressedPrimaryOrSecondary || pressedSpaceForced)
-        {
-            _skipRequested = true;
-            return true;
-        }
+        if (Time.unscaledTime - _lastSkipTime < minSecondsBetweenSkips)
+            return false;
 
-        if (skipOnAnyMouseClick && Input.GetMouseButtonDown(0))
+        // Trigger on key release to avoid carry-over into next slide/dialogue.
+        if (Input.GetKeyUp(skipKeyPrimary))
         {
-            _skipRequested = true;
+            _skipCurrentSlideRequested = true;
+            _skipWasUsedThisPlayback = true;
+            _lastSkipFrame = Time.frameCount;
+            _lastSkipTime = Time.unscaledTime;
             return true;
         }
 
         return false;
     }
 
-    private void OnSequenceFinished()
+    private IEnumerator OnSequenceFinishedRoutine()
     {
+        if (_skipWasUsedThisPlayback)
+        {
+            // Consume skip key in the transition frame so it does not leak into next UI.
+            Input.ResetInputAxes();
+            yield return null;
+            Input.ResetInputAxes();
+        }
+
         if (clearNewGameBootModeAfterPlay && playCondition == PlayCondition.NewGameBootModeOnly)
         {
             PlayerPrefs.SetInt(BootModeKey, 0);
@@ -368,6 +415,7 @@ public class IntroSlideshowPlayer : MonoBehaviour
         canvasGroup.alpha = 0f;
         canvasGroup.interactable = false;
         canvasGroup.blocksRaycasts = false;
+        UpdateSkipHintVisibility();
 
         if (fadeOverlayImage != null)
             SetImageAlpha(fadeOverlayImage, 1f);
@@ -384,11 +432,11 @@ public class IntroSlideshowPlayer : MonoBehaviour
             if (string.IsNullOrWhiteSpace(sceneToLoad))
             {
                 Debug.LogError("[IntroSlideshowPlayer] sceneToLoad is empty.", this);
-                return;
+                yield break;
             }
 
             SceneManager.LoadScene(sceneToLoad);
-            return;
+            yield break;
         }
 
         if (finishAction == FinishAction.DisableGameObject)
@@ -430,6 +478,7 @@ public class IntroSlideshowPlayer : MonoBehaviour
             _playRoutine = null;
         }
 
+        UpdateSkipHintVisibility();
         MarkPlayingStopped();
     }
 
@@ -520,6 +569,101 @@ public class IntroSlideshowPlayer : MonoBehaviour
         var c = img.color;
         c.a = Mathf.Clamp01(a);
         img.color = c;
+    }
+
+    private void EnsureSkipHint()
+    {
+        if (skipHintLabel != null)
+            return;
+
+        RectTransform parent = null;
+        if (canvasGroup != null)
+            parent = canvasGroup.GetComponent<RectTransform>();
+
+        if (parent == null && slideImage != null)
+            parent = slideImage.rectTransform.parent as RectTransform;
+
+        if (parent == null && slideImage != null)
+            parent = slideImage.rectTransform;
+
+        if (parent == null)
+        {
+            if (!_skipHintCreateWarningLogged)
+            {
+                _skipHintCreateWarningLogged = true;
+                Debug.LogWarning("[IntroSlideshowPlayer] Skip hint could not be created: no valid RectTransform parent found.", this);
+            }
+            return;
+        }
+
+        GameObject go = new GameObject("SkipHint", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+        go.transform.SetParent(parent, false);
+
+        skipHintLabel = go.GetComponent<Text>();
+        skipHintLabel.raycastTarget = false;
+        skipHintLabel.alignment = TextAnchor.LowerCenter;
+        skipHintLabel.horizontalOverflow = HorizontalWrapMode.Wrap;
+        skipHintLabel.verticalOverflow = VerticalWrapMode.Overflow;
+
+        RectTransform rect = skipHintLabel.rectTransform;
+        rect.anchorMin = new Vector2(0.5f, 0f);
+        rect.anchorMax = new Vector2(0.5f, 0f);
+        rect.pivot = new Vector2(0.5f, 0f);
+        rect.anchoredPosition = new Vector2(0f, skipHintBottomOffset);
+        rect.sizeDelta = new Vector2(900f, 90f);
+        rect.localScale = Vector3.one;
+        rect.localRotation = Quaternion.identity;
+    }
+
+    private void ApplyLegacySkipHintDefaultsIfNeeded()
+    {
+        bool looksLikeLegacySceneData = skipHintFontSize <= 0 && string.IsNullOrEmpty(skipHintText);
+        if (!looksLikeLegacySceneData)
+            return;
+
+        showSkipHint = true;
+        skipHintText = "Press Space to skip";
+        skipHintFontSize = 26;
+        skipHintColor = new Color(1f, 1f, 1f, 0.92f);
+        skipHintBottomOffset = 36f;
+    }
+
+    private void UpdateSkipHintVisibility()
+    {
+        if (skipHintLabel == null)
+            return;
+
+        bool shouldShow = showSkipHint && allowSkip && _playRoutine != null;
+        if (skipHintLabel.gameObject.activeSelf != shouldShow)
+            skipHintLabel.gameObject.SetActive(shouldShow);
+
+        if (!shouldShow)
+            return;
+
+        skipHintLabel.text = string.IsNullOrWhiteSpace(skipHintText) ? "Press Space to skip" : skipHintText;
+        skipHintLabel.fontSize = Mathf.Max(8, skipHintFontSize);
+        skipHintLabel.color = skipHintColor;
+        if (skipHintFont != null)
+        {
+            skipHintLabel.font = skipHintFont;
+        }
+        else
+        {
+            Font fallback = GetDefaultBuiltinFont();
+            if (fallback != null)
+            {
+                skipHintLabel.font = fallback;
+            }
+            else if (skipHintLabel.font == null && !_skipHintFontWarningLogged)
+            {
+                _skipHintFontWarningLogged = true;
+                Debug.LogWarning("[IntroSlideshowPlayer] Skip hint font is missing. Assign Skip Hint Font in Inspector.", this);
+            }
+        }
+        skipHintLabel.transform.SetAsLastSibling();
+
+        RectTransform rect = skipHintLabel.rectTransform;
+        rect.anchoredPosition = new Vector2(0f, Mathf.Max(0f, skipHintBottomOffset));
     }
 
     private void BeginSlideZoomCycle(int slideIndex, float fadeInForSlide, float holdForSlide, float fadeOutForSlide)
@@ -624,6 +768,14 @@ public class IntroSlideshowPlayer : MonoBehaviour
         return float.IsFinite(v.x) && float.IsFinite(v.y) && float.IsFinite(v.z);
     }
 
+    private static Font GetDefaultBuiltinFont()
+    {
+        Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        if (font == null)
+            font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        return font;
+    }
+
     private void DisableConfiguredObjects()
     {
         if (objectsToDisableOnFinish == null || objectsToDisableOnFinish.Length == 0)
@@ -726,5 +878,3 @@ public class IntroSlideshowPlayer : MonoBehaviour
         DisableConfiguredObjects();
     }
 }
-
-

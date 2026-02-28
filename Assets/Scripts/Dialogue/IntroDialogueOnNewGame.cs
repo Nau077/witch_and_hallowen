@@ -12,6 +12,11 @@ public class IntroDialogueOnNewGame : MonoBehaviour
     [Header("Timing")]
     [Range(0f, 5f)]
     public float startDelay = 1.8f;
+    [SerializeField] private bool waitForIntroSlideshowToFinish = true;
+    [SerializeField, Range(0f, 30f)] private float maxWaitForIntroSeconds = 20f;
+    [SerializeField] private IntroSlideshowPlayer introSlideshowPlayer;
+    [SerializeField] private bool consumeSpaceBeforeDialogue = true;
+    [SerializeField, Range(0f, 1f)] private float maxSpaceReleaseWait = 0.35f;
 
     [Tooltip("Если true — после интро сбросим boot_mode, чтобы при перезаходе не показывать снова.")]
     public bool clearBootModeAfterPlay = true;
@@ -30,6 +35,9 @@ public class IntroDialogueOnNewGame : MonoBehaviour
         int mode = PlayerPrefs.GetInt(BOOT_MODE_KEY, 0);
         if (mode != BOOT_NEW_GAME) return;
 
+        if (introSlideshowPlayer == null)
+            introSlideshowPlayer = FindObjectOfType<IntroSlideshowPlayer>(true);
+
         if (removeDefaultFireballBeforeIntro)
             RemoveFireballFromStartState();
 
@@ -40,12 +48,43 @@ public class IntroDialogueOnNewGame : MonoBehaviour
 
     private IEnumerator PlayDelayed()
     {
+        if (waitForIntroSlideshowToFinish)
+        {
+            float waitT = 0f;
+            while (waitT < maxWaitForIntroSeconds)
+            {
+                bool stillPlaying = introSlideshowPlayer != null && introSlideshowPlayer.IsPlaying;
+                if (!stillPlaying)
+                    break;
+
+                waitT += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            // Let UI settle one frame after intro hide.
+            yield return null;
+        }
+
         // ждать в unscaled, чтобы не зависеть от timeScale
         float t = 0f;
         while (t < startDelay)
         {
             t += Time.unscaledDeltaTime;
             yield return null;
+        }
+
+        if (consumeSpaceBeforeDialogue)
+        {
+            float releaseWait = 0f;
+            while (Input.GetKey(KeyCode.Space) && releaseWait < maxSpaceReleaseWait)
+            {
+                releaseWait += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            Input.ResetInputAxes();
+            yield return null;
+            Input.ResetInputAxes();
         }
 
         if (DialogueRunner.Instance == null)

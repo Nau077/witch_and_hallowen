@@ -1,9 +1,11 @@
-﻿using System;
+using System;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 [DefaultExecutionOrder(-450)]
 public class DialogueRunner : MonoBehaviour
 {
+    private const float HardMinimumContinueGuardSeconds = 0.35f;
     public static DialogueRunner Instance { get; private set; }
 
     [Header("UI")]
@@ -12,31 +14,53 @@ public class DialogueRunner : MonoBehaviour
     [Header("Input lock")]
     public bool lockGameplayInput = true;
 
+    [Header("Continue Guard")]
+    [Min(0f)] public float minContinueDelayAfterPlay = 0.25f;
+
     private DialogueSequenceSO _sequence;
     private int _index;
     private bool _playing;
     private Action _onFinished;
+    private float _playStartedAtUnscaledTime;
 
     private void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        if (minContinueDelayAfterPlay <= 0f)
+            minContinueDelayAfterPlay = 0.25f;
+
+        if (Instance != null && Instance != this)
+        {
+            Instance.TryAdoptUIFrom(this);
+            Destroy(this);
+            return;
+        }
+
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }
 
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += HandleSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
+    }
+
     private void Start()
     {
-        if (ui == null)
-            ui = FindObjectOfType<DialogueUI>(true);
-
-        if (ui != null)
-            ui.OnContinuePressed += HandleContinue;
+        RefreshUIBinding();
     }
 
     private void OnDestroy()
     {
         if (ui != null)
             ui.OnContinuePressed -= HandleContinue;
+
+        if (Instance == this)
+            Instance = null;
     }
 
     public bool IsPlaying => _playing;
@@ -49,8 +73,7 @@ public class DialogueRunner : MonoBehaviour
             return;
         }
 
-        if (ui == null)
-            ui = FindObjectOfType<DialogueUI>(true);
+        RefreshUIBinding();
 
         if (ui == null)
         {
@@ -63,6 +86,7 @@ public class DialogueRunner : MonoBehaviour
         _index = 0;
         _playing = true;
         _onFinished = onFinished;
+        _playStartedAtUnscaledTime = Time.unscaledTime;
 
         if (lockGameplayInput)
             SetGameplayLocked(true);
@@ -71,13 +95,16 @@ public class DialogueRunner : MonoBehaviour
         ui.BeginConversation();
         ui.PlayShow();
 
-        // первая реплика
+        // ?????? ???????
         ui.DisplayLineAnimated(_sequence.GetLine(_index));
     }
 
     private void HandleContinue()
     {
         if (!_playing) return;
+        float continueGuard = Mathf.Max(minContinueDelayAfterPlay, HardMinimumContinueGuardSeconds);
+        if (Time.unscaledTime - _playStartedAtUnscaledTime < continueGuard)
+            return;
 
         _index++;
 
@@ -98,7 +125,7 @@ public class DialogueRunner : MonoBehaviour
         {
             ui.PlayHide(() =>
             {
-                // страховка: гарантированно погасить всё
+                // ?????????: ?????????????? ???????? ???
                 ui.HideImmediate();
 
                 if (lockGameplayInput)
@@ -128,5 +155,36 @@ public class DialogueRunner : MonoBehaviour
     {
         if (RunLevelManager.Instance != null)
             RunLevelManager.Instance.SetInputLocked(locked);
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        RefreshUIBinding();
+    }
+
+    private void RefreshUIBinding()
+    {
+        DialogueUI nextUi = ui;
+        if (nextUi == null)
+            nextUi = FindObjectOfType<DialogueUI>(true);
+
+        if (ui != nextUi && ui != null)
+            ui.OnContinuePressed -= HandleContinue;
+
+        ui = nextUi;
+        if (ui != null)
+        {
+            ui.OnContinuePressed -= HandleContinue;
+            ui.OnContinuePressed += HandleContinue;
+        }
+    }
+
+    private void TryAdoptUIFrom(DialogueRunner other)
+    {
+        if (other == null || other.ui == null || ui != null)
+            return;
+
+        ui = other.ui;
+        RefreshUIBinding();
     }
 }

@@ -6,6 +6,7 @@ using UnityEngine.UI;
 
 public class DialogueUI : MonoBehaviour
 {
+    private const float HardMinimumContinueInputGuardSeconds = 0.25f;
     [Serializable]
     public class DialogueGroup
     {
@@ -84,6 +85,10 @@ public class DialogueUI : MonoBehaviour
     [Tooltip("Насколько сильно кнопка тинтится в голубой во время пульса (0 = не тинтим).")]
     [Range(0f, 1f)] public float glowButtonTintStrength = 0.18f;
 
+    [Header("Continue Input Guard")]
+    [Tooltip("Короткая защита после старта диалога, чтобы Space из интро не скипал первую реплику.")]
+    [Min(0f)] public float continueInputGuardSeconds = 0.2f;
+
     public event Action OnContinuePressed;
 
     Coroutine _rootRoutine;
@@ -91,9 +96,13 @@ public class DialogueUI : MonoBehaviour
     Coroutine _glowRoutine;
     Coroutine _bubbleAnimRoutine1;
     Coroutine _bubbleAnimRoutine2;
+    private float _continueInputGuardUntilTime;
 
     private void Awake()
     {
+        if (continueInputGuardSeconds <= 0f)
+            continueInputGuardSeconds = 0.2f;
+
         if (dialogRoot == null)
             dialogRoot = gameObject;
 
@@ -106,7 +115,7 @@ public class DialogueUI : MonoBehaviour
         if (continueButton != null)
         {
             continueButton.onClick.RemoveAllListeners();
-            continueButton.onClick.AddListener(() => OnContinuePressed?.Invoke());
+            continueButton.onClick.AddListener(HandleContinueButtonClick);
 
             if (continueCanvasGroup == null)
                 continueCanvasGroup = continueButton.GetComponent<CanvasGroup>();
@@ -126,15 +135,6 @@ public class DialogueUI : MonoBehaviour
         }
 
         HideImmediate();
-    }
-
-    private void Update()
-    {
-        // Активируем кнопку "продолжить" по пробелу, если она интерактивна
-        if (Input.GetKeyDown(KeyCode.Space) && continueButton != null && continueButton.interactable)
-        {
-            OnContinuePressed?.Invoke();
-        }
     }
 
     void EnsureGroupCanvasGroup(ref DialogueGroup g)
@@ -158,6 +158,8 @@ public class DialogueUI : MonoBehaviour
     {
         StopLine();
         StopGlow();
+
+        ArmContinueInputGuard();
 
         SetRootActive(true);
 
@@ -448,6 +450,7 @@ public class DialogueUI : MonoBehaviour
         // ✅ теперь включаем continue
         SetContinueVisible(true);
         SetContinueInteractable(true);
+        ArmContinueInputGuard();
 
         // ✅ glow стартует позже
         if (glowEnabled)
@@ -657,5 +660,48 @@ public class DialogueUI : MonoBehaviour
                 yield return null;
             }
         }
+    }
+
+    void ArmContinueInputGuard()
+    {
+        float guard = Mathf.Max(continueInputGuardSeconds, HardMinimumContinueInputGuardSeconds);
+        _continueInputGuardUntilTime = Time.unscaledTime + guard;
+    }
+
+    private void HandleContinueButtonClick()
+    {
+        TryRaiseContinueRequested();
+    }
+
+    private void TryRaiseContinueRequested()
+    {
+        if (continueButton == null || !continueButton.interactable)
+            return;
+
+        if (!WasPointerClickThisFrame())
+            return;
+
+        if (Time.unscaledTime < _continueInputGuardUntilTime)
+            return;
+
+        OnContinuePressed?.Invoke();
+    }
+
+    private static bool WasPointerClickThisFrame()
+    {
+        if (Input.GetMouseButtonUp(0))
+            return true;
+
+        if (Input.touchCount <= 0)
+            return false;
+
+        for (int i = 0; i < Input.touchCount; i++)
+        {
+            Touch touch = Input.GetTouch(i);
+            if (touch.phase == TouchPhase.Ended)
+                return true;
+        }
+
+        return false;
     }
 }

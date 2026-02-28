@@ -7,6 +7,88 @@ This document is a quick handoff for future Codex chats working on:
 
 Keep this file updated when logic changes.
 
+## Latest context update (updated 2026-02-28, intro skip vs dialogue input separation)
+
+### Intro slideshow input (current)
+
+Current `IntroSlideshowPlayer` behavior:
+- skip works only by configured primary key (`skipKeyPrimary`, currently `Space` in scenes),
+- skip trigger uses `Input.GetKeyUp(skipKeyPrimary)`,
+- skip action is per-slide (not full-sequence instant finish),
+- skip hint text is runtime-supported (`Press Space to skip`) with fallback builtin font (`LegacyRuntime.ttf`).
+
+Notes:
+- earlier "any key / mouse click skip" behavior is not used in current code path.
+- at sequence finish, intro still does `Input.ResetInputAxes()` to reduce key carry-over.
+
+### New Game intro dialogue trigger (current)
+
+`IntroDialogueOnNewGame` currently:
+- runs only for strict New Game (`dw_boot_mode == 1`),
+- can wait until intro slideshow ends (`waitForIntroSlideshowToFinish`),
+- adds start delay (`startDelay`),
+- consumes held space briefly before starting dialogue (`consumeSpaceBeforeDialogue` + `maxSpaceReleaseWait`),
+- then calls `DialogueRunner.Instance.Play(...)`.
+
+### Dialogue input policy (current final state)
+
+`DialogueUI` continue input is now intentionally click/tap-only:
+- keyboard `Space` does **not** advance dialogue,
+- continue action is accepted only from real pointer click/touch release on `Continue` button (`onClick` path with pointer-source filter),
+- this was done to hard-separate intro `Space` usage from dialogue progression and eliminate accidental full-dialogue skipping from shared key input timing.
+
+Practical result:
+- pressing `Space` during/after intro no longer directly advances dialogue lines,
+- dialogue progression must be done via clicking `Continue`.
+
+## Latest context update (updated 2026-02-28, station click + hover final fix)
+
+### Station interaction status: now working
+
+User confirmed current state: "works now".
+
+Finalized behavior:
+- station click now toggles temporary station view correctly:
+  - `Main Camera` <-> `Main Camera_2`
+  - hides/shows `Canvas/MainGame`
+  - hides/shows `SoulShopKeeper`
+- station hover tooltip works with current setup.
+
+Implementation used for stable click detection:
+- `Assets/Scripts/UI/Station/StationInteractionToggle.cs`
+  - robust hover/click hit detection with camera fallback and 2D ray intersection.
+  - no hard dependency on `Camera.main`; active camera is resolved from:
+    - current station-view state (`mainCamera`/`stationCamera`),
+    - then fallback to `Camera.allCameras`.
+  - explicit camera toggling helper (`SetCameraActive(...)`) to avoid partial camera state issues.
+  - distance gate support:
+    - `interactionDistance` for normal gameplay behavior,
+    - `bypassDistanceCheck` for temporary debug/testing.
+  - click diagnostics:
+    - optional `logDistanceBlock` log when click is blocked by distance.
+  - known earlier issue in chat was fixed:
+    - `NullReferenceException` from `OnDisable()` tooltip path,
+    - replaced by safe hover exit flow.
+  - transition keeps temporary cinematic swap behavior:
+    - fade-out -> switch state -> fade-in,
+    - toggles cameras and related objects in one place (`ApplyStationViewState`).
+
+### Hover/glow status: no duplicate-sprite issue in final mode
+
+Final requirement from user:
+- keep scale pulse animation,
+- on hover increase object together with pulse,
+- no visual "sprite splitting/doubling".
+
+Implemented/final behavior:
+- `Assets/Scripts/UI/ClickableShineSprite.cs` (`ClickableGlowOutlineSprite`)
+  - simple no-duplicate hover mode enabled path:
+    - only the main sprite scales/pulses,
+    - hover increases base scale multiplier,
+    - hover glow is applied as tint pulse on the same sprite.
+  - pulse now applied in both simple and legacy branches.
+  - safety defaults restore pulse values if accidentally set to zero in inspector.
+
 ## Latest context update (updated 2026-02-27, popup timings tuned)
 
 ### Popup speed policy (final)
@@ -744,3 +826,4 @@ This replaced the earlier hard dependency on scene name checks for intro visibil
 
 3. Future cutscenes (e.g. between stages):
 - use separate canvas + separate `IntroSlideshowPlayer` instance and trigger manually.
+

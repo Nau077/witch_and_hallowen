@@ -103,7 +103,7 @@ public class UpgradeRewardPopup : MonoBehaviour
         if (titleText != null)
         {
             SetupTitleText();
-            titleText.text = string.IsNullOrWhiteSpace(popupTitle) ? "Upgade" : popupTitle;
+            titleText.text = string.IsNullOrWhiteSpace(popupTitle) ? "Upgrade" : popupTitle;
         }
 
         HideAllOptions();

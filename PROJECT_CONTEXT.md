@@ -385,11 +385,11 @@ Counter/transition UI now uses the runtime record UI path above instead of that 
 
 ### Last hotfixes (updated 2026-02-23, late)
 
-- Upgrade popup title default changed from `Choose Upgrade` to `Upgade`.
+- Upgrade popup title default changed from `Choose Upgrade` to `Upgrade`.
   - `Assets/Scripts/UI/Upgrades/UpgradeRewardSystem.cs`
-    - `RewardRule.popupTitle = "Upgade"`
+    - `RewardRule.popupTitle = "Upgrade"`
   - `Assets/Scripts/UI/Upgrades/UpgradeRewardPopup.cs`
-    - fallback title in `Show(...)` changed to `"Upgade"` when rule title is empty.
+    - fallback title in `Show(...)` changed to `"Upgrade"` when rule title is empty.
 
 - New Game reset fixed for mana/stamina/dash perk levels.
   - root cause: `ProgressResetter.ResetAllProgressForNewGame()` previously reset only HP perk level.
